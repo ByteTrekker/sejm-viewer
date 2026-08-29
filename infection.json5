@@ -8,7 +8,23 @@
         directories: ["src/Domain", "src/Console"]
     },
     mutators: {
-        "@default": true
+        "@default": true,
+        // Jedyne odstępstwo, z uzasadnieniem — reguła jest ta sama co przy allowliście
+        // mutantów w projektach pythonowych: wolno pominąć mutanta wyłącznie wtedy,
+        // gdy nie istnieje wejście dające inny wynik.
+        //
+        // `(string) preg_replace(...)` to asercja typu wymagana przez PHPStan na
+        // poziomie 8: preg_replace deklaruje `string|null`, a null zwraca wyłącznie
+        // przy błędzie silnika (np. przekroczeniu backtrack limitu), czego nie da się
+        // wywołać tymi wzorcami. Żaden tekst wejściowy nie odróżni obu wersji.
+        CastString: {
+            ignore: [
+                "Milczenie\\Domain\\RecipientNormalizer::slug",
+                "Milczenie\\Domain\\RecipientNormalizer::prettify",
+                "Milczenie\\Domain\\IssuerNormalizer::slug",
+                "Milczenie\\Domain\\IssuerNormalizer::prettify"
+            ]
+        }
     },
     logs: {
         text: "var/infection.log"

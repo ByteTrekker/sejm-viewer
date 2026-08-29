@@ -6,6 +6,7 @@ namespace Milczenie\Tests\Unit;
 
 use Milczenie\Domain\IssuerNormalizer;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(IssuerNormalizer::class)]
@@ -20,14 +21,57 @@ final class IssuerNormalizerTest extends TestCase
         self::assertSame('Minister spraw wewnętrznych i administracji', $n->displayName($key));
     }
 
-    public function test_known_bodies_get_their_proper_names_not_lowercased_slugs(): void
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function namedBodies(): iterable
+    {
+        // Kazda pozycja slownika etykiet osobno - usuniecie ktorejkolwiek ma dac czerwony test.
+        yield 'premier' => ['PREZ. RADY MINISTRÓW', 'Prezes Rady Ministrów'];
+        yield 'rząd' => ['RADA MINISTRÓW', 'Rada Ministrów'];
+        yield 'prezydent' => ['PREZYDENT RZECZYPOSPOLITEJ POLSKIEJ', 'Prezydent RP'];
+        yield 'Sejm' => ['SEJM', 'Sejm RP'];
+        yield 'brak organu' => ['nieznany', 'Organ nieokreślony w API'];
+    }
+
+    #[DataProvider('namedBodies')]
+    public function test_known_bodies_get_their_proper_names_not_lowercased_slugs(string $raw, string $expected): void
     {
         $n = new IssuerNormalizer();
 
-        self::assertSame('Prezes Rady Ministrów', $n->displayName($n->normalize('PREZ. RADY MINISTRÓW')));
-        self::assertSame('Rada Ministrów', $n->displayName($n->normalize('RADA MINISTRÓW')));
-        self::assertSame('Prezydent RP', $n->displayName($n->normalize('PREZYDENT RZECZYPOSPOLITEJ POLSKIEJ')));
-        self::assertSame('Sejm RP', $n->displayName($n->normalize('SEJM')));
+        self::assertSame($expected, $n->displayName($n->normalize($raw)));
+    }
+
+    public function test_key_strips_padding_diacritics_and_case(): void
+    {
+        // Asercja na dokladna wartosc wykrywa usuniecie trim() i zamiane mb_strtolower().
+        $n = new IssuerNormalizer();
+
+        self::assertSame('minister srodowiska', $n->normalize('  MIN.  ŚRODOWISKA '));
+        self::assertSame('szef kancelarii prezesa rady ministrow', $n->normalize('SZEF KANCELARII PREZESA RADY MINISTRÓW'));
+    }
+
+    public function test_first_spelling_wins_and_later_ones_do_not_overwrite_it(): void
+    {
+        // Pilnuje `??=` przy budowaniu etykiet.
+        $n = new IssuerNormalizer();
+
+        $key = $n->normalize('MIN. ZDROWIA');
+        $n->normalize('min. zdrowia');
+
+        self::assertSame('Minister zdrowia', $n->displayName($key));
+    }
+
+    public function test_display_name_capitalises_a_multibyte_first_letter(): void
+    {
+        $n = new IssuerNormalizer();
+
+        self::assertSame('Śląski wojewoda', $n->displayName($n->normalize('ŚLĄSKI WOJEWODA')));
+    }
+
+    public function test_unknown_key_falls_back_to_the_key_itself(): void
+    {
+        self::assertSame('cokolwiek', (new IssuerNormalizer())->displayName('cokolwiek'));
     }
 
     public function test_ministries_are_never_merged_across_years(): void
@@ -42,10 +86,4 @@ final class IssuerNormalizerTest extends TestCase
         );
     }
 
-    public function test_missing_issuer_is_labelled_rather_than_shown_as_a_slug(): void
-    {
-        $n = new IssuerNormalizer();
-
-        self::assertSame('Organ nieokreślony w API', $n->displayName($n->normalize('nieznany')));
-    }
 }

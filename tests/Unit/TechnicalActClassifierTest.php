@@ -37,6 +37,46 @@ final class TechnicalActClassifierTest extends TestCase
             'Ustawa z dnia 5 grudnia 2024 r. o ratyfikacji Umowy między Rzecząpospolitą Polską a Republiką Czeską',
             'zgoda na ratyfikację umowy międzynarodowej',
         ];
+        yield 'wypowiedzenie porozumienia' => [
+            'Ustawa z dnia 5 grudnia 2024 r. o wypowiedzeniu Porozumienia o zdolności prawnej',
+            'zgoda na ratyfikację umowy międzynarodowej',
+        ];
+        yield 'osobowość prawna parafii' => [
+            'Rozporządzenie Ministra Administracji i Cyfryzacji w sprawie nadania osobowości prawnej Parafii Świętego Jana',
+            'osobowość prawna jednostek kościelnych',
+        ];
+        yield 'odznaka' => [
+            'Rozporządzenie Ministra Zdrowia w sprawie odznaki "Dawca Przeszczepu"',
+            'odznaczenia, ordery i odznaki',
+        ];
+        yield 'granice miast' => [
+            'Rozporządzenie Rady Ministrów w sprawie ustalenia granic niektórych gmin i miast',
+            'nazwy i granice jednostek terytorialnych',
+        ];
+        yield 'uchylenie' => [
+            'Rozporządzenie Rady Ministrów uchylające rozporządzenie w sprawie utworzenia gminy',
+            'sprostowania i uchylenia',
+        ];
+        yield 'sprostowanie' => [
+            'Obwieszczenie Prezesa Rady Ministrów w sprawie sprostowania błędu',
+            'sprostowania i uchylenia',
+        ];
+        yield 'szczegółowy zakres działania ministra' => [
+            'Rozporządzenie Prezesa Rady Ministrów w sprawie szczegółowego zakresu działania Ministra Cyfryzacji',
+            'organizacja rządu i urzędów',
+        ];
+        yield 'nadanie statutu' => [
+            'Rozporządzenie Prezesa Rady Ministrów w sprawie nadania statutu Urzędowi Ochrony Konkurencji i Konsumentów',
+            'organizacja rządu i urzędów',
+        ];
+        yield 'rezerwat przyrody' => [
+            'Rozporządzenie Ministra Klimatu i Środowiska w sprawie rezerwatu przyrody Las Bielański',
+            'obszary ochrony przyrody i pomniki historii',
+        ];
+        yield 'wybory uzupełniające' => [
+            'Rozporządzenie Prezesa Rady Ministrów w sprawie wyborów uzupełniających do Senatu',
+            'wybory przedterminowe i uzupełniające',
+        ];
     }
 
     #[DataProvider('technicalActs')]
@@ -57,6 +97,8 @@ final class TechnicalActClassifierTest extends TestCase
         yield 'ograniczenia epidemiczne' => ['Rozporządzenie Rady Ministrów w sprawie ustanowienia określonych ograniczeń, nakazów i zakazów w związku z wystąpieniem stanu epidemii'];
         yield 'wzór wniosku' => ['Rozporządzenie Ministra Rodziny w sprawie wzoru wniosku o świadczenie wychowawcze'];
         yield 'tryb sprostowania jest aktem merytorycznym' => ['Rozporządzenie Ministra Pracy i Polityki Społecznej w sprawie trybu i sposobu sprostowania świadectwa pracy'];
+        yield 'ustawa merytoryczna, nie ratyfikacyjna' => ['Ustawa z dnia 5 grudnia 2024 r. o zmianie ustawy o podatku dochodowym od osób fizycznych'];
+        yield 'zakres działania nie-ministra' => ['Rozporządzenie Ministra Zdrowia w sprawie szczegółowego zakresu danych przekazywanych do rejestru'];
     }
 
     #[DataProvider('substantiveActs')]
@@ -73,5 +115,17 @@ final class TechnicalActClassifierTest extends TestCase
         $classifier = new TechnicalActClassifier();
 
         self::assertTrue($classifier->isTechnical('Rozporządzenie w sprawie nadania osobowości prawnej Parafii Świętego Jana'));
+    }
+
+    public function test_first_matching_rule_wins_so_a_category_is_never_ambiguous(): void
+    {
+        // Akt pasujacy do dwoch regul ma dostac te wczesniejsza, a nie losowa -
+        // inaczej liczniki w sekcji "co odsialismy" nie sumowalyby sie do calosci.
+        $title = 'Rozporządzenie Prezydenta w sprawie uznania za pomnik historii oraz nadania statutu muzeum';
+
+        self::assertSame(
+            'obszary ochrony przyrody i pomniki historii',
+            (new TechnicalActClassifier())->categorize($title),
+        );
     }
 }
