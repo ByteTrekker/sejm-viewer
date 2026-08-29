@@ -1,0 +1,13 @@
+/var/
+/vendor/
+
+# Wygenerowane dashboardy: setki kilobajtów zapieczonych danych.
+# Powstają z szablonów przez `make build`.
+/public/index.html
+/public/vacatio.html
+/public/vacatio-merytoryczne.html
+/public/data.json
+/public/vacatio.json
+/public/vacatio-merytoryczne.json
+
+.DS_Store
