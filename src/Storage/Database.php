@@ -110,6 +110,49 @@ final class Database
         return new self($pdo);
     }
 
+    /**
+     * PDO::query() deklaruje `PDOStatement|false`, choc przy ERRMODE_EXCEPTION
+     * nigdy nie zwroci false. Zamiast rozsiewac po kodzie rzutowania, odczyty
+     * przechodza przez te metody o uczciwym typie zwracanym.
+     *
+     * @param array<string, scalar|null> $params
+     * @return list<array<string, mixed>>
+     */
+    public function fetchAll(string $sql, array $params = []): array
+    {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $stmt->fetchAll();
+
+        return $rows;
+    }
+
+    /**
+     * @param array<string, scalar|null> $params
+     * @return array<string, mixed>|null
+     */
+    public function fetchRow(string $sql, array $params = []): ?array
+    {
+        return $this->fetchAll($sql, $params)[0] ?? null;
+    }
+
+    /**
+     * @param array<string, scalar|null> $params
+     * @return list<int>
+     */
+    public function fetchInts(string $sql, array $params = []): array
+    {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        /** @var list<scalar> $values */
+        $values = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+
+        return array_map(intval(...), $values);
+    }
+
     public function setMeta(string $key, string $value): void
     {
         $stmt = $this->pdo->prepare('INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value');

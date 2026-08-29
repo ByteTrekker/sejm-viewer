@@ -12,32 +12,33 @@ declare(strict_types=1);
 
 require __DIR__ . '/bootstrap.php';
 
+use Milczenie\Console\Options;
 use Milczenie\Domain\IssuerNormalizer;
 use Milczenie\Domain\TechnicalActClassifier;
 use Milczenie\Report\VacatioBuilder;
 use Milczenie\Storage\Database;
 
-$options = getopt('', ['from::', 'to::', 'db::', 'out::', 'exclude-technical', 'name::']);
+$options = Options::fromGetopt(['from::', 'to::', 'db::', 'out::', 'exclude-technical', 'name::']);
 
 // Wariant "merytoryczny" odsiewa akty, ktore nie nakladaja obowiazkow na obywateli
 // (obszary Natura 2000, pelnomocnicy rzadu, wybory przedterminowe). Powstaje jako
 // OSOBNA strona - wersja pelna zostaje nietknieta, zeby dalo sie je porownac.
-$excludeTechnical = isset($options['exclude-technical']);
-$name = (string) ($options['name'] ?? ($excludeTechnical ? 'vacatio-merytoryczne' : 'vacatio'));
+$excludeTechnical = $options->has('exclude-technical');
+$name = $options->string('name', $excludeTechnical ? 'vacatio-merytoryczne' : 'vacatio');
 
-$dbPath = (string) ($options['db'] ?? __DIR__ . '/../var/sejm.sqlite');
-$outDir = rtrim((string) ($options['out'] ?? __DIR__ . '/../public'), '/');
+$dbPath = $options->string('db', __DIR__ . '/../var/sejm.sqlite');
+$outDir = rtrim($options->string('out', __DIR__ . '/../public'), '/');
 
 $db = Database::open($dbPath);
 
-$bounds = $db->pdo->query('SELECT MIN(year) AS lo, MAX(year) AS hi FROM act')->fetch();
-if (!is_array($bounds) || $bounds['lo'] === null) {
+$bounds = $db->fetchRow('SELECT MIN(year) AS lo, MAX(year) AS hi FROM act');
+if ($bounds === null || $bounds['lo'] === null) {
     fwrite(STDERR, 'Brak aktow w bazie. Uruchom najpierw bin/fetch-acts.php' . PHP_EOL);
     exit(1);
 }
 
-$from = (int) ($options['from'] ?? $bounds['lo']);
-$to = (int) ($options['to'] ?? $bounds['hi']);
+$from = $options->int('from', (int) $bounds['lo']);
+$to = $options->int('to', (int) $bounds['hi']);
 
 $report = (new VacatioBuilder(
     $db,
@@ -57,7 +58,7 @@ file_put_contents(sprintf('%s/%s.html', $outDir, $name), str_replace('/*__DATA__
 $ranked = array_values(array_filter($report['organy'], static fn (array $r): bool => $r['w_rankingu']));
 
 fwrite(STDERR, sprintf(
-    "Vacatio legis %d-%d [%s] | rozporzadzen: %s | organow w rankingu: %d/%d | bez daty wejscia: %d%s",
+    'Vacatio legis %d-%d [%s] | rozporzadzen: %s | organow w rankingu: %d/%d | bez daty wejscia: %d%s',
     $from,
     $to,
     $report['meta']['wariant'],
@@ -65,20 +66,20 @@ fwrite(STDERR, sprintf(
     count($ranked),
     count($report['organy']),
     $report['meta']['bez_daty_wejscia'],
-    PHP_EOL
+    PHP_EOL,
 ));
 
 if ($excludeTechnical) {
-    fwrite(STDERR, sprintf("Odsiane jako techniczne: %d%s", $report['meta']['wykluczone_razem'], PHP_EOL));
+    fwrite(STDERR, sprintf('Odsiane jako techniczne: %d%s', $report['meta']['wykluczone_razem'], PHP_EOL));
     foreach ($report['meta']['wykluczone_techniczne'] as $category => $count) {
-        fwrite(STDERR, sprintf("   %5d  %s%s", $count, $category, PHP_EOL));
+        fwrite(STDERR, sprintf('   %5d  %s%s', $count, $category, PHP_EOL));
     }
     fwrite(STDERR, PHP_EOL);
 }
 
 foreach (array_slice($ranked, 0, 10) as $i => $r) {
     fwrite(STDERR, sprintf(
-        "%2d. %-42s pospiech %5.1f | ponizej 14 dni %5.1f%% | z dnia na dzien %5.1f%% | mediana %2sd | n=%d%s",
+        '%2d. %-42s pospiech %5.1f | ponizej 14 dni %5.1f%% | z dnia na dzien %5.1f%% | mediana %2sd | n=%d%s',
         $i + 1,
         mb_substr((string) $r['nazwa'], 0, 46),
         $r['wskaznik_pospiechu'],
@@ -86,6 +87,6 @@ foreach (array_slice($ranked, 0, 10) as $i => $r) {
         100 * $r['udzial_natychmiast'],
         $r['mediana_dni'] ?? '-',
         $r['aktow'],
-        PHP_EOL
+        PHP_EOL,
     ));
 }

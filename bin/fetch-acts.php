@@ -15,18 +15,19 @@ declare(strict_types=1);
 
 require __DIR__ . '/bootstrap.php';
 
+use Milczenie\Console\Options;
 use Milczenie\Domain\IssuerNormalizer;
 use Milczenie\Import\ActImporter;
 use Milczenie\Sejm\SejmApiClient;
 use Milczenie\Storage\Database;
 
-$options = getopt('', ['from::', 'to::', 'publisher::', 'types::', 'db::']);
+$options = Options::fromGetopt(['from::', 'to::', 'publisher::', 'types::', 'db::']);
 
-$from = (int) ($options['from'] ?? 2015);
-$to = (int) ($options['to'] ?? (int) date('Y'));
-$publisher = (string) ($options['publisher'] ?? 'DU');
-$types = isset($options['types']) ? explode(',', (string) $options['types']) : ActImporter::TYPES;
-$dbPath = (string) ($options['db'] ?? __DIR__ . '/../var/sejm.sqlite');
+$from = $options->int('from', 2015);
+$to = $options->int('to', (int) date('Y'));
+$publisher = $options->string('publisher', 'DU');
+$types = $options->commaList('types', ActImporter::TYPES);
+$dbPath = $options->string('db', __DIR__ . '/../var/sejm.sqlite');
 
 $log = static fn (string $m): int|false => fwrite(STDERR, $m . PHP_EOL);
 

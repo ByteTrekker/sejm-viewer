@@ -12,14 +12,6 @@ namespace Milczenie\Domain;
 final class IssuerNormalizer
 {
     /**
-     * Swiadomie NIE scalamy resortow miedzy latami. Ranking obejmuje kilkanascie lat,
-     * w ktorych te same kompetencje wedrowaly miedzy urzedami o roznych nazwach -
-     * sklejenie "Min. finansow" z "Min. rozwoju i finansow" sugerowaloby ciaglosc,
-     * ktorej nie bylo. Pokazujemy organ tak, jak nazywa go Dziennik Ustaw.
-     */
-    private const CONTINUITY = [];
-
-    /**
      * ELI zapisuje organy wersalikami i skrotami. Rozwijamy je do formy czytelnej,
      * zgodnej z zapisem uzywanym w rankingu interpelacji.
      *
@@ -36,15 +28,20 @@ final class IssuerNormalizer
     /** @var array<string, string> */
     private array $displayNames = [];
 
+    /**
+     * Swiadomie NIE scalamy organow miedzy latami. Ranking obejmuje kilkanascie lat,
+     * w ktorych te same kompetencje wedrowaly miedzy urzedami o roznych nazwach -
+     * sklejenie "Min. finansow" z "Min. rozwoju i finansow" sugerowaloby ciaglosc,
+     * ktorej nie bylo. Pokazujemy organ tak, jak nazywa go Dziennik Ustaw.
+     */
     public function normalize(string $raw): string
     {
-        $key = $this->slug($raw);
-        $key = str_starts_with($key, 'min. ') ? 'minister ' . substr($key, 5) : $key;
-        $canonical = self::CONTINUITY[$this->slug($raw)] ?? $key;
+        $slug = $this->slug($raw);
+        $key = str_starts_with($slug, 'min. ') ? 'minister ' . substr($slug, 5) : $slug;
 
-        $this->displayNames[$canonical] ??= $this->prettify($raw);
+        $this->displayNames[$key] ??= $this->prettify($raw);
 
-        return $canonical;
+        return $key;
     }
 
     public function displayName(string $key): string

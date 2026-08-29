@@ -18,25 +18,25 @@ declare(strict_types=1);
 
 require __DIR__ . '/bootstrap.php';
 
+use Milczenie\Console\Options;
 use Milczenie\Domain\RecipientNormalizer;
 use Milczenie\Report\RankingBuilder;
 use Milczenie\Storage\Database;
 
-$options = getopt('', ['term::', 'db::', 'out::', 'snapshot::']);
+$options = Options::fromGetopt(['term::', 'db::', 'out::', 'snapshot::']);
 
-$dbPath = (string) ($options['db'] ?? __DIR__ . '/../var/sejm.sqlite');
-$outDir = rtrim((string) ($options['out'] ?? __DIR__ . '/../public'), '/');
-$forcedSnapshot = isset($options['snapshot']) ? new DateTimeImmutable((string) $options['snapshot']) : null;
+$dbPath = $options->string('db', __DIR__ . '/../var/sejm.sqlite');
+$outDir = rtrim($options->string('out', __DIR__ . '/../public'), '/');
+$snapshotOption = $options->nullableString('snapshot');
+$forcedSnapshot = $snapshotOption === null ? null : new DateTimeImmutable($snapshotOption);
 
 $db = Database::open($dbPath);
 $today = new DateTimeImmutable('today');
 
-/** @var list<int> $available */
-$available = array_map(intval(...), $db->pdo->query('SELECT DISTINCT term FROM question ORDER BY term')->fetchAll(PDO::FETCH_COLUMN));
+$available = $db->fetchInts('SELECT DISTINCT term FROM question ORDER BY term');
 
-$terms = isset($options['term'])
-    ? array_values(array_intersect($available, array_map(intval(...), explode(',', (string) $options['term']))))
-    : $available;
+$requested = $options->commaListOfInt('term', $available);
+$terms = array_values(array_intersect($available, $requested));
 
 if ($terms === []) {
     fwrite(STDERR, 'Brak danych w bazie. Uruchom najpierw bin/fetch.php' . PHP_EOL);
@@ -44,7 +44,7 @@ if ($terms === []) {
 }
 
 $termMeta = [];
-foreach ($db->pdo->query('SELECT num, date_from, date_to FROM term')->fetchAll() as $row) {
+foreach ($db->fetchAll('SELECT num, date_from, date_to FROM term') as $row) {
     $termMeta[(int) $row['num']] = $row;
 }
 
@@ -95,7 +95,7 @@ foreach ($terms as $term) {
     $payload['raporty'][$term] = $report;
 
     fwrite(STDERR, sprintf(
-        "Kadencja %2d (%s%s, odciecie %s): %s pytan, po terminie %s, bez odpowiedzi %d, adresatow w rankingu %d%s",
+        'Kadencja %2d (%s%s, odciecie %s): %s pytan, po terminie %s, bez odpowiedzi %d, adresatow w rankingu %d%s',
         $term,
         $report['meta']['od'] ?? '?',
         $closed ? ' - ' . $endsAt : ' - trwa',
@@ -104,7 +104,7 @@ foreach ($terms as $term) {
         $measurable ? sprintf('%.1f%%', 100 * ($decided > 0 ? $failed / $decided : 0)) : sprintf('NIEMIERZALNE (%d odpowiedzi bez daty)', $undated),
         $sum('bez_odpowiedzi_po_terminie'),
         count($ranked),
-        PHP_EOL
+        PHP_EOL,
     ));
 }
 
