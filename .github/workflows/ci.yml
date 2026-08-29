@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Nowy push do tej samej gałęzi anuluje poprzedni przebieg — nie płacimy
+# za weryfikację nieaktualnego kodu.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  commits:
+    name: Konwencja commitów
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Komunikaty commitów
+        run: ./scripts/check-commits.sh "origin/${{ github.base_ref }}..HEAD"
+
+      - name: Tytuł pull requesta
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: ./scripts/check-commits.sh --subject "$PR_TITLE"
+
+  php:
+    name: PHP
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, curl, mbstring
+          coverage: none
+
+      - name: Składnia
+        run: ./scripts/php-lint.sh
+
+      - name: Test dymny (bez sieci)
+        run: ./scripts/smoke.sh
+
+  artefakty:
+    name: Artefakty generowane
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Wygenerowane dashboardy mają setki kilobajtów zapieczonych danych.
+      # Wersjonowanie ich zamienia diff w szum i rozjeżdża się ze źródłem.
+      - name: Brak wygenerowanych plików w repozytorium
+        run: |
+          found=0
+          for path in public/index.html public/vacatio.html \
+                      public/vacatio-merytoryczne.html public/data.json \
+                      public/vacatio.json public/vacatio-merytoryczne.json \
+                      var/sejm.sqlite; do
+            if [ -e "$path" ]; then
+              echo "BŁĄD: $path jest wygenerowany i nie powinien być w repozytorium"
+              found=1
+            fi
+          done
+          exit "$found"
+
+      - name: Szablony mają miejsce na wstrzyknięcie danych
+        run: |
+          for tpl in public/template.html public/template-vacatio.html; do
+            grep -q '/\*__DATA__\*/null' "$tpl" \
+              || { echo "BŁĄD: brak znacznika /*__DATA__*/null w $tpl"; exit 1; }
+          done
+          echo "OK   szablony w porządku"

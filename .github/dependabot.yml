@@ -1,0 +1,10 @@
+version: 2
+updates:
+  # Projekt nie ma zależności runtime'owych (composer.json deklaruje wyłącznie
+  # rozszerzenia PHP), więc jedyne, co się starzeje, to akcje w CI.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ci

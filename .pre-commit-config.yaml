@@ -1,0 +1,33 @@
+# Lokalna bramka uruchamiana przy commicie: `pre-commit install`.
+# Świadomie jest węższa niż CI — ma być szybka. Pełny zestaw: `make check`.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-executables-have-shebangs
+      - id: check-added-large-files
+        # Wygenerowane dashboardy mają setki kilobajtów i nie należą do repozytorium.
+        args: [--maxkb=512]
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: [--branch, main]
+
+  - repo: local
+    hooks:
+      - id: php-lint
+        name: php -l
+        entry: scripts/php-lint.sh
+        language: script
+        files: \.php$
+        pass_filenames: true
+
+      - id: conventional-commit
+        name: Conventional Commits (angielski)
+        entry: scripts/check-commit-msg.sh
+        language: script
+        stages: [commit-msg]
