@@ -82,6 +82,16 @@
                text-decoration: none; border: 1px solid var(--line); border-radius: 8px; padding: 5px 11px;
                background: var(--surface-1); margin-top: 14px; }
   .crosslink:hover { border-color: var(--series-1); color: var(--ink-1); }
+  nav.toc { position: sticky; top: 0; z-index: 30; background: color-mix(in srgb, var(--surface-0) 92%, transparent);
+            backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); margin: 0 -20px 0; padding: 8px 20px; }
+  nav.toc ul { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; padding: 0; }
+  nav.toc a { font-size: 12.5px; color: var(--ink-2); text-decoration: none; padding: 3px 0; white-space: nowrap; }
+  nav.toc a:hover { color: var(--ink-1); border-bottom: 1px solid var(--series-1); }
+  .caveat { border-left: 3px solid var(--warning); background: var(--surface-1); border-radius: 0 8px 8px 0;
+            padding: 12px 16px; margin: 0 0 18px; font-size: 13.5px; color: var(--ink-2); }
+  .caveat b { color: var(--ink-1); }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 760px) { .duo { grid-template-columns: 1fr; } }
   .switch-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); }
   #term-switch-wrap { margin: 18px 0 14px; }
   #term-seg button { min-width: 58px; }
@@ -189,6 +199,20 @@
     <a class="crosslink" href="vacatio.html">Vacatio legis — ile czasu dostajesz na nowe prawo →</a>
   </header>
 
+  <nav class="toc" aria-label="Sekcje">
+    <ul>
+      <li><a href="#compare-section">Kadencje</a></li>
+      <li><a href="#droga-section">Droga pytania</a></li>
+      <li><a href="#ranking-section">Ranking adresatów</a></li>
+      <li><a href="#trend-section">Terminowość w czasie</a></li>
+      <li><a href="#clubs-section">Kluby</a></li>
+      <li><a href="#members-section">Posłowie</a></li>
+      <li><a href="#series-section">Serie szablonowe</a></li>
+      <li><a href="#absence-section">Nieobecności</a></li>
+      <li><a href="#worst-section">Bez odpowiedzi</a></li>
+    </ul>
+  </nav>
+
   <section id="compare-section">
     <h2>Kadencje obok siebie</h2>
     <p class="sub">
@@ -209,6 +233,30 @@
   </section>
 
   <div id="notice" hidden></div>
+
+  <section id="droga-section">
+    <h2>Droga pytania</h2>
+    <p class="sub">
+      Zanim resort zobaczy pytanie, przechodzi ono przez Kancelarię Sejmu. Ranking terminowości
+      liczy termin dopiero od przekazania — żeby nie obciążać resortu cudzą zwłoką — więc to
+      opóźnienie znikałoby z obrazu. Tu jest pokazane osobno.
+    </p>
+    <div class="kpis" id="droga-kpi"></div>
+    <div class="duo" style="margin-top:12px">
+      <div class="card"><figure>
+        <div id="lag-chart"></div>
+        <figcaption>Od wpływu do Sejmu do przekazania adresatowi</figcaption>
+      </figure></div>
+      <div class="card"><figure>
+        <div id="sign-chart"></div>
+        <figcaption id="sign-caption"></figcaption>
+      </figure></div>
+    </div>
+    <details class="method" id="lag-worst-wrap">
+      <summary>Pytania, które na samo przekazanie czekały dłużej niż wynosi cały termin na odpowiedź</summary>
+      <ul class="worst" id="lag-worst"></ul>
+    </details>
+  </section>
 
   <section id="ranking-section">
     <h2 id="ranking-title">Ranking adresatów</h2>
@@ -256,6 +304,50 @@
       <div id="clubs"></div>
       <figcaption>Uwzględniono kluby z co najmniej 100 rozstrzygniętymi pytaniami.</figcaption>
     </figure></div>
+  </section>
+
+  <section id="members-section">
+    <h2>Posłowie</h2>
+    <p class="sub">
+      Kto pyta i czyje pytania częściej zostają bez odpowiedzi. Kolumna <b>tematów</b> liczy
+      unikalne tytuły — bez niej ranking premiowałby seryjne wysyłanie tego samego pytania
+      z podmienioną nazwą własną.
+    </p>
+    <div class="controls">
+      <div class="seg" id="member-metric-seg" role="group" aria-label="Miara"></div>
+      <input type="search" id="member-filter" placeholder="Filtruj posła lub klub…" aria-label="Filtruj posła">
+    </div>
+    <div class="scroller">
+      <table id="members"><thead><tr id="members-head"></tr></thead><tbody id="members-body"></tbody></table>
+    </div>
+    <p class="sub" id="members-note" style="margin-top:10px"></p>
+  </section>
+
+  <section id="series-section">
+    <h2>Serie szablonowe</h2>
+    <p class="sub" id="series-sub"></p>
+    <div class="card"><ul class="worst" id="series-list"></ul></div>
+  </section>
+
+  <section id="absence-section" hidden>
+    <h2>Nieobecności w głosowaniach</h2>
+    <p class="caveat">
+      <b>API podaje fakt nieobecności, nie jej przyczynę.</b> Delegacja zagraniczna, zwolnienie
+      lekarskie, urlop macierzyński i zwykła absencja wyglądają w danych identycznie. Ta tabela
+      mówi wyłącznie, w ilu głosowaniach poseł nie wziął udziału — każdy wniosek o przyczynach
+      jest nadinterpretacją.
+    </p>
+    <p class="sub" id="absence-sub"></p>
+    <div class="card" style="margin-bottom:12px"><figure>
+      <div id="absence-clubs"></div>
+      <figcaption>Odsetek nieobecności według klubu</figcaption>
+    </figure></div>
+    <div class="controls">
+      <input type="search" id="absence-filter" placeholder="Filtruj posła lub klub…" aria-label="Filtruj posła">
+    </div>
+    <div class="scroller">
+      <table id="absences"><thead><tr id="absences-head"></tr></thead><tbody id="absences-body"></tbody></table>
+    </div>
   </section>
 
   <section id="worst-section">
@@ -726,10 +818,253 @@ function renderFooter() {
   );
 }
 
+
+/* ---------- wspolny wykres slupkowy poziomy ---------- */
+function hbar(hostId, rows, opts) {
+  const host = document.getElementById(hostId);
+  if (!rows.length) { host.replaceChildren(el('p', { class: 'sub', text: 'Brak danych.' })); return; }
+
+  const rowH = opts.rowH || 30, P = { t: 8, r: 62, b: 26, l: opts.labelWidth || 140 }, W = 900;
+  const H = P.t + P.b + rows.length * rowH;
+  const iw = W - P.l - P.r;
+  const maxX = Math.max(...rows.map(r => r.value)) * 1.12 || 1;
+
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': opts.label });
+  const grid = svgEl('g', { class: 'grid' });
+  const axis = svgEl('g', { class: 'axis' });
+
+  const ticks = opts.ticks || 5;
+  for (let i = 0; i <= ticks; i++) {
+    const v = (maxX * i) / ticks, x = P.l + (iw * v) / maxX;
+    grid.append(svgEl('line', { x1: x, x2: x, y1: P.t, y2: P.t + rows.length * rowH }));
+    const t = svgEl('text', { x, y: H - 8, 'text-anchor': 'middle' });
+    t.textContent = opts.tick(v);
+    axis.append(t);
+  }
+  svg.append(grid);
+
+  rows.forEach((r, i) => {
+    const y = P.t + i * rowH;
+    const w = Math.max(2, (iw * r.value) / maxX);
+    const name = svgEl('text', { x: P.l - 12, y: y + rowH / 2 + 4, 'text-anchor': 'end', class: 'serieslabel' });
+    name.textContent = r.label;
+    const val = svgEl('text', { x: P.l + w + 8, y: y + rowH / 2 + 4, class: 'serieslabel' });
+    val.textContent = r.display;
+    const hit = svgEl('rect', { x: P.l, y, width: iw, height: rowH, fill: 'transparent' });
+    if (r.tip) {
+      hit.addEventListener('mousemove', e => showTip(e, r.tip));
+      hit.addEventListener('mouseleave', hideTip);
+    }
+    svg.append(svgEl('rect', { x: P.l, y: y + 7, width: w, height: rowH - 16, rx: 4, fill: 'var(--series-1)' }), name, val, hit);
+  });
+  svg.append(axis);
+  host.replaceChildren(svg);
+}
+
+/* ---------- droga pytania ---------- */
+function renderDroga() {
+  const d = report().droga;
+  if (!d) return;
+  const k = d.kancelaria;
+  // W tym dashboardzie meta jest per kadencja - globalnej zmiennej `meta` tu nie ma.
+  const deadline = report().meta.termin_dni;
+
+  document.getElementById('droga-kpi').replaceChildren(...[
+    ['Mediana przekazania', `${k.mediana_dni} dni`, `średnia ${String(k.srednia_dni).replace('.', ',')} dnia, 90. centyl ${k.p90_dni} dni`],
+    ['Zjedzone terminu', fmtPct(k.udzial_terminu_zjedzony, 0), `zanim resort zobaczy pytanie (z ${deadline} dni)`],
+    ['Dłużej niż cały termin', fmtInt(k.ponad_termin), `${fmtPct(k.udzial_ponad_termin, 1)} pytań czekało na samo przekazanie`],
+    ['Rekord', k.maks_dni === null ? '—' : `${fmtInt(k.maks_dni)} dni`, 'od wpływu do przekazania'],
+  ].map(([label, value, note]) => el('div', { class: 'kpi' },
+    el('div', { class: 'label', text: label }),
+    el('div', { class: 'value', text: value }),
+    el('div', { class: 'note', text: note }),
+  )));
+
+  hbar('lag-chart', k.przedzialy.map(b => ({
+    label: b.etykieta,
+    value: b.n,
+    display: fmtPct(b.n / k.pytan, 0),
+    tip: `<b>${b.etykieta}</b><div class="row">${fmtInt(b.n)} pytań</div>`,
+  })), { label: 'Opóźnienie kancelarii', labelWidth: 110, tick: v => fmtInt(Math.round(v)) });
+
+  const total = d.podpisy.reduce((a, p) => a + p.n, 0);
+  hbar('sign-chart', d.podpisy.map(p => ({
+    label: p.nazwa,
+    value: p.n,
+    display: fmtPct(p.udzial, 0),
+    tip: `<b>${p.nazwa}</b><div class="row">${fmtInt(p.n)} odpowiedzi</div>`,
+  })), { label: 'Kto podpisuje odpowiedź', labelWidth: 150, tick: v => fmtInt(Math.round(v)) });
+
+  const minister = d.podpisy.find(p => p.klucz === 'minister');
+  document.getElementById('sign-caption').textContent = minister
+    ? `Kto podpisuje odpowiedź — minister osobiście w ${fmtPct(minister.udzial, 0)} z ${fmtInt(total)} pism.`
+    : 'Kto podpisuje odpowiedź.';
+
+  const wrap = document.getElementById('lag-worst-wrap');
+  wrap.hidden = k.najdluzej.length === 0;
+  document.getElementById('lag-worst').replaceChildren(...k.najdluzej.map(q => el('li', {},
+    el('span', { class: 'days', text: `${fmtInt(q.dni)} d` }),
+    el('span', {},
+      el('a', { href: q.url, target: '_blank', rel: 'noopener', text: q.tytul }),
+      el('span', { class: 'who', text: `${q.rodzaj} nr ${q.nr} · wpłynęło ${q.wplynelo} → przekazano ${q.przekazano}` }),
+    ),
+  )));
+}
+
+/* ---------- poslowie ---------- */
+const MEMBER_COLUMNS = [
+  { key: 'nazwa', label: 'Poseł', type: 'text' },
+  { key: 'klub', label: 'Klub', type: 'text' },
+  { key: 'tematow', label: 'Tematów', type: 'int' },
+  { key: 'pytan', label: 'Pytań', type: 'int' },
+  { key: 'w_seriach', label: 'W seriach', type: 'int' },
+  { key: 'udzial_po_terminie', label: 'Po terminie', type: 'pct' },
+  { key: 'udzial_bez_odpowiedzi', label: 'Bez odpowiedzi', type: 'pct' },
+];
+const MEMBER_METRICS = [
+  { key: 'tematow', label: 'Unikalnych tematów' },
+  { key: 'pytan', label: 'Pytań ogółem' },
+  { key: 'udzial_po_terminie', label: 'Ich pytania po terminie' },
+  { key: 'udzial_bez_odpowiedzi', label: 'Ich pytania bez odpowiedzi' },
+];
+const memberState = { metric: MEMBER_METRICS[0], filter: '' };
+
+const memberSeg = document.getElementById('member-metric-seg');
+MEMBER_METRICS.forEach(m => {
+  const b = el('button', { type: 'button', text: m.label, 'aria-pressed': String(m.key === memberState.metric.key) });
+  b.onclick = () => { memberState.metric = m; renderMembers(); };
+  memberSeg.append(b);
+});
+document.getElementById('member-filter').addEventListener('input', e => {
+  memberState.filter = e.target.value.toLowerCase();
+  renderMembers();
+});
+
+function renderMembers() {
+  memberSeg.querySelectorAll('button').forEach((b, i) =>
+    b.setAttribute('aria-pressed', String(MEMBER_METRICS[i].key === memberState.metric.key)));
+
+  const all = report().poslowie || [];
+  const metric = memberState.metric;
+  const needsOutcome = metric.key.startsWith('udzial');
+
+  const rows = all
+    .filter(m => m.pytan > 0)
+    .filter(m => !needsOutcome || m.w_rankingu)
+    .filter(m => (m.nazwa + ' ' + (m.klub ?? '')).toLowerCase().includes(memberState.filter))
+    .sort((a, b) => (b[metric.key] ?? -1) - (a[metric.key] ?? -1))
+    .slice(0, 60);
+
+  const head = document.getElementById('members-head');
+  head.replaceChildren(el('th', { class: 'rank', text: '#' }));
+  MEMBER_COLUMNS.forEach(c => head.append(el('th', { text: c.label })));
+
+  const body = document.getElementById('members-body');
+  body.replaceChildren(...rows.map((m, i) => {
+    const tr = el('tr', {}, el('td', { class: 'rank', text: String(i + 1) }));
+    MEMBER_COLUMNS.forEach(c => {
+      const v = m[c.key];
+      let text = '—';
+      if (v !== null && v !== undefined) {
+        if (c.type === 'pct') text = fmtPct(v, 0);
+        else if (c.type === 'int') text = fmtInt(v);
+        else text = String(v);
+      }
+      tr.append(el('td', { class: c.type === 'text' ? '' : 'num', text }));
+    });
+    bindTip(tr, () => `<b>${m.nazwa}</b>
+      <div class="row">${m.klub ?? 'brak klubu'}${m.okreg ? ' · ' + m.okreg : ''}</div>
+      <div class="row">${fmtInt(m.pytan)} pytań, w tym ${fmtInt(m.w_seriach)} w seriach szablonowych</div>
+      <div class="row">rozstrzygniętych: ${fmtInt(m.rozstrzygniete)} · po terminie: ${fmtInt(m.niedotrzymane)}</div>`);
+    return tr;
+  }));
+
+  const silent = all.filter(m => m.pytan === 0).length;
+  document.getElementById('members-note').textContent =
+    `Pokazano ${rows.length} z ${all.filter(m => m.pytan > 0).length} posłów, którzy zadali co najmniej jedno pytanie. `
+    + `${silent} posłów nie zadało żadnego. `
+    + (needsOutcome ? `Odsetki liczone tylko dla posłów z co najmniej 10 rozstrzygniętymi pytaniami.` : '');
+}
+
+/* ---------- serie szablonowe ---------- */
+function renderSeries() {
+  const s = report().serie;
+  if (!s) return;
+  document.getElementById('series-sub').textContent =
+    `W tej kadencji ${fmtInt(s.serii)} tytułów powtarza się więcej niż raz, obejmując ${fmtInt(s.pytan_w_seriach)} pytań `
+    + `(${fmtPct(s.udzial, 1)} wszystkich). Największa seria liczy ${s.najwieksza} pytań.`;
+
+  document.getElementById('series-list').replaceChildren(...s.lista.map(x => el('li', {},
+    el('span', { class: 'count', text: `${x.n}×` }),
+    el('span', {},
+      el('span', { text: x.tytul }),
+      el('span', { class: 'who', text: `numery ${x.od_nr}–${x.do_nr}` }),
+    ),
+  )));
+}
+
+/* ---------- nieobecnosci ---------- */
+const ABSENCE_COLUMNS = [
+  { key: 'nazwa', label: 'Poseł', type: 'text' },
+  { key: 'klub', label: 'Klub', type: 'text' },
+  { key: 'udzial_nieobecnosci', label: 'Nieobecności', type: 'pct' },
+  { key: 'nieobecnosci', label: 'Głosowań opuszczonych', type: 'int' },
+  { key: 'glosowan', label: 'Głosowań łącznie', type: 'int' },
+];
+const absenceState = { filter: '' };
+document.getElementById('absence-filter').addEventListener('input', e => {
+  absenceState.filter = e.target.value.toLowerCase();
+  renderAbsences();
+});
+
+function renderAbsences() {
+  const a = report().nieobecnosci;
+  const section = document.getElementById('absence-section');
+  section.hidden = !a;
+  if (!a) return;
+
+  document.getElementById('absence-sub').textContent =
+    `${fmtInt(a.glosowan)} głosowań imiennych, ${fmtInt(a.poslow)} posłów. Średnio ${fmtPct(a.udzial_ogolem, 1)} `
+    + `nieobecności. W tabeli posłowie z co najmniej ${a.min_probka} głosowaniami.`;
+
+  hbar('absence-clubs', a.kluby.filter(c => c.glosowan >= 1000).map(c => ({
+    label: c.klucz,
+    value: c.udzial_nieobecnosci,
+    display: fmtPct(c.udzial_nieobecnosci, 1),
+    tip: `<b>${c.klucz}</b>
+      <div class="row">${fmtInt(c.poslow)} posłów</div>
+      <div class="row">${fmtInt(c.nieobecnosci)} z ${fmtInt(c.glosowan)} głosowań</div>`,
+  })), { label: 'Nieobecności według klubu', labelWidth: 150, tick: v => Math.round(v * 100) + '%' });
+
+  const rows = a.poslowie
+    .filter(m => m.w_rankingu)
+    .filter(m => (m.nazwa + ' ' + (m.klub ?? '')).toLowerCase().includes(absenceState.filter))
+    .slice(0, 60);
+
+  const head = document.getElementById('absences-head');
+  head.replaceChildren(el('th', { class: 'rank', text: '#' }));
+  ABSENCE_COLUMNS.forEach(c => head.append(el('th', { text: c.label })));
+
+  document.getElementById('absences-body').replaceChildren(...rows.map((m, i) => {
+    const tr = el('tr', {}, el('td', { class: 'rank', text: String(i + 1) }));
+    ABSENCE_COLUMNS.forEach(c => {
+      const v = m[c.key];
+      const text = c.type === 'pct' ? fmtPct(v, 1) : (c.type === 'int' ? fmtInt(v) : String(v ?? '—'));
+      tr.append(el('td', { class: c.type === 'text' ? '' : 'num', text }));
+    });
+    bindTip(tr, () => `<b>${m.nazwa}</b>
+      <div class="row">${m.klub ?? 'brak klubu'}${m.okreg ? ' · ' + m.okreg : ''}</div>
+      <div class="row">opuścił ${fmtInt(m.nieobecnosci)} z ${fmtInt(m.glosowan)} głosowań</div>`);
+    return tr;
+  }));
+}
+
 /* ---------- render ---------- */
 // Lista pytan bez zadnej odpowiedzi dziala takze dla kadencji niemierzalnej:
 // nie potrzebuje daty odpowiedzi, bo odpowiedzi nie ma. Reszta sekcji jej wymaga.
-const HIDDEN_WHEN_UNMEASURABLE = ['ranking-section', 'trend-section', 'clubs-section', 'answered-section'];
+// Droga pytania, serie i nieobecnosci nie potrzebuja daty odpowiedzi, wiec dzialaja
+// takze dla kadencji niemierzalnej. Ranking poslow juz tak - opiera sie na rozstrzygnieciach.
+const HIDDEN_WHEN_UNMEASURABLE = ['ranking-section', 'trend-section', 'clubs-section', 'answered-section', 'members-section'];
 
 function renderNotice() {
   const k = termInfo(state.term);
@@ -761,7 +1096,11 @@ function renderAll() {
     drawTrend();
     drawClubs();
     renderAnswered();
+    renderMembers();
   }
+  renderDroga();
+  renderSeries();
+  renderAbsences();
   renderWorst();
   renderFooter();
   drawCompare();
