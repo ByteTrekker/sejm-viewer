@@ -20,7 +20,7 @@ kliknąć do źródła, jest w tym projekcie bezużyteczna.
 ## Komendy
 
 ```bash
-make fetch        # oba ETL-e: interpelacje i Dziennik Ustaw (kilkanaście minut)
+make fetch        # trzy ETL-e: interpelacje, Dziennik Ustaw, głosowania (~30 min)
 make build        # trzy dashboardy z bazy
 make check        # pełna bramka: styl, PHPStan, testy, pokrycie, mutacje, dymny, audyt
 make help         # reszta celów
@@ -62,6 +62,11 @@ stronę zamienia jeden fałsz na drugi.
 **N3. Każda liczba prowadzi do źródła.** Pozycje list mają odnośniki do
 sejm.gov.pl / ISAP. Jeżeli API nie daje klucza (pisma o prolongacie), pokazujemy
 znacznik „brak odnośnika", nigdy martwy link.
+
+**N5. Miara bez progu ustawowego niesie zastrzeżenie na wierzchu.** Nieobecności
+nie mają miernika prawnego, a API nie podaje przyczyny — delegacja, choroba
+i zwykła absencja są nierozróżnialne. Takie sekcje otwiera ostrzeżenie, a nie
+przypis: liczba bez tego kontekstu krzywdzi konkretne osoby.
 
 **N4. Wykluczenia są raportowane, nigdy ciche.** Pytania do wielu adresatów,
 akty odsiane jako techniczne, rekordy bez daty — każda kategoria ma licznik

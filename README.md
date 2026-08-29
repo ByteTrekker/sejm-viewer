@@ -7,6 +7,7 @@ danych, nie na próbce.
 | Dashboard | Miernik ustawowy | Zakres | Plik |
 |---|---|---|---|
 | Ranking milczenia ministerstw | 21 dni na odpowiedź na interpelację | 162 103 pytania, 2011–2026 | `public/index.html` |
+| Nieobecności w głosowaniach | — (brak progu ustawowego) | 4 563 głosowania imienne, 2,1 mln głosów, kadencja X | `public/index.html` |
 | Vacatio legis | 14 dni od ogłoszenia do wejścia w życie | 19 410 aktów Dz.U., 2015–2026 | `public/vacatio.html` |
 | Vacatio legis — bez aktów technicznych | jw., po odsianiu 2 229 aktów administracyjnych | 15 058 rozporządzeń | `public/vacatio-merytoryczne.html` |
 
@@ -31,6 +32,12 @@ php bin/fetch.php && php bin/build.php && open public/index.html
 
 Nie ma zależności zewnętrznych — `composer install` nie jest potrzebny.
 Wymagane: PHP 8.2+ z `pdo_sqlite`, `curl`, `mbstring`.
+
+### Dodatkowe ETL-e
+
+```bash
+php bin/fetch-votings.php --term=10    # głosowania imienne (~14 min, 4 563 żądania)
+```
 
 | Krok | Co robi | Czas |
 |---|---|---|
@@ -132,6 +139,26 @@ Mierzy **terminowość, nie jakość**. Odpowiedź „nie posiadamy takich danyc
 wysłana w 3 dni wygląda tu lepiej niż rzetelna analiza w 25 dni. Jedyne dostępne
 w API proxy jakości to kolumna „tylko skan" — odpowiedź wysłana wyłącznie jako
 PDF, bez treści tekstowej.
+
+## Co jeszcze pokazuje dashboard interpelacji
+
+Poza rankingiem adresatów strona niesie cztery wymiary liczone z tych samych danych:
+
+- **Droga pytania** — opóźnienie Kancelarii Sejmu między wpływem a przekazaniem
+  adresatowi. Ranking terminowości liczy termin dopiero od przekazania, więc bez tej
+  sekcji opóźnienie znikałoby z rachunku. W kadencji X mediana to 6 dni, a **643 pytania
+  czekały na samo przekazanie dłużej niż wynosi cały 21-dniowy termin na odpowiedź**
+  (rekord: 928 dni). Około 38% ustawowego okna znika, zanim resort zobaczy pytanie.
+- **Kto podpisuje odpowiedź** — minister osobiście w 14% pism; reszta to sekretarze
+  (45,6%) i podsekretarze stanu (40,4%). To miara szczebla, nie jakości.
+- **Posłowie** — dwie liczby na posła: pytania i **unikalne tematy**. Bez tej drugiej
+  ranking premiowałby seryjne wysyłanie tego samego pytania.
+- **Serie szablonowe** — 583 tytuły powtarzają się w kadencji X, obejmując 1 314 pytań
+  (5,6%). Największa seria liczy 13 pytań.
+- **Nieobecności w głosowaniach** — wymaga `bin/fetch-votings.php`. **API podaje fakt
+  nieobecności, nie jej przyczynę**: delegacja, choroba, urlop rodzicielski, obowiązki
+  premiera i zwykła absencja są w danych nierozróżnialne. Mianownik jest per poseł,
+  więc mandat objęty lub wygaszony w trakcie kadencji nie zniekształca wyniku.
 
 ## Odnośniki do źródła
 

@@ -9,6 +9,7 @@ help: ## Lista celów
 fetch: ## Pobierz komplet danych z API (kilkanaście minut)
 	php bin/fetch.php --term=7,8,9,10
 	php bin/fetch-acts.php --from=2015 --to=2026
+	php bin/fetch-votings.php --term=10
 
 build: ## Zbuduj wszystkie trzy dashboardy z bazy
 	php bin/build.php
