@@ -6,6 +6,7 @@ namespace Milczenie\Report;
 
 use Milczenie\Domain\QuestionKind;
 use Milczenie\Domain\RecipientNormalizer;
+use Milczenie\Domain\ResponseOutcome;
 use Milczenie\Storage\Database;
 
 /**
@@ -194,27 +195,39 @@ final class RankingBuilder
             'by_minister' => $author !== '' && preg_match('/^(Minister|Prezes|Wiceprezes|Szef)\b/u', $author) === 1,
         ];
 
-        if ($row['first_reply'] !== null) {
-            $replied = new \DateTimeImmutable((string) $row['first_reply']);
-            $days = (int) $forwarded->diff($replied)->days;
-            $overdue = max(0, (int) $deadline->diff($replied)->format('%r%a'));
+        $replied = $row['first_reply'] === null ? null : new \DateTimeImmutable((string) $row['first_reply']);
+        $outcome = ResponseOutcome::classify(
+            $forwarded,
+            $replied,
+            (int) ($row['reply_count'] ?? 0),
+            $this->snapshot,
+            $deadlineDays,
+        );
 
-            return [...$common, 'status' => $overdue > 0 ? 'late' : 'on_time', 'days' => $days, 'overdue_days' => $overdue];
+        $status = match ($outcome) {
+            ResponseOutcome::OnTime => 'on_time',
+            ResponseOutcome::Late => 'late',
+            ResponseOutcome::AnsweredWithoutDate => 'answered_no_date',
+            ResponseOutcome::OverdueSilence => 'open_overdue',
+            ResponseOutcome::StillInTime => 'open_in_time',
+        };
+
+        if ($replied !== null) {
+            return [
+                ...$common,
+                'status' => $status,
+                'days' => (int) $forwarded->diff($replied)->days,
+                'overdue_days' => max(0, (int) $deadline->diff($replied)->format('%r%a')),
+            ];
         }
-
-        // Odpowiedz jest, ale API nie podaje jej daty - nie wiadomo, czy w terminie.
-        // Takie pytanie musi wypasc z mianownika, a nie udawac ani punktualnego, ani milczenia.
-        if ((int) ($row['reply_count'] ?? 0) > 0) {
-            return [...$common, 'status' => 'answered_no_date', 'days' => null, 'overdue_days' => 0];
-        }
-
-        $overdue = (int) $deadline->diff($this->snapshot)->format('%r%a');
 
         return [
             ...$common,
-            'status' => $overdue > 0 ? 'open_overdue' : 'open_in_time',
+            'status' => $status,
             'days' => null,
-            'overdue_days' => max(0, $overdue),
+            'overdue_days' => $outcome === ResponseOutcome::OverdueSilence
+                ? max(0, (int) $deadline->diff($this->snapshot)->format('%r%a'))
+                : 0,
         ];
     }
 
