@@ -51,6 +51,37 @@ final class IssuerNormalizerTest extends TestCase
         self::assertSame('szef kancelarii prezesa rady ministrow', $n->normalize('SZEF KANCELARII PREZESA RADY MINISTRÓW'));
     }
 
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function diacritics(): iterable
+    {
+        yield 'ą' => ['MIN. Ą', 'minister a'];
+        yield 'ć' => ['MIN. Ć', 'minister c'];
+        yield 'ę' => ['MIN. Ę', 'minister e'];
+        yield 'ł' => ['MIN. Ł', 'minister l'];
+        yield 'ń' => ['MIN. Ń', 'minister n'];
+        yield 'ó' => ['MIN. Ó', 'minister o'];
+        yield 'ś' => ['MIN. Ś', 'minister s'];
+        yield 'ź' => ['MIN. Ź', 'minister z'];
+        yield 'ż' => ['MIN. Ż', 'minister z'];
+    }
+
+    #[DataProvider('diacritics')]
+    public function test_every_polish_letter_has_an_ascii_counterpart(string $raw, string $expected): void
+    {
+        self::assertSame($expected, (new IssuerNormalizer())->normalize($raw));
+    }
+
+    public function test_display_name_trims_padding_before_matching_the_ministry_prefix(): void
+    {
+        // Bez trim() w prettify padding zjadlby przedrostek "min. " i organ
+        // wyswietlilby sie jako "Min. zdrowia" zamiast "Minister zdrowia".
+        $n = new IssuerNormalizer();
+
+        self::assertSame('Minister zdrowia', $n->displayName($n->normalize('  MIN.  ZDROWIA  ')));
+    }
+
     public function test_first_spelling_wins_and_later_ones_do_not_overwrite_it(): void
     {
         // Pilnuje `??=` przy budowaniu etykiet.

@@ -23,6 +23,30 @@ final class RecipientNormalizerTest extends TestCase
         self::assertSame('minister rolnictwa i rozwoju wsi', $n->normalize("Minister\tRolnictwa\ni Rozwoju Wsi"));
     }
 
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function diacritics(): iterable
+    {
+        // Tablica transliteracji pozycja po pozycji - usuniecie ktorejkolwiek
+        // rozdzieliloby jeden resort na dwa klucze.
+        yield 'ą' => ['minister rzą', 'minister rza'];
+        yield 'ć' => ['minister ć', 'minister c'];
+        yield 'ę' => ['minister ę', 'minister e'];
+        yield 'ł' => ['minister ł', 'minister l'];
+        yield 'ń' => ['minister ń', 'minister n'];
+        yield 'ó' => ['minister ó', 'minister o'];
+        yield 'ś' => ['minister ś', 'minister s'];
+        yield 'ź' => ['minister ź', 'minister z'];
+        yield 'ż' => ['minister ż', 'minister z'];
+    }
+
+    #[DataProvider('diacritics')]
+    public function test_every_polish_letter_has_an_ascii_counterpart(string $raw, string $expected): void
+    {
+        self::assertSame($expected, (new RecipientNormalizer())->normalize($raw));
+    }
+
     public function test_dash_variants_collapse_to_one_spaced_form(): void
     {
         $n = new RecipientNormalizer();

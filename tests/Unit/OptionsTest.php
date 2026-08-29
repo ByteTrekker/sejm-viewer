@@ -21,6 +21,15 @@ final class OptionsTest extends TestCase
         self::assertSame([10], $o->commaListOfInt('term', [10]));
     }
 
+    public function test_present_option_wins_over_the_default(): void
+    {
+        $o = new Options(['db' => '/tmp/inna.sqlite', 'from' => '2019']);
+
+        self::assertSame('/tmp/inna.sqlite', $o->string('db', 'var/sejm.sqlite'));
+        self::assertSame('/tmp/inna.sqlite', $o->nullableString('db'));
+        self::assertSame(2019, $o->int('from', 2015));
+    }
+
     public function test_repeated_flag_takes_the_last_occurrence(): void
     {
         // getopt zwraca dla powtorzonej flagi liste; rzutowanie jej na string

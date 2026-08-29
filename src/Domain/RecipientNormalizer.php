@@ -52,7 +52,7 @@ final class RecipientNormalizer
 
     private function slug(string $raw): string
     {
-        $value = mb_strtolower(trim($raw), 'UTF-8');
+        $value = mb_strtolower($raw, 'UTF-8');
         $value = strtr($value, [
             'ą' => 'a', 'ć' => 'c', 'ę' => 'e', 'ł' => 'l', 'ń' => 'n',
             'ó' => 'o', 'ś' => 's', 'ź' => 'z', 'ż' => 'z',
