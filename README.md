@@ -173,6 +173,12 @@ w dwóch kliknięciach:
 Pisma o prolongacie nie mają w API klucza, więc nie da się do nich zrobić
 odnośnika — takie pozycje dostają znacznik zamiast linku (~1 na 25).
 
+## Dokumentacja decyzji
+
+* [ADR-0001: Technologia per warstwa](docs/adr/0001-technologia-per-warstwa.md) —
+  dlaczego projekt jest w PHP, gdzie ten wybór kosztuje i w jakiej kolejności
+  ewentualnie go zmieniać.
+
 ## Architektura
 
 ```

@@ -43,6 +43,7 @@ src/Domain/   termin ustawowy, normalizacja nazw, klasyfikator aktów techniczny
 src/Report/   RankingBuilder i VacatioBuilder — cała metodologia w dwóch plikach
 src/Storage/  schemat i połączenie
 public/       template*.html (źródło) -> *.html (z wstrzykniętymi danymi)
+docs/adr/     decyzje architektoniczne wraz z uzasadnieniem i odrzuconymi wariantami
 scripts/      bramki: składnia, konwencja commitów, test dymny
 var/          baza SQLite — nie w repozytorium
 ```
@@ -128,6 +129,9 @@ na PHP 8.3 z pcov.
 
 ## Czego nie proponować
 
+* **Zmiany technologii bez ADR-a.** Wybór stosu per warstwa jest opisany
+  w `docs/adr/0001-technologia-per-warstwa.md` razem z progami, przy których
+  warto go zmienić. Propozycja migracji ma się do tego dokumentu odnieść.
 * **Big-bangowego przepisania** na framework. Brak zależności jest tu decyzją:
   narzędzie ma się uruchomić za trzy lata, gdy nikt nie pamięta wersji Symfony.
 * **Rozszerzania filtra aktów technicznych** bez policzenia, jak zmienia wynik.
