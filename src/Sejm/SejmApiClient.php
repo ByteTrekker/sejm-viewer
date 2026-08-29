@@ -199,7 +199,7 @@ final class SejmApiClient
             CURLOPT_CONNECTTIMEOUT => 15,
             CURLOPT_ENCODING => 'gzip',
             CURLOPT_HTTPHEADER => ['Accept: application/json'],
-            CURLOPT_USERAGENT => 'sejm_viewer/0.1 (obywatelski monitoring danych Sejmu)',
+            CURLOPT_USERAGENT => 'sejm-viewer/0.1 (obywatelski monitoring danych Sejmu)',
         ]);
 
         return $ch;

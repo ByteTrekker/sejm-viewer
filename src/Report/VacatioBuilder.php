@@ -359,7 +359,7 @@ final class VacatioBuilder
             'https://isap.sejm.gov.pl/isap.nsf/DocDetails.xsp?id=W%s%s%s',
             $publisher,
             $year,
-            str_pad($pos, 7, '0', STR_PAD_LEFT)
+            str_pad($pos, 7, '0', STR_PAD_LEFT),
         );
     }
 }

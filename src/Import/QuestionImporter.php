@@ -27,7 +27,7 @@ final class QuestionImporter
     {
         $stmt = $this->db->pdo->prepare(
             'INSERT INTO term (num, date_from, date_to) VALUES (:num, :from, :to)
-             ON CONFLICT (num) DO UPDATE SET date_from = excluded.date_from, date_to = excluded.date_to'
+             ON CONFLICT (num) DO UPDATE SET date_from = excluded.date_from, date_to = excluded.date_to',
         );
 
         $count = 0;
@@ -48,7 +48,7 @@ final class QuestionImporter
         $stmt = $this->db->pdo->prepare(
             'INSERT INTO mp (id, term, name, club, district, active) VALUES (:id, :term, :name, :club, :district, :active)
              ON CONFLICT (id, term) DO UPDATE SET name = excluded.name, club = excluded.club,
-                 district = excluded.district, active = excluded.active'
+                 district = excluded.district, active = excluded.active',
         );
 
         $this->db->pdo->beginTransaction();
@@ -80,20 +80,20 @@ final class QuestionImporter
             'INSERT INTO question (id, kind, term, num, title, receipt_date, sent_date, authors, author_count)
              VALUES (:id, :kind, :term, :num, :title, :receipt_date, :sent_date, :authors, :author_count)
              ON CONFLICT (id) DO UPDATE SET title = excluded.title, receipt_date = excluded.receipt_date,
-                 sent_date = excluded.sent_date, authors = excluded.authors, author_count = excluded.author_count'
+                 sent_date = excluded.sent_date, authors = excluded.authors, author_count = excluded.author_count',
         );
         $addresseeStmt = $this->db->pdo->prepare(
             'INSERT INTO addressee (question_id, recipient_raw, recipient_key, sent_date)
              VALUES (:question_id, :recipient_raw, :recipient_key, :sent_date)
              ON CONFLICT (question_id, recipient_raw) DO UPDATE SET
-                 recipient_key = excluded.recipient_key, sent_date = excluded.sent_date'
+                 recipient_key = excluded.recipient_key, sent_date = excluded.sent_date',
         );
         $replyStmt = $this->db->pdo->prepare(
             'INSERT INTO reply (question_id, reply_key, author, receipt_date, prolongation, only_attachment)
              VALUES (:question_id, :reply_key, :author, :receipt_date, :prolongation, :only_attachment)
              ON CONFLICT (question_id, reply_key) DO UPDATE SET
                  author = excluded.author, receipt_date = excluded.receipt_date,
-                 prolongation = excluded.prolongation, only_attachment = excluded.only_attachment'
+                 prolongation = excluded.prolongation, only_attachment = excluded.only_attachment',
         );
 
         $imported = 0;

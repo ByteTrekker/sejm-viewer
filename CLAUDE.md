@@ -4,7 +4,7 @@ Instrukcje dla asystentów pracujących w tym repozytorium.
 
 ## Czym jest ten projekt
 
-**sejm_viewer** — dwa dashboardy obywatelskie zbudowane na tej samej zasadzie: bierzemy **obowiązek
+**sejm-viewer** — dwa dashboardy obywatelskie zbudowane na tej samej zasadzie: bierzemy **obowiązek
 z twardym terminem ustawowym**, liczymy na pełnych danych, kto go dotrzymuje,
 i pokazujemy wynik razem z metodologią.
 
@@ -20,21 +20,18 @@ kliknąć do źródła, jest w tym projekcie bezużyteczna.
 ## Komendy
 
 ```bash
-php bin/fetch.php --term=7,8,9,10        # interpelacje i zapytania -> SQLite (~2,5 min/kadencja)
-php bin/fetch-acts.php --from=2015 --to=2026  # Dziennik Ustaw -> SQLite (~9 min)
-
-php bin/build.php                         # public/index.html
-php bin/build-vacatio.php                 # public/vacatio.html
-php bin/build-vacatio.php --exclude-technical  # public/vacatio-merytoryczne.html
-
-make check                                # składnia + test dymny
-./scripts/smoke.sh                        # sam test dymny (bez sieci)
-./scripts/check-commits.sh                # konwencja commitów w origin/main..HEAD
+make fetch        # oba ETL-e: interpelacje i Dziennik Ustaw (kilkanaście minut)
+make build        # trzy dashboardy z bazy
+make check        # pełna bramka: styl, PHPStan, testy, pokrycie, mutacje, dymny, audyt
+make help         # reszta celów
 ```
 
-Projekt **nie wymaga `composer install`** — `bin/bootstrap.php` ma własny
-autoloader PSR-4. Zależności to wyłącznie rozszerzenia PHP: `pdo_sqlite`,
-`curl`, `mbstring`.
+**Runtime nie ma zależności.** `bin/bootstrap.php` ma własny autoloader PSR-4,
+więc `php bin/fetch.php` i `php bin/build.php` działają na czystym PHP 8.2+
+z rozszerzeniami `pdo_sqlite`, `curl`, `mbstring`. `composer install` jest
+potrzebny **wyłącznie do narzędzi jakości** (`require-dev`) i nigdy do
+uruchomienia projektu. To jest decyzja, nie zaniedbanie: narzędzie ma się
+uruchomić za trzy lata, gdy nikt nie pamięta wersji bibliotek.
 
 ## Mapa katalogów
 
@@ -88,13 +85,39 @@ pomyłka w tym miejscu zawyżała kiedyś liczbę wykluczeń dwukrotnie.
 * Wygenerowane pliki (`public/*.html` poza szablonami, `public/*.json`,
   `var/`) **nie wchodzą do repozytorium** — CI to sprawdza.
 
-## Testy
+## Bramki jakości
 
+Zestaw odpowiada temu, co stoi w pozostałych projektach (ruff + mypy strict +
+pytest + mutmut + pip-audit + CodeQL), przełożonemu na PHP:
+
+| Bramka | Narzędzie | Zakres |
+|---|---|---|
+| styl | `php-cs-fixer` (PSR-12 + `strict_types`) | `src`, `bin`, `tests` |
+| analiza statyczna | `phpstan` **poziom 8** | `src`, `bin` |
+| testy jednostkowe | `phpunit` | `tests/Unit` |
+| próg pokrycia | `scripts/check-coverage.sh 90` | `src/Domain`, `src/Console` |
+| testy mutacyjne | `infection` (MSI 80 / pokryte 90) | `src/Domain`, `src/Console` |
+| test dymny | `scripts/smoke.sh` | oba raporty end-to-end |
+| audyt zależności | `composer audit` | `require-dev` |
+| bezpieczeństwo | CodeQL (`javascript-typescript`, `actions`) | JS dashboardów, workflowy |
+
+CodeQL **nie obejmuje PHP** — ten język nie jest wspierany. Analiza PHP-a stoi
+wyłącznie na PHPStan i to jest znana granica, nie przeoczenie.
+
+Pokrycie i mutacje wymagają sterownika (`pcov` albo `xdebug`). Lokalne cele
+wypisują komunikat i przechodzą, gdy sterownika nie ma; **w CI są egzekwowane**
+na PHP 8.3 z pcov.
+
+### Zasady pisania testów
+
+* Test nazywa **regułę**, nie funkcję:
+  `test_repeated_flag_takes_the_last_occurrence`, nie `test_nullable_string`.
+* **Warstwa czysta** (`src/Domain`, `src/Console`) jest objęta mutacjami. Nowa
+  reguła musi mieć test, który wykrywa jej zmianę, a nie tylko wykonuje linię.
+* Testy jednostkowe nie dotykają sieci ani bazy. Bez wyjątków.
 * `scripts/smoke.sh` buduje oba raporty na **syntetycznej bazie, bez sieci**
   i sprawdza niezmienniki N1–N4 liczbowo. To on wykrył podwójne liczenie wykluczeń.
 * Nowa reguła metodologiczna bez asercji w teście dymnym nie wchodzi.
-* Test ma nazywać **regułę**, nie funkcję: „odpowiedzi bez daty poza mianownikiem",
-  nie „test_summarize".
 * Zmiana progu, wagi we wskaźniku albo reguły klasyfikatora wymaga aktualizacji
   opisu metodologii w szablonie **w tym samym commicie**.
 

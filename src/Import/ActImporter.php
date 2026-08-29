@@ -56,11 +56,11 @@ final class ActImporter
                  type = excluded.type, title = excluded.title,
                  announcement_date = excluded.announcement_date, promulgation = excluded.promulgation,
                  entry_into_force = excluded.entry_into_force, in_force = excluded.in_force,
-                 status = excluded.status, display_address = excluded.display_address'
+                 status = excluded.status, display_address = excluded.display_address',
         );
         $issuerStmt = $this->db->pdo->prepare(
             'INSERT INTO act_issuer (eli, issuer_raw, issuer_key) VALUES (:eli, :raw, :key)
-             ON CONFLICT (eli, issuer_raw) DO UPDATE SET issuer_key = excluded.issuer_key'
+             ON CONFLICT (eli, issuer_raw) DO UPDATE SET issuer_key = excluded.issuer_key',
         );
 
         $imported = 0;
