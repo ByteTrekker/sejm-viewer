@@ -64,15 +64,16 @@ stronę zamienia jeden fałsz na drugi.
 sejm.gov.pl / ISAP. Jeżeli API nie daje klucza (pisma o prolongacie), pokazujemy
 znacznik „brak odnośnika", nigdy martwy link.
 
+**N4. Wykluczenia są raportowane, nigdy ciche.** Pytania do wielu adresatów,
+akty odsiane jako techniczne, rekordy bez daty — każda kategoria ma licznik
+widoczny w interfejsie. Liczymy **pytania i akty, nie wiersze złączenia**;
+pomyłka w tym miejscu zawyżała kiedyś liczbę wykluczeń dwukrotnie.
+
 **N5. Miara bez progu ustawowego niesie zastrzeżenie na wierzchu.** Nieobecności
 nie mają miernika prawnego, a API nie podaje przyczyny — delegacja, choroba
 i zwykła absencja są nierozróżnialne. Takie sekcje otwiera ostrzeżenie, a nie
 przypis: liczba bez tego kontekstu krzywdzi konkretne osoby.
 
-**N4. Wykluczenia są raportowane, nigdy ciche.** Pytania do wielu adresatów,
-akty odsiane jako techniczne, rekordy bez daty — każda kategoria ma licznik
-widoczny w interfejsie. Liczymy **pytania i akty, nie wiersze złączenia**;
-pomyłka w tym miejscu zawyżała kiedyś liczbę wykluczeń dwukrotnie.
 
 ## Konwencje kodu
 
@@ -103,7 +104,7 @@ pytest + mutmut + pip-audit + CodeQL), przełożonemu na PHP:
 | testy jednostkowe | `phpunit` | `tests/Unit` |
 | próg pokrycia | `scripts/check-coverage.sh 90` | `src/Domain`, `src/Console` |
 | testy mutacyjne | `infection` (MSI 90 / pokryte 95) | `src/Domain`, `src/Console` |
-| test dymny | `scripts/smoke.sh` | oba raporty end-to-end |
+| test dymny | `scripts/smoke.sh` | trzy dashboardy end-to-end, niezmienniki N1–N5 |
 | audyt zależności | `composer audit` | `require-dev` |
 | bezpieczeństwo | CodeQL (`javascript-typescript`, `actions`) | JS dashboardów, workflowy |
 
@@ -121,8 +122,8 @@ na PHP 8.3 z pcov.
 * **Warstwa czysta** (`src/Domain`, `src/Console`) jest objęta mutacjami. Nowa
   reguła musi mieć test, który wykrywa jej zmianę, a nie tylko wykonuje linię.
 * Testy jednostkowe nie dotykają sieci ani bazy. Bez wyjątków.
-* `scripts/smoke.sh` buduje oba raporty na **syntetycznej bazie, bez sieci**
-  i sprawdza niezmienniki N1–N4 liczbowo. To on wykrył podwójne liczenie wykluczeń.
+* `scripts/smoke.sh` buduje wszystkie raporty na **syntetycznej bazie, bez sieci**
+  i sprawdza niezmienniki N1–N5 liczbowo. To on wykrył podwójne liczenie wykluczeń.
 * Nowa reguła metodologiczna bez asercji w teście dymnym nie wchodzi.
 * Zmiana progu, wagi we wskaźniku albo reguły klasyfikatora wymaga aktualizacji
   opisu metodologii w szablonie **w tym samym commicie**.
@@ -175,7 +176,7 @@ precyzyjniejsza, a git opisuje zmiany w kodzie.
 „add reply links", nie „added" ani „adds".
 
 **Body:** wyjaśnia **dlaczego**, nie **co** — „co" widać w diffie. Zawijanie
-na 72 znakach. Jeżeli zmiana dotyka niezmiennika N1–N4 albo progu ustawowego,
+na 72 znakach. Jeżeli zmiana dotyka niezmiennika N1–N5 albo progu ustawowego,
 wskaż to wprost. Body jest opcjonalne przy zmianach trywialnych i **obowiązkowe
 przy zmianach w metodologii, progach i wagach wskaźników**.
 
@@ -217,7 +218,7 @@ docs(readme): document the technical-act filter and its effect
 * **Opis po angielsku**, w strukturze:
   1. **Why** — problem lub potrzeba, nie lista plików.
   2. **What changed** — istotne decyzje, nie streszczenie diffa.
-  3. **Invariants** — czy PR dotyka N1–N4; jeżeli któryś jest łamany, wymagane
+  3. **Invariants** — czy PR dotyka N1–N5; jeżeli któryś jest łamany, wymagane
      jest uzasadnienie w opisie.
   4. **Verification** — co zostało uruchomione i **czego nie uruchomiono**.
   5. **Deliberate omissions** — świadome pominięcia z uzasadnieniem.
