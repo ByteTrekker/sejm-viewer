@@ -66,6 +66,25 @@ final class SejmApiClient
     }
 
     /**
+     * Numery posiedzen kadencji - punkt wejscia do listy glosowan.
+     *
+     * @return list<int>
+     */
+    public function fetchProceedings(int $term): array
+    {
+        $rows = $this->getJson(sprintf('/sejm/term%d/proceedings', $term));
+
+        $numbers = [];
+        foreach ($rows as $row) {
+            if (is_array($row) && isset($row['number']) && (int) $row['number'] > 0) {
+                $numbers[] = (int) $row['number'];
+            }
+        }
+
+        return $numbers;
+    }
+
+    /**
      * Lista aktow z danego rocznika Dziennika Ustaw / Monitora Polskiego.
      * Uwaga: lista nie zawiera entryIntoForce - date wejscia w zycie ma dopiero detal aktu.
      *
@@ -81,25 +100,44 @@ final class SejmApiClient
     }
 
     /**
-     * Rownolegle pobranie detali aktow. Przy ~14 tys. aktow sekwencyjny curl to pol godziny,
-     * wiec uzywamy curl_multi z ograniczona liczba polaczen, zeby nie zajechac API.
-     *
      * @param list<array{publisher: string, year: int, pos: int}> $refs
      * @return \Generator<int, array<string, mixed>>
      */
     public function fetchActDetails(array $refs, int $concurrency = 8): \Generator
     {
+        $paths = array_map(
+            static fn (array $r): string => sprintf('/eli/acts/%s/%d/%d', rawurlencode($r['publisher']), $r['year'], $r['pos']),
+            $refs,
+        );
+
+        foreach ($this->fetchMany($paths, $concurrency) as $act) {
+            /** @var array<string, mixed> $act */
+            yield $act;
+        }
+    }
+
+    /**
+     * Rownolegle pobranie wielu zasobow. Przy kilkunastu tysiacach zadan sekwencyjny
+     * curl to pol godziny, wiec uzywamy curl_multi z ograniczona liczba polaczen,
+     * zeby nie zajechac API. Odpowiedzi wracaja w kolejnosci ukonczenia, nie zadania -
+     * kazdy rekord musi wiec sam sie identyfikowac.
+     *
+     * @param list<string> $paths
+     * @return \Generator<int, array<mixed>>
+     */
+    public function fetchMany(array $paths, int $concurrency = 8): \Generator
+    {
         $multi = curl_multi_init();
-        $pending = $refs;
+        $pending = $paths;
         $active = [];
 
         $start = function () use (&$pending, &$active, $multi): void {
-            $ref = array_shift($pending);
-            if ($ref === null) {
+            $path = array_shift($pending);
+            if ($path === null) {
                 return;
             }
 
-            $ch = $this->handle(sprintf('/eli/acts/%s/%d/%d', rawurlencode($ref['publisher']), $ref['year'], $ref['pos']));
+            $ch = $this->handle($path);
             curl_multi_add_handle($multi, $ch);
             $active[(int) $ch] = $ch;
         };
@@ -125,7 +163,7 @@ final class SejmApiClient
                         yield $decoded;
                     }
                 } else {
-                    $this->log(sprintf('  ! akt pominiety: HTTP %d', $status));
+                    $this->log(sprintf('  ! zasob pominiety: HTTP %d', $status));
                 }
 
                 $start();

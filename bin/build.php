@@ -20,6 +20,9 @@ require __DIR__ . '/bootstrap.php';
 
 use Milczenie\Console\Options;
 use Milczenie\Domain\RecipientNormalizer;
+use Milczenie\Report\AbsenceBuilder;
+use Milczenie\Report\MemberBuilder;
+use Milczenie\Report\ProcessBuilder;
 use Milczenie\Report\RankingBuilder;
 use Milczenie\Storage\Database;
 
@@ -59,6 +62,11 @@ foreach ($terms as $term) {
     // Normalizator per kadencja - nazwy resortow nie sa porownywalne miedzy kadencjami,
     // wiec wspoldzielenie slownika etykiet tylko by je pomieszalo.
     $report = (new RankingBuilder($db, new RecipientNormalizer(), $snapshot))->build($term);
+    $report['droga'] = (new ProcessBuilder($db))->build($term);
+    $report += (new MemberBuilder($db, $snapshot))->build($term);
+    // Glosowania sa pobierane osobnym ETL-em, wiec dla kadencji bez nich sekcja znika,
+    // zamiast pokazywac pusty ranking.
+    $report['nieobecnosci'] = (new AbsenceBuilder($db))->build($term);
     $report['meta']['zamknieta'] = $closed;
     $report['meta']['od'] = $info['date_from'];
     $report['meta']['do'] = $endsAt;

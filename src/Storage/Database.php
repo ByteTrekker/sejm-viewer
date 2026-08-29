@@ -47,6 +47,28 @@ final class Database
             PRIMARY KEY (id, term)
         );
 
+        CREATE TABLE IF NOT EXISTS voting (
+            term         INTEGER NOT NULL,
+            sitting      INTEGER NOT NULL,
+            number       INTEGER NOT NULL,
+            date         TEXT,
+            title        TEXT,
+            topic        TEXT,
+            kind         TEXT,
+            total_voted  INTEGER,
+            PRIMARY KEY (term, sitting, number)
+        );
+
+        CREATE TABLE IF NOT EXISTS vote (
+            term    INTEGER NOT NULL,
+            sitting INTEGER NOT NULL,
+            number  INTEGER NOT NULL,
+            mp_id   INTEGER NOT NULL,
+            club    TEXT,
+            vote    TEXT NOT NULL,
+            PRIMARY KEY (term, sitting, number, mp_id)
+        );
+
         CREATE TABLE IF NOT EXISTS act (
             eli               TEXT PRIMARY KEY,
             publisher         TEXT NOT NULL,
@@ -85,6 +107,7 @@ final class Database
         CREATE INDEX IF NOT EXISTS idx_reply_question ON reply (question_id);
         CREATE INDEX IF NOT EXISTS idx_act_year ON act (year, type);
         CREATE INDEX IF NOT EXISTS idx_act_issuer_key ON act_issuer (issuer_key);
+        CREATE INDEX IF NOT EXISTS idx_vote_mp ON vote (term, mp_id);
         SQL;
 
     private function __construct(public readonly \PDO $pdo)
