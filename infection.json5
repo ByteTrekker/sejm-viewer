@@ -11,8 +11,7 @@
         "@default": true
     },
     logs: {
-        text: "var/infection.log",
-        stryker: { report: false }
+        text: "var/infection.log"
     },
     minMsi: 80,
     minCoveredMsi: 90,
