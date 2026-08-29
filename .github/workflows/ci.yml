@@ -68,7 +68,7 @@ jobs:
           # a pcov jest wielokrotnie szybszy przy tym samym wyniku liniowym.
           coverage: pcov
 
-      - uses: ramsey/composer-install@v3
+      - uses: ramsey/composer-install@v4
 
       - name: Styl (PSR-12)
         if: always()
