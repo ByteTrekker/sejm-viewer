@@ -7,7 +7,7 @@ danych, nie na próbce.
 | Dashboard | Miernik ustawowy | Zakres | Plik |
 |---|---|---|---|
 | Ranking milczenia ministerstw | 21 dni na odpowiedź na interpelację | 162 103 pytania, 2011–2026 | `public/index.html` |
-| Nieobecności w głosowaniach | — (brak progu ustawowego) | 4 563 głosowania imienne, 2,1 mln głosów, kadencja X | `public/index.html` |
+| Nieobecności w głosowaniach | — (brak progu ustawowego) | 28 447 głosowań imiennych, kadencje VII–X | `public/index.html` |
 | Vacatio legis | 14 dni od ogłoszenia do wejścia w życie | 19 410 aktów Dz.U., 2015–2026 | `public/vacatio.html` |
 | Vacatio legis — bez aktów technicznych | jw., po odsianiu 2 229 aktów administracyjnych | 15 058 rozporządzeń | `public/vacatio-merytoryczne.html` |
 
@@ -36,7 +36,7 @@ Wymagane: PHP 8.2+ z `pdo_sqlite`, `curl`, `mbstring`.
 ### Dodatkowe ETL-e
 
 ```bash
-php bin/fetch-votings.php --term=10    # głosowania imienne (~14 min, 4 563 żądania)
+php bin/fetch-votings.php --term=7,8,9,10   # głosowania imienne (~72 min, 28 447 żądań)
 ```
 
 | Krok | Co robi | Czas |

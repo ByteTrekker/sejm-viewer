@@ -201,15 +201,16 @@
 
   <nav class="toc" aria-label="Sekcje">
     <ul>
-      <li><a href="#compare-section">Kadencje</a></li>
-      <li><a href="#droga-section">Droga pytania</a></li>
-      <li><a href="#ranking-section">Ranking adresatów</a></li>
-      <li><a href="#trend-section">Terminowość w czasie</a></li>
-      <li><a href="#clubs-section">Kluby</a></li>
-      <li><a href="#members-section">Posłowie</a></li>
-      <li><a href="#series-section">Serie szablonowe</a></li>
-      <li><a href="#absence-section">Nieobecności</a></li>
-      <li><a href="#worst-section">Bez odpowiedzi</a></li>
+      <li><a href="#compare-section" data-for="compare-section">Kadencje</a></li>
+      <li><a href="#droga-section" data-for="droga-section">Droga pytania</a></li>
+      <li><a href="#ranking-section" data-for="ranking-section">Ranking adresatów</a></li>
+      <li><a href="#trend-section" data-for="trend-section">Terminowość w czasie</a></li>
+      <li><a href="#clubs-section" data-for="clubs-section">Kluby</a></li>
+      <li><a href="#members-section" data-for="members-section">Posłowie</a></li>
+      <li><a href="#series-section" data-for="series-section">Serie szablonowe</a></li>
+      <li><a href="#absence-section" data-for="absence-section">Nieobecności</a></li>
+      <li><a href="#worst-section" data-for="worst-section">Bez odpowiedzi</a></li>
+      <li><a href="#answered-section" data-for="answered-section">Czekały na odpowiedź</a></li>
     </ul>
   </nav>
 
@@ -1125,6 +1126,15 @@ function renderNotice() {
   );
 }
 
+/* Nawigacja ma prowadzic wylacznie do sekcji, ktore w tej kadencji istnieja -
+   martwy link do ukrytej sekcji jest gorszy niz jego brak. */
+function syncNav() {
+  document.querySelectorAll('nav.toc a[data-for]').forEach(a => {
+    const target = document.getElementById(a.dataset.for);
+    a.parentElement.hidden = !target || target.hidden;
+  });
+}
+
 function renderAll() {
   hideTip();
   renderHeader();
@@ -1143,6 +1153,7 @@ function renderAll() {
   renderWorst();
   renderFooter();
   drawCompare();
+  syncNav();
 }
 renderAll();
 </script>
