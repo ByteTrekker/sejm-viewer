@@ -19,6 +19,9 @@ final class OptionsTest extends TestCase
         self::assertSame(2015, $o->int('from', 2015));
         self::assertNull($o->nullableString('snapshot'));
         self::assertSame([10], $o->commaListOfInt('term', [10]));
+        // Wielopozycyjna wartosc domyslna musi wrocic w calosci, nie tylko pierwszy element.
+        self::assertSame(['interpelacja', 'zapytanie'], $o->commaList('kind', ['interpelacja', 'zapytanie']));
+        self::assertSame([7, 8, 9, 10], $o->commaListOfInt('term', [7, 8, 9, 10]));
     }
 
     public function test_present_option_wins_over_the_default(): void

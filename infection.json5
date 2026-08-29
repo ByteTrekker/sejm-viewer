@@ -17,6 +17,16 @@
         // poziomie 8: preg_replace deklaruje `string|null`, a null zwraca wyłącznie
         // przy błędzie silnika (np. przekroczeniu backtrack limitu), czego nie da się
         // wywołać tymi wzorcami. Żaden tekst wejściowy nie odróżni obu wersji.
+        // Wyjatek zawezony do jednej linii, a nie do calej metody: pozostale wywolania
+        // mb_* w prettify() sa zabijane przez testy i maja nimi pozostac.
+        // Prefiks "min. " ma dokladnie 5 znakow ASCII, wiec w tym jednym miejscu
+        // mb_substr($v, 5) i substr($v, 5) daja identyczny wynik dla kazdego wejscia -
+        // offset znakowy rowna sie bajtowemu.
+        MBString: {
+            ignoreSourceCodeByRegex: [
+                "return 'Minister ' \\. mb_substr\\(.*"
+            ]
+        },
         CastString: {
             ignore: [
                 "Milczenie\\Domain\\RecipientNormalizer::slug",

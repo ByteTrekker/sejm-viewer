@@ -84,13 +84,15 @@ final class IssuerNormalizerTest extends TestCase
 
     public function test_first_spelling_wins_and_later_ones_do_not_overwrite_it(): void
     {
-        // Pilnuje `??=` przy budowaniu etykiet.
+        // Pilnuje `??=`: dwa zapisy daja ten sam klucz (diakrytyki sa usuwane w slug),
+        // ale rozne etykiety - wiec zwykle przypisanie podmieniloby nazwe na gorsza.
         $n = new IssuerNormalizer();
 
-        $key = $n->normalize('MIN. ZDROWIA');
-        $n->normalize('min. zdrowia');
+        $key = $n->normalize('MIN. ŚRODOWISKA');
+        $n->normalize('MIN. SRODOWISKA');
 
-        self::assertSame('Minister zdrowia', $n->displayName($key));
+        self::assertSame('minister srodowiska', $key);
+        self::assertSame('Minister środowiska', $n->displayName($key));
     }
 
     public function test_display_name_capitalises_a_multibyte_first_letter(): void
