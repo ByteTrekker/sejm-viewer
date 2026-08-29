@@ -199,7 +199,7 @@ final class SejmApiClient
             CURLOPT_CONNECTTIMEOUT => 15,
             CURLOPT_ENCODING => 'gzip',
             CURLOPT_HTTPHEADER => ['Accept: application/json'],
-            CURLOPT_USERAGENT => 'ranking-milczenia/0.1 (obywatelski monitoring interpelacji)',
+            CURLOPT_USERAGENT => 'sejm_viewer/0.1 (obywatelski monitoring danych Sejmu)',
         ]);
 
         return $ch;

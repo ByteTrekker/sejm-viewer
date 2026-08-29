@@ -4,7 +4,7 @@ Instrukcje dla asystentów pracujących w tym repozytorium.
 
 ## Czym jest ten projekt
 
-Dwa dashboardy obywatelskie zbudowane na tej samej zasadzie: bierzemy **obowiązek
+**sejm_viewer** — dwa dashboardy obywatelskie zbudowane na tej samej zasadzie: bierzemy **obowiązek
 z twardym terminem ustawowym**, liczymy na pełnych danych, kto go dotrzymuje,
 i pokazujemy wynik razem z metodologią.
 

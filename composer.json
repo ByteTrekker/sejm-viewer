@@ -1,6 +1,6 @@
 {
-    "name": "obywatel/ranking-milczenia",
-    "description": "Ranking milczenia ministerstw - terminowosc odpowiedzi na interpelacje i zapytania poselskie",
+    "name": "bytetrekker/sejm_viewer",
+    "description": "Rankingi obywatelskie na danych Sejmu: terminowosc odpowiedzi na interpelacje oraz vacatio legis rozporzadzen",
     "type": "project",
     "license": "MIT",
     "require": {

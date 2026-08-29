@@ -1,6 +1,6 @@
-# Rankingi obywatelskie z danych Sejmu
+# sejm_viewer
 
-Dwa dashboardy stojące na tej samej zasadzie: bierzemy **obowiązek z twardym
+Rankingi obywatelskie z danych Sejmu. Dwa dashboardy stojące na tej samej zasadzie: bierzemy **obowiązek z twardym
 terminem ustawowym**, liczymy, kto go dotrzymuje, i pokazujemy to na pełnych
 danych, nie na próbce.
 
