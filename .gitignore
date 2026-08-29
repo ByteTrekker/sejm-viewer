@@ -11,3 +11,9 @@
 /public/vacatio-merytoryczne.json
 
 .DS_Store
+
+# Narzędzia jakości
+/.php-cs-fixer.cache
+/.phpunit.cache/
+/.phpunit.result.cache
+/coverage/

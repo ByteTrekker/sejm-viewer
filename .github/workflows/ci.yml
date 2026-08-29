@@ -42,13 +42,38 @@ jobs:
         with:
           php-version: '8.3'
           extensions: pdo_sqlite, curl, mbstring
-          coverage: none
+          # pcov, a nie xdebug: potrzebujemy pokrycia do progu i do mutacji,
+          # a pcov jest wielokrotnie szybszy przy tym samym wyniku liniowym.
+          coverage: pcov
+
+      - uses: ramsey/composer-install@v3
 
       - name: Składnia
         run: ./scripts/php-lint.sh
 
-      - name: Test dymny (bez sieci)
+      - name: Styl (PSR-12)
+        if: always()
+        run: vendor/bin/php-cs-fixer check --diff
+
+      - name: Analiza statyczna (PHPStan, poziom 8)
+        if: always()
+        run: php -d memory_limit=1G vendor/bin/phpstan analyse --no-progress --error-format=github
+
+      - name: Testy jednostkowe z progiem pokrycia
+        if: always()
+        run: ./scripts/check-coverage.sh 90
+
+      - name: Testy mutacyjne warstwy czystej
+        if: always()
+        run: ./scripts/check-mutation.sh
+
+      - name: Test dymny metodologii (bez sieci)
+        if: always()
         run: ./scripts/smoke.sh
+
+      - name: Audyt zależności
+        if: always()
+        run: composer audit
 
   artefakty:
     name: Artefakty generowane

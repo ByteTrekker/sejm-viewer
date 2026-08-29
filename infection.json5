@@ -1,0 +1,20 @@
+{
+    // Mutujemy wyłącznie warstwę czystą: domenę i parsowanie argumentów.
+    // Tam mieszkają reguły, których błąd kosztuje najwięcej — próg 21 dni,
+    // filtr aktów technicznych, scalanie nazw resortów. Mutowanie klienta HTTP
+    // czy importu wymagałoby sieci i bazy przy każdym mutancie.
+    $schema: "vendor/infection/infection/resources/schema.json",
+    source: {
+        directories: ["src/Domain", "src/Console"]
+    },
+    mutators: {
+        "@default": true
+    },
+    logs: {
+        text: "var/infection.log",
+        stryker: { report: false }
+    },
+    minMsi: 80,
+    minCoveredMsi: 90,
+    timeout: 15
+}

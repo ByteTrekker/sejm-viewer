@@ -1,0 +1,12 @@
+# Poziom 8 — standard przyjęty w pozostałych projektach (mypy strict, tsc strict).
+# Kod domenowy i raportowy ma być typowany bez luk; luźniejsze traktowanie
+# `mixed` z PDO i json_decode należy zawężać jawnym rzutowaniem, nie ignorowaniem.
+parameters:
+    level: 8
+    paths:
+        - src
+        - bin
+    excludePaths:
+        analyse:
+            - bin/bootstrap.php
+    treatPhpDocTypesAsCertain: false

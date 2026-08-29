@@ -1,5 +1,5 @@
 {
-    "name": "bytetrekker/sejm_viewer",
+    "name": "bytetrekker/sejm-viewer",
     "description": "Rankingi obywatelskie na danych Sejmu: terminowosc odpowiedzi na interpelacje oraz vacatio legis rozporzadzen",
     "type": "project",
     "license": "MIT",
@@ -16,6 +16,26 @@
         }
     },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "infection/extension-installer": true
+        }
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "infection/infection": "^0.35.3",
+        "phpstan/phpstan": "^2.2",
+        "phpunit/phpunit": "^13.3"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Milczenie\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "lint": "./scripts/php-lint.sh",
+        "stan": "phpstan analyse --no-progress",
+        "style": "php-cs-fixer fix --dry-run --diff",
+        "test": "phpunit"
     }
 }

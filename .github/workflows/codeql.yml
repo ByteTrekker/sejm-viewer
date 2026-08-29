@@ -1,0 +1,37 @@
+name: CodeQL
+
+# Analiza statyczna pod kątem bezpieczeństwa, uzupełniająca PHPStan.
+#
+# CodeQL nie wspiera PHP, więc obejmuje to, co da się objąć: JavaScript
+# wstrzykiwany do dashboardów (buduje DOM z danych i wstawia HTML w tooltipach)
+# oraz definicje workflowów. Analiza PHP-a zostaje po stronie PHPStan.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Nowe reguły i nowe podatności pojawiają się bez zmian w naszym kodzie.
+    - cron: "23 5 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analiza (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, actions]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:${{ matrix.language }}
