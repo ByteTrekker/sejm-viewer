@@ -26,18 +26,25 @@ $p = $db->pdo;
 $p->exec("INSERT INTO term (num, date_from, date_to) VALUES (10, \"2023-11-13\", NULL)");
 $p->exec("INSERT INTO term (num, date_from, date_to) VALUES (7, \"2011-11-08\", \"2015-11-11\")");
 
+$p->exec("INSERT INTO mp (id, term, name, club, district, active) VALUES (11, 10, \"Anna Pytająca\", \"KLUB-A\", \"Kraków\", 1)");
+$p->exec("INSERT INTO mp (id, term, name, club, district, active) VALUES (12, 10, \"Jan Seryjny\", \"KLUB-B\", \"Gdańsk\", 1)");
+$p->exec("INSERT INTO mp (id, term, name, club, district, active) VALUES (13, 10, \"Ewa Milcząca\", \"KLUB-A\", \"Poznań\", 1)");
+
 $q = $p->prepare("INSERT INTO question (id, kind, term, num, title, receipt_date, sent_date, authors, author_count)
-                  VALUES (?, \"interpelacja\", ?, ?, ?, ?, ?, \"[]\", 0)");
+                  VALUES (?, \"interpelacja\", ?, ?, ?, ?, ?, ?, ?)");
 $a = $p->prepare("INSERT INTO addressee (question_id, recipient_raw, recipient_key, sent_date) VALUES (?, ?, ?, ?)");
 $r = $p->prepare("INSERT INTO reply (question_id, reply_key, author, receipt_date, prolongation, only_attachment)
                   VALUES (?, ?, \"Minister Testowy\", ?, 0, 0)");
 
 $sent = "2024-01-10";
-$mk = function (int $n, string $suffix, ?string $replyDate, bool $hasReply, int $addressees = 1)
+$mk = function (int $n, string $suffix, ?string $replyDate, bool $hasReply, int $addressees = 1, array $authors = [11], ?string $fixedTitle = null)
         use ($q, $a, $r, $sent): void {
     for ($i = 0; $i < $n; $i++) {
         $id = "interpelacja:10:" . $suffix . $i;
-        $q->execute([$id, 10, 1000 + crc32($id) % 8000, "Interpelacja testowa " . $suffix . $i, "2024-01-05", $sent]);
+        $title = $fixedTitle ?? ("Interpelacja testowa " . $suffix . $i);
+        // Wplyw 5 dni przed przekazaniem - to jest opoznienie kancelarii.
+        $q->execute([$id, 10, 1000 + crc32($id) % 8000, $title, "2024-01-05", $sent,
+                     json_encode($authors), count($authors)]);
         $a->execute([$id, "minister testowy", "minister testowy", $sent]);
         if ($addressees > 1) {
             $a->execute([$id, "minister drugi", "minister drugi", $sent]);
@@ -53,11 +60,13 @@ $mk(20, "late",    "2024-02-20", true);   // 41 dni - po terminie
 $mk(10, "nodate",  null,         true);   // odpowiedz bez daty
 $mk(5,  "silent",  null,         false);  // brak odpowiedzi
 $mk(7,  "multi",   "2024-01-20", true, 2); // wielu adresatow
+$mk(4,  "seria",   "2024-01-20", true, 1, [12], "Interpelacja w sprawie tej samej rzeczy"); // seria szablonowa
+$mk(3,  "duo",     "2024-01-20", true, 1, [11, 12]); // dwoch autorow - kazdy dostaje po jednym pytaniu
 
 // Kadencja niemierzalna: same odpowiedzi bez daty.
 for ($i = 0; $i < 50; $i++) {
     $id = "interpelacja:7:" . $i;
-    $q->execute([$id, 7, $i + 1, "Interpelacja VII " . $i, "2013-01-05", "2013-01-10"]);
+    $q->execute([$id, 7, $i + 1, "Interpelacja VII " . $i, "2013-01-05", "2013-01-10", "[]", 0]);
     $a->execute([$id, "minister testowy", "minister testowy", "2013-01-10"]);
     $r->execute([$id, "V" . $i, null]);
 }
@@ -76,6 +85,18 @@ $mkAct(40, "std",  "2024-03-16", "Rozporządzenie Ministra Testowego w sprawie s
 $mkAct(20, "fast", "2024-03-01", "Rozporządzenie Ministra Testowego w sprawie stawek pilnych"); // 0 dni
 $mkAct(10, "tech", "2024-03-01", "Rozporządzenie Ministra Testowego w sprawie uznania za pomnik historii");
 
+// Glosowania: 10 glosowan, posel 11 nieobecny w 2, posel 12 w 5, posel 13 w 0.
+$v = $p->prepare("INSERT INTO voting (term, sitting, number, date, title, topic, kind, total_voted)
+                  VALUES (10, 1, ?, \"2024-03-01\", \"Glosowanie testowe\", NULL, \"ELECTRONIC\", 3)");
+$vt = $p->prepare("INSERT INTO vote (term, sitting, number, mp_id, club, vote) VALUES (10, 1, ?, ?, ?, ?)");
+for ($i = 1; $i <= 10; $i++) {
+    $v->execute([$i]);
+    $vt->execute([$i, 11, "KLUB-A", $i <= 2 ? "ABSENT" : "YES"]);
+    $vt->execute([$i, 12, "KLUB-B", $i <= 5 ? "ABSENT" : "NO"]);
+    $vt->execute([$i, 13, "KLUB-A", "YES"]);
+}
+
+$db->setMeta("votings_fetched_at", "2024-06-01T00:00:00+00:00");
 $db->setMeta("fetched_at", "2024-06-01T00:00:00+00:00");
 $db->setMeta("acts_fetched_at", "2024-06-01T00:00:00+00:00");
 '
@@ -97,16 +118,49 @@ $m = null;
 foreach ($k10["ministerstwa"] as $row) { if ($row["klucz"] === "minister testowy") { $m = $row; } }
 if ($m === null) { echo "BŁĄD brak adresata testowego\n"; exit(1); }
 
-$check("na czas", $m["na_czas"], 40);
+// 40 "ontime" + 4 z serii + 3 wspolnych = 47 odpowiedzi w terminie
+$check("na czas", $m["na_czas"], 47);
 $check("po terminie", $m["po_terminie"], 20);
 $check("odpowiedzi bez daty poza mianownikiem", $m["odpowiedzi_bez_daty"], 10);
 $check("bez odpowiedzi po terminie", $m["bez_odpowiedzi_po_terminie"], 5);
-$check("mianownik = 40+20+5", $m["rozstrzygniete"], 65);
+$check("mianownik = na czas + po terminie + milczenie", $m["rozstrzygniete"], 72);
 $check("pytania do wielu adresatow wykluczone", $k10["meta"]["wylaczone"]["wielu_adresatow"], 7);
 
 $t7 = null; $t10 = null;
 foreach ($d["kadencje"] as $k) { if ($k["numer"] === 7) { $t7 = $k; } if ($k["numer"] === 10) { $t10 = $k; } }
 $check("kadencja z odpowiedziami bez daty jest niemierzalna", $t7["mierzalna"], false);
+
+// --- droga pytania: opoznienie kancelarii liczone od WPLYWU ---
+$kanc = $k10["droga"]["kancelaria"];
+$check("kancelaria: mediana od wplywu do przekazania", $kanc["mediana_dni"], 5);
+$check("kancelaria: zadne pytanie nie przekroczylo terminu", $kanc["ponad_termin"], 0);
+
+// --- podpisy pod odpowiedziami ---
+$podpisy = [];
+foreach ($k10["droga"]["podpisy"] as $row) { $podpisy[$row["klucz"]] = $row["n"]; }
+// Kazde pytanie z odpowiedzia ma podpis "Minister Testowy", takze te do wielu adresatow.
+$check("podpis rozpoznany jako minister", $podpisy["minister"] ?? 0, 84);
+
+// --- serie szablonowe ---
+$check("wykryto jedna serie szablonowa", $k10["serie"]["serii"], 1);
+$check("seria obejmuje 4 pytania", $k10["serie"]["pytan_w_seriach"], 4);
+
+// --- poslowie: pytanie dwoch autorow liczy sie kazdemu z nich ---
+$poslowie = [];
+foreach ($k10["poslowie"] as $row) { $poslowie[$row["id"]] = $row; }
+$check("posel bez pytan ma zero", $poslowie[13]["pytan"], 0);
+// Posel 11: 75 wlasnych (bez wykluczonych wieloadresatowych) + 3 wspolne z poslem 12.
+$check("wspolne pytanie liczy sie obu autorom", $poslowie[11]["pytan"], 78);
+$check("autor serii ma 4 pytania w seriach", $poslowie[12]["w_seriach"], 4);
+$check("unikalne tematy pomijaja powtorzenia", $poslowie[12]["tematow"], 4);
+
+// --- nieobecnosci ---
+$abs = [];
+foreach ($k10["nieobecnosci"]["poslowie"] as $row) { $abs[$row["id"]] = $row; }
+$check("nieobecnosci: mianownik per posel", $abs[11]["glosowan"], 10);
+$check("nieobecnosci: posel 11 opuscil 2", $abs[11]["nieobecnosci"], 2);
+$check("nieobecnosci: udzial posla 12", $abs[12]["udzial_nieobecnosci"], 0.5);
+$check("nieobecnosci: posel bez absencji", $abs[13]["nieobecnosci"], 0);
 $check("kadencja z kompletem dat jest mierzalna", $t10["mierzalna"], true);
 $check("domyslna kadencja jest mierzalna", $d["domyslna_kadencja"], 10);
 
