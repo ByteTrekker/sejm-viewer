@@ -96,7 +96,7 @@ pytest + mutmut + pip-audit + CodeQL), przełożonemu na PHP:
 | analiza statyczna | `phpstan` **poziom 8** | `src`, `bin` |
 | testy jednostkowe | `phpunit` | `tests/Unit` |
 | próg pokrycia | `scripts/check-coverage.sh 90` | `src/Domain`, `src/Console` |
-| testy mutacyjne | `infection` (MSI 80 / pokryte 90) | `src/Domain`, `src/Console` |
+| testy mutacyjne | `infection` (MSI 90 / pokryte 95) | `src/Domain`, `src/Console` |
 | test dymny | `scripts/smoke.sh` | oba raporty end-to-end |
 | audyt zależności | `composer audit` | `require-dev` |
 | bezpieczeństwo | CodeQL (`javascript-typescript`, `actions`) | JS dashboardów, workflowy |
