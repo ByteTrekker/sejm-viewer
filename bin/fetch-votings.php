@@ -40,3 +40,10 @@ $db->setMeta('votings_fetched_at', (new DateTimeImmutable())->format(DateTimeInt
 $db->setMeta('votings_terms', implode(',', $terms));
 
 $log(sprintf('Gotowe: %d glosowan w %.1fs', $total, microtime(true) - $startedAt));
+
+// Kod wyjscia niesie informacje o kompletnosci - inaczej cron zapisze sukces
+// przy niepelnym imporcie.
+$stored = (int) ($db->fetchRow(
+    sprintf('SELECT COUNT(*) AS n FROM voting WHERE term IN (%s)', implode(',', $terms)),
+)['n'] ?? 0);
+$log(sprintf('W bazie: %d glosowan dla kadencji %s', $stored, implode(', ', $terms)));

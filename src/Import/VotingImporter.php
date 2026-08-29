@@ -45,6 +45,7 @@ final class VotingImporter
         );
 
         $imported = 0;
+        $malformed = 0;
         $this->db->pdo->beginTransaction();
 
         foreach ($this->api->fetchMany($paths) as $voting) {
@@ -52,6 +53,7 @@ final class VotingImporter
             $sitting = (int) ($voting['sitting'] ?? 0);
             $number = (int) ($voting['votingNumber'] ?? 0);
             if ($sitting === 0 || $number === 0) {
+                $malformed++;
                 continue;
             }
 
@@ -91,6 +93,22 @@ final class VotingImporter
         }
 
         $this->db->pdo->commit();
+
+        // Niekompletny import ma byc widoczny od razu, a nie odkryty tydzien pozniej
+        // przy porownywaniu rankingu z API. Import jest idempotentny, wiec zalecenie
+        // jest zawsze to samo: uruchomic ponownie te sama kadencje.
+        $missing = count($paths) - $imported;
+        if ($missing > 0) {
+            $this->log(sprintf(
+                '  UWAGA: pobrano %d z %d glosowan (brakuje %d: %d bledow sieci, %d rekordow bez identyfikatora).',
+                $imported,
+                count($paths),
+                $missing,
+                $this->api->lastFailureCount(),
+                $malformed,
+            ));
+            $this->log(sprintf('  Import jest idempotentny - uruchom ponownie: php bin/fetch-votings.php --term=%d', $term));
+        }
 
         return $imported;
     }

@@ -14,10 +14,18 @@ final class SejmApiClient
     private const PAGE_SIZE = 500;
     private const MAX_ATTEMPTS = 4;
 
+    /** Liczba zasobow, ktorych nie udalo sie pobrac w ostatnim wywolaniu fetchMany(). */
+    private int $failures = 0;
+
     public function __construct(
         private readonly int $timeoutSeconds = 120,
         private readonly ?\Closure $logger = null,
     ) {
+    }
+
+    public function lastFailureCount(): int
+    {
+        return $this->failures;
     }
 
     /**
@@ -128,6 +136,7 @@ final class SejmApiClient
     public function fetchMany(array $paths, int $concurrency = 8): \Generator
     {
         $multi = curl_multi_init();
+        $this->failures = 0;
         $pending = $paths;
         $active = [];
 
@@ -154,16 +163,24 @@ final class SejmApiClient
                 $ch = $info['handle'];
                 $body = curl_multi_getcontent($ch);
                 $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+                $path = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
                 curl_multi_remove_handle($multi, $ch);
                 unset($active[(int) $ch]);
 
-                if ($status === 200 && is_string($body)) {
+                // Kazda utrata rekordu musi zostawic slad. Cicha strata przy
+                // niepoprawnym JSON-ie kosztowala kiedys 811 glosowan kadencji VIII,
+                // z czego logi pokazaly 81 - reszta zniknela bez sladu.
+                if ($status !== 200 || !is_string($body)) {
+                    $this->failures++;
+                    $this->log(sprintf('  ! %s -> HTTP %d', $path, $status));
+                } else {
                     $decoded = json_decode($body, true);
                     if (is_array($decoded)) {
                         yield $decoded;
+                    } else {
+                        $this->failures++;
+                        $this->log(sprintf('  ! %s -> odpowiedz nie jest JSON-em (%d B)', $path, strlen($body)));
                     }
-                } else {
-                    $this->log(sprintf('  ! zasob pominiety: HTTP %d', $status));
                 }
 
                 $start();
