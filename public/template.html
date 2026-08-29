@@ -341,6 +341,10 @@
       poseł, który objął lub stracił mandat w trakcie kadencji, ma go odpowiednio mniejszy.
     </p>
     <p class="sub" id="absence-sub"></p>
+    <div class="card" style="margin-bottom:12px" id="absence-compare-wrap" hidden><figure>
+      <div id="absence-compare"></div>
+      <figcaption>Odsetek nieobecności w kolejnych kadencjach — te same reguły, ta sama miara</figcaption>
+    </figure></div>
     <div class="card" style="margin-bottom:12px"><figure>
       <div id="absence-clubs"></div>
       <figcaption>Odsetek nieobecności według klubu</figcaption>
@@ -864,6 +868,51 @@ function hbar(hostId, rows, opts) {
   host.replaceChildren(svg);
 }
 
+
+/* ---------- sortowalna tabela (wspolna dla poslow i nieobecnosci) ---------- */
+function sortableTable(cfg) {
+  const head = document.getElementById(cfg.headId);
+  const body = document.getElementById(cfg.bodyId);
+
+  head.replaceChildren(el('th', { class: 'rank', text: '#' }));
+  cfg.columns.forEach(c => {
+    const th = el('th', { class: 'sortable', text: c.label });
+    if (cfg.state.sort === c.key) th.setAttribute('aria-sort', cfg.state.dir === -1 ? 'descending' : 'ascending');
+    th.onclick = () => {
+      cfg.state.dir = cfg.state.sort === c.key ? -cfg.state.dir : -1;
+      cfg.state.sort = c.key;
+      cfg.rerender();
+    };
+    head.append(th);
+  });
+
+  const rows = cfg.rows.slice().sort((a, b) => {
+    const x = a[cfg.state.sort], y = b[cfg.state.sort];
+    if (typeof x === 'string' || typeof y === 'string') {
+      return cfg.state.dir * String(x ?? '').localeCompare(String(y ?? ''), 'pl');
+    }
+    return cfg.state.dir * ((x ?? -1) - (y ?? -1));
+  }).slice(0, cfg.limit);
+
+  body.replaceChildren(...rows.map((r, i) => {
+    const tr = el('tr', {}, el('td', { class: 'rank', text: String(i + 1) }));
+    cfg.columns.forEach(c => {
+      const v = r[c.key];
+      let text = '—';
+      if (v !== null && v !== undefined) {
+        if (c.type === 'pct') text = fmtPct(v, c.digits ?? 0);
+        else if (c.type === 'int') text = fmtInt(v);
+        else text = String(v);
+      }
+      tr.append(el('td', { class: c.type === 'text' ? '' : 'num', text }));
+    });
+    if (cfg.tip) bindTip(tr, () => cfg.tip(r));
+    return tr;
+  }));
+
+  return rows.length;
+}
+
 /* ---------- droga pytania ---------- */
 function renderDroga() {
   const d = report().droga;
@@ -930,12 +979,12 @@ const MEMBER_METRICS = [
   { key: 'udzial_po_terminie', label: 'Ich pytania po terminie' },
   { key: 'udzial_bez_odpowiedzi', label: 'Ich pytania bez odpowiedzi' },
 ];
-const memberState = { metric: MEMBER_METRICS[0], filter: '' };
+const memberState = { metric: MEMBER_METRICS[0], sort: 'tematow', dir: -1, filter: '' };
 
 const memberSeg = document.getElementById('member-metric-seg');
 MEMBER_METRICS.forEach(m => {
   const b = el('button', { type: 'button', text: m.label, 'aria-pressed': String(m.key === memberState.metric.key) });
-  b.onclick = () => { memberState.metric = m; renderMembers(); };
+  b.onclick = () => { memberState.metric = m; memberState.sort = m.key; memberState.dir = -1; renderMembers(); };
   memberSeg.append(b);
 });
 document.getElementById('member-filter').addEventListener('input', e => {
@@ -948,45 +997,27 @@ function renderMembers() {
     b.setAttribute('aria-pressed', String(MEMBER_METRICS[i].key === memberState.metric.key)));
 
   const all = report().poslowie || [];
-  const metric = memberState.metric;
-  const needsOutcome = metric.key.startsWith('udzial');
+  const needsOutcome = memberState.sort.startsWith('udzial');
 
-  const rows = all
+  const pool = all
     .filter(m => m.pytan > 0)
     .filter(m => !needsOutcome || m.w_rankingu)
-    .filter(m => (m.nazwa + ' ' + (m.klub ?? '')).toLowerCase().includes(memberState.filter))
-    .sort((a, b) => (b[metric.key] ?? -1) - (a[metric.key] ?? -1))
-    .slice(0, 60);
+    .filter(m => (m.nazwa + ' ' + (m.klub ?? '')).toLowerCase().includes(memberState.filter));
 
-  const head = document.getElementById('members-head');
-  head.replaceChildren(el('th', { class: 'rank', text: '#' }));
-  MEMBER_COLUMNS.forEach(c => head.append(el('th', { text: c.label })));
-
-  const body = document.getElementById('members-body');
-  body.replaceChildren(...rows.map((m, i) => {
-    const tr = el('tr', {}, el('td', { class: 'rank', text: String(i + 1) }));
-    MEMBER_COLUMNS.forEach(c => {
-      const v = m[c.key];
-      let text = '—';
-      if (v !== null && v !== undefined) {
-        if (c.type === 'pct') text = fmtPct(v, 0);
-        else if (c.type === 'int') text = fmtInt(v);
-        else text = String(v);
-      }
-      tr.append(el('td', { class: c.type === 'text' ? '' : 'num', text }));
-    });
-    bindTip(tr, () => `<b>${m.nazwa}</b>
+  const shown = sortableTable({
+    headId: 'members-head', bodyId: 'members-body', columns: MEMBER_COLUMNS,
+    rows: pool, state: memberState, limit: 60, rerender: renderMembers,
+    tip: m => `<b>${m.nazwa}</b>
       <div class="row">${m.klub ?? 'brak klubu'}${m.okreg ? ' · ' + m.okreg : ''}</div>
       <div class="row">${fmtInt(m.pytan)} pytań, w tym ${fmtInt(m.w_seriach)} w seriach szablonowych</div>
-      <div class="row">rozstrzygniętych: ${fmtInt(m.rozstrzygniete)} · po terminie: ${fmtInt(m.niedotrzymane)}</div>`);
-    return tr;
-  }));
+      <div class="row">rozstrzygniętych: ${fmtInt(m.rozstrzygniete)} · po terminie: ${fmtInt(m.niedotrzymane)}</div>`,
+  });
 
+  const asked = all.filter(m => m.pytan > 0).length;
   const silent = all.filter(m => m.pytan === 0).length;
   document.getElementById('members-note').textContent =
-    `Pokazano ${rows.length} z ${all.filter(m => m.pytan > 0).length} posłów, którzy zadali co najmniej jedno pytanie. `
-    + `${silent} posłów nie zadało żadnego. `
-    + (needsOutcome ? `Odsetki liczone tylko dla posłów z co najmniej 10 rozstrzygniętymi pytaniami.` : '');
+    `Pokazano ${shown} z ${asked} posłów, którzy zadali co najmniej jedno pytanie. ${silent} nie zadało żadnego. `
+    + (needsOutcome ? 'Odsetki liczone tylko dla posłów z co najmniej 10 rozstrzygniętymi pytaniami.' : 'Kliknij nagłówek kolumny, aby posortować.');
 }
 
 /* ---------- serie szablonowe ---------- */
@@ -1010,11 +1041,11 @@ function renderSeries() {
 const ABSENCE_COLUMNS = [
   { key: 'nazwa', label: 'Poseł', type: 'text' },
   { key: 'klub', label: 'Klub', type: 'text' },
-  { key: 'udzial_nieobecnosci', label: 'Nieobecności', type: 'pct' },
+  { key: 'udzial_nieobecnosci', label: 'Nieobecności', type: 'pct', digits: 1 },
   { key: 'nieobecnosci', label: 'Głosowań opuszczonych', type: 'int' },
   { key: 'glosowan', label: 'Głosowań łącznie', type: 'int' },
 ];
-const absenceState = { filter: '' };
+const absenceState = { sort: 'udzial_nieobecnosci', dir: -1, filter: '' };
 document.getElementById('absence-filter').addEventListener('input', e => {
   absenceState.filter = e.target.value.toLowerCase();
   renderAbsences();
@@ -1028,7 +1059,22 @@ function renderAbsences() {
 
   document.getElementById('absence-sub').textContent =
     `${fmtInt(a.glosowan)} głosowań imiennych, ${fmtInt(a.poslow)} posłów. Średnio ${fmtPct(a.udzial_ogolem, 1)} `
-    + `nieobecności. W tabeli posłowie z co najmniej ${a.min_probka} głosowaniami.`;
+    + `nieobecności. W tabeli posłowie z co najmniej ${a.min_probka} głosowaniami. Kliknij nagłówek kolumny, aby posortować.`;
+
+  // Porownanie kadencji ma sens tylko wtedy, gdy pobrano glosowania dla wiecej niz jednej.
+  const withVotes = DATA.kadencje.filter(k => k.nieobecnosci_udzial !== null && k.nieobecnosci_udzial !== undefined);
+  const compareWrap = document.getElementById('absence-compare-wrap');
+  compareWrap.hidden = withVotes.length < 2;
+  if (withVotes.length >= 2) {
+    hbar('absence-compare', withVotes.map(k => ({
+      label: `Kadencja ${ROMAN[k.numer] ?? k.numer}`,
+      value: k.nieobecnosci_udzial,
+      display: fmtPct(k.nieobecnosci_udzial, 1),
+      tip: `<b>Kadencja ${ROMAN[k.numer] ?? k.numer}</b>
+        <div class="row">${fmtPct(k.nieobecnosci_udzial, 1)} nieobecności</div>
+        <div class="row">${fmtInt(k.nieobecnosci_glosowan)} głosowań imiennych</div>`,
+    })), { label: 'Nieobecności w kolejnych kadencjach', labelWidth: 140, tick: v => Math.round(v * 100) + '%' });
+  }
 
   hbar('absence-clubs', a.kluby.filter(c => c.glosowan >= 1000).map(c => ({
     label: c.klucz,
@@ -1039,27 +1085,17 @@ function renderAbsences() {
       <div class="row">${fmtInt(c.nieobecnosci)} z ${fmtInt(c.glosowan)} głosowań</div>`,
   })), { label: 'Nieobecności według klubu', labelWidth: 150, tick: v => Math.round(v * 100) + '%' });
 
-  const rows = a.poslowie
+  const pool = a.poslowie
     .filter(m => m.w_rankingu)
-    .filter(m => (m.nazwa + ' ' + (m.klub ?? '')).toLowerCase().includes(absenceState.filter))
-    .slice(0, 60);
+    .filter(m => (m.nazwa + ' ' + (m.klub ?? '')).toLowerCase().includes(absenceState.filter));
 
-  const head = document.getElementById('absences-head');
-  head.replaceChildren(el('th', { class: 'rank', text: '#' }));
-  ABSENCE_COLUMNS.forEach(c => head.append(el('th', { text: c.label })));
-
-  document.getElementById('absences-body').replaceChildren(...rows.map((m, i) => {
-    const tr = el('tr', {}, el('td', { class: 'rank', text: String(i + 1) }));
-    ABSENCE_COLUMNS.forEach(c => {
-      const v = m[c.key];
-      const text = c.type === 'pct' ? fmtPct(v, 1) : (c.type === 'int' ? fmtInt(v) : String(v ?? '—'));
-      tr.append(el('td', { class: c.type === 'text' ? '' : 'num', text }));
-    });
-    bindTip(tr, () => `<b>${m.nazwa}</b>
+  sortableTable({
+    headId: 'absences-head', bodyId: 'absences-body', columns: ABSENCE_COLUMNS,
+    rows: pool, state: absenceState, limit: 60, rerender: renderAbsences,
+    tip: m => `<b>${m.nazwa}</b>
       <div class="row">${m.klub ?? 'brak klubu'}${m.okreg ? ' · ' + m.okreg : ''}</div>
-      <div class="row">opuścił ${fmtInt(m.nieobecnosci)} z ${fmtInt(m.glosowan)} głosowań</div>`);
-    return tr;
-  }));
+      <div class="row">opuścił ${fmtInt(m.nieobecnosci)} z ${fmtInt(m.glosowan)} głosowań</div>`,
+  });
 }
 
 /* ---------- render ---------- */

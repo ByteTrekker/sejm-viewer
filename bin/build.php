@@ -66,7 +66,8 @@ foreach ($terms as $term) {
     $report += (new MemberBuilder($db, $snapshot))->build($term);
     // Glosowania sa pobierane osobnym ETL-em, wiec dla kadencji bez nich sekcja znika,
     // zamiast pokazywac pusty ranking.
-    $report['nieobecnosci'] = (new AbsenceBuilder($db))->build($term);
+    $absences = (new AbsenceBuilder($db))->build($term);
+    $report['nieobecnosci'] = $absences;
     $report['meta']['zamknieta'] = $closed;
     $report['meta']['od'] = $info['date_from'];
     $report['meta']['do'] = $endsAt;
@@ -99,6 +100,10 @@ foreach ($terms as $term) {
         'udzial_po_terminie' => $decided > 0 ? round($failed / $decided, 4) : 0.0,
         'bez_odpowiedzi' => $sum('bez_odpowiedzi_po_terminie'),
         'adresatow_w_rankingu' => count($ranked),
+        // null, gdy dla kadencji nie pobrano glosowan - wykres porownawczy ma wtedy
+        // pokazac brak danych, a nie zero.
+        'nieobecnosci_udzial' => $absences['udzial_ogolem'] ?? null,
+        'nieobecnosci_glosowan' => $absences['glosowan'] ?? null,
     ];
     $payload['raporty'][$term] = $report;
 
