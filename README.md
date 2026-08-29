@@ -155,10 +155,13 @@ Poza rankingiem adresatów strona niesie cztery wymiary liczone z tych samych da
   ranking premiowałby seryjne wysyłanie tego samego pytania.
 - **Serie szablonowe** — 583 tytuły powtarzają się w kadencji X, obejmując 1 314 pytań
   (5,6%). Największa seria liczy 13 pytań.
-- **Nieobecności w głosowaniach** — wymaga `bin/fetch-votings.php`. **API podaje fakt
-  nieobecności, nie jej przyczynę**: delegacja, choroba, urlop rodzicielski, obowiązki
-  premiera i zwykła absencja są w danych nierozróżnialne. Mianownik jest per poseł,
-  więc mandat objęty lub wygaszony w trakcie kadencji nie zniekształca wyniku.
+- **Nieobecności w głosowaniach** — 28 447 głosowań imiennych, kadencje VII–X.
+  **API podaje fakt nieobecności, nie jej przyczynę**: delegacja, choroba, urlop
+  rodzicielski, obowiązki premiera i zwykła absencja są w danych nierozróżnialne.
+  Mianownik jest per poseł, więc mandat objęty lub wygaszony w trakcie kadencji nie
+  zniekształca wyniku. Porównanie międzykadencyjne niesie własne zastrzeżenie:
+  w kadencji IX wprowadzono **głosowanie zdalne**, co obniża absencję mechanicznie
+  (3,1% wobec 6,1–7,8% w pozostałych kadencjach).
 
 ## Odnośniki do źródła
 

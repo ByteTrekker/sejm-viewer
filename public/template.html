@@ -344,7 +344,7 @@
     <p class="sub" id="absence-sub"></p>
     <div class="card" style="margin-bottom:12px" id="absence-compare-wrap" hidden><figure>
       <div id="absence-compare"></div>
-      <figcaption>Odsetek nieobecności w kolejnych kadencjach — te same reguły, ta sama miara</figcaption>
+      <figcaption id="absence-compare-caption"></figcaption>
     </figure></div>
     <div class="card" style="margin-bottom:12px"><figure>
       <div id="absence-clubs"></div>
@@ -1075,6 +1075,13 @@ function renderAbsences() {
         <div class="row">${fmtPct(k.nieobecnosci_udzial, 1)} nieobecności</div>
         <div class="row">${fmtInt(k.nieobecnosci_glosowan)} głosowań imiennych</div>`,
     })), { label: 'Nieobecności w kolejnych kadencjach', labelWidth: 140, tick: v => Math.round(v * 100) + '%' });
+
+    // Kadencja IX wypada najlepiej, ale w jej trakcie wprowadzono glosowanie zdalne -
+    // to obniza absencje mechanicznie, a nie przez zmiane zachowania poslow.
+    document.getElementById('absence-compare-caption').textContent =
+      'Ta sama miara i te same reguły, ale nie ten sam ustrój głosowania: w kadencji IX '
+      + 'wprowadzono głosowanie zdalne w czasie pandemii, co obniża odsetek nieobecności '
+      + 'mechanicznie. Porównanie między kadencjami nie jest równoważne.';
   }
 
   hbar('absence-clubs', a.kluby.filter(c => c.glosowan >= 1000).map(c => ({
