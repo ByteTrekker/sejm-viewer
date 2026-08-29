@@ -32,24 +32,43 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: ./scripts/check-commits.sh --subject "$PR_TITLE"
 
-  php:
-    name: PHP
+  # Runtime deklaruje PHP 8.2 i zero zależności. Ten job to sprawdza dosłownie:
+  # bez composera, na najniższej wspieranej wersji. Gdyby do bin/ albo src/
+  # wszedł kiedyś `use` z vendora, ta bramka zapali się natychmiast.
+  runtime:
+    name: Runtime bez zależności (PHP 8.2)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.2'
+          extensions: pdo_sqlite, curl, mbstring
+          coverage: none
+
+      - name: Składnia
+        run: ./scripts/php-lint.sh
+
+      - name: Test dymny metodologii (bez sieci, bez composera)
+        run: ./scripts/smoke.sh
+
+  php:
+    name: Bramki jakości
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          # PHPUnit 13 wymaga 8.4; runtime i tak jest weryfikowany osobno na 8.2.
+          php-version: '8.4'
           extensions: pdo_sqlite, curl, mbstring
           # pcov, a nie xdebug: potrzebujemy pokrycia do progu i do mutacji,
           # a pcov jest wielokrotnie szybszy przy tym samym wyniku liniowym.
           coverage: pcov
 
       - uses: ramsey/composer-install@v3
-
-      - name: Składnia
-        run: ./scripts/php-lint.sh
 
       - name: Styl (PSR-12)
         if: always()
@@ -66,10 +85,6 @@ jobs:
       - name: Testy mutacyjne warstwy czystej
         if: always()
         run: ./scripts/check-mutation.sh
-
-      - name: Test dymny metodologii (bez sieci)
-        if: always()
-        run: ./scripts/smoke.sh
 
       - name: Audyt zależności
         if: always()
