@@ -1,0 +1,110 @@
+<title>sejm-viewer</title>
+<!--@style-->
+
+<div class="wrap">
+  <!--@nav-->
+
+  <header class="masthead">
+    <h1>Co widać w danych Sejmu</h1>
+    <p class="dek">
+      Pięć rankingów zbudowanych na jednej zasadzie: bierzemy obowiązek z twardym terminem
+      ustawowym, liczymy na pełnych danych, kto go dotrzymuje, i pokazujemy wynik razem
+      z metodologią. Każda liczba prowadzi do źródła na sejm.gov.pl.
+    </p>
+    <div class="stamp" id="stamp"></div>
+  </header>
+
+  <section>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <section>
+    <h2>Skąd to jest</h2>
+    <p class="sub">Wszystko pochodzi z publicznych API Kancelarii Sejmu. Bez autoryzacji, bez limitów.</p>
+    <div class="scroller">
+      <table id="sources"><thead><tr id="sources-head"></tr></thead><tbody id="sources-body"></tbody></table>
+    </div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+/*@core*/
+
+/* ---------- kafle funkcji ---------- */
+const TILES = [
+  {
+    href: 'interpelacje.html',
+    name: 'Milczenie ministerstw',
+    desc: 'Regulamin Sejmu daje 21 dni na odpowiedź na interpelację. Ranking pokazuje, kto ten termin trzyma.',
+    figure: d => fmtPct(d.po_terminie, 1),
+    meta: d => `${fmtInt(d.pytania)} pytań · kadencje VII–X`,
+  },
+  {
+    href: 'droga.html',
+    name: 'Droga pytania',
+    desc: 'Ile ustawowego terminu znika w Kancelarii Sejmu, zanim resort w ogóle zobaczy pytanie, i kto podpisuje odpowiedź.',
+    figure: d => fmtPct(d.zjedzone, 0),
+    meta: d => `mediana ${d.mediana} dni do przekazania`,
+  },
+  {
+    href: 'poslowie.html',
+    name: 'Posłowie',
+    desc: 'Kto pyta, kto ani razu i czyje pytania częściej zostają bez odpowiedzi. Osobno serie szablonowe.',
+    figure: d => fmtInt(d.milczacy),
+    meta: d => `posłów bez ani jednego pytania w kadencji X`,
+  },
+  {
+    href: 'nieobecnosci.html',
+    name: 'Nieobecności',
+    desc: 'Udział w głosowaniach imiennych. API podaje fakt nieobecności, nigdy jej przyczynę — i strona mówi to na wierzchu.',
+    figure: d => fmtPct(d.absencja, 1),
+    meta: d => `${fmtInt(d.glosowan)} głosowań imiennych, kadencje VII–X`,
+  },
+  {
+    href: 'vacatio.html',
+    name: 'Vacatio legis',
+    desc: 'Ustawa daje 14 dni między ogłoszeniem aktu a wejściem w życie. Rozkład jest dwumodalny: albo standard, albo zero.',
+    figure: d => fmtPct(d.ponizej, 1),
+    meta: d => `${fmtInt(d.aktow)} rozporządzeń, Dz.U. 2015–2026`,
+  },
+];
+
+document.getElementById('tiles').replaceChildren(...TILES.map(t => el('a', { class: 'tile', href: t.href },
+  el('span', { class: 't-name', text: t.name }),
+  el('span', { class: 't-figure', text: t.figure(DATA.skroty) }),
+  el('span', { class: 't-desc', text: t.desc }),
+  el('span', { class: 't-meta', text: t.meta(DATA.skroty) }),
+)));
+
+/* ---------- naglowek ---------- */
+document.getElementById('stamp').replaceChildren(
+  el('span', { text: `Stan na ${DATA.wygenerowano}` }),
+  el('span', {}, 'Źródło: ', el('a', { href: 'https://api.sejm.gov.pl', text: 'api.sejm.gov.pl' })),
+  el('span', { text: `Pobrano ${(DATA.pobrano || '').slice(0, 10)}` }),
+);
+
+/* ---------- tabela zrodel ---------- */
+const SOURCE_COLUMNS = [
+  { key: 'zbior', label: 'Zbiór', type: 'text' },
+  { key: 'ile', label: 'Rekordów', type: 'int' },
+  { key: 'zakres', label: 'Zakres', type: 'text' },
+  { key: 'odswiezanie', label: 'Jak często odświeżać', type: 'text' },
+];
+const sourceState = { sort: 'ile', dir: -1 };
+function renderSources() {
+  sortableTable({
+    headId: 'sources-head', bodyId: 'sources-body', columns: SOURCE_COLUMNS,
+    rows: DATA.zrodla, state: sourceState, limit: 50, rerender: renderSources,
+  });
+}
+renderSources();
+
+document.getElementById('footer').replaceChildren(
+  el('div', { text: 'Dane publiczne, ponowne wykorzystanie na zasadach ustawy o otwartych danych.' }),
+  el('div', { class: 'thin', text: 'Kadencje VII–IX są zamknięte i ich dane się nie zmieniają. Odświeżenia wymaga wyłącznie kadencja X i bieżący rocznik Dziennika Ustaw.' }),
+);
+</script>

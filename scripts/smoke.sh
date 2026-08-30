@@ -16,7 +16,7 @@ trap 'rm -rf "$work"' EXIT
 db="$work/smoke.sqlite"
 out="$work/public"
 mkdir -p "$out"
-cp "$root/public/template.html" "$root/public/template-vacatio.html" "$out/"
+cp -R "$root/public/pages" "$root/public/partials" "$out/"
 
 php -r '
 require "'"$root"'/bin/bootstrap.php";
@@ -105,7 +105,11 @@ echo "--- ranking milczenia ---"
 php "$root/bin/build.php" --db="$db" --out="$out" --snapshot=2024-06-01 >/dev/null
 
 php -r '
-$d = json_decode(file_get_contents("'"$out"'/data.json"), true, 512, JSON_THROW_ON_ERROR);
+$read = static function (string $file): array {
+    $page = file_get_contents($file);
+    if ($page === false) { fwrite(STDERR, "Brak $file\n"); exit(2); }
+    return json_decode((string) preg_replace("/^.*?const DATA = (.*?);\n.*$/s", "$1", $page), true, 512, JSON_THROW_ON_ERROR);
+};
 $fail = 0;
 $check = function (string $name, $got, $want) use (&$fail): void {
     if ($got === $want) { printf("OK   %-46s %s\n", $name, var_export($got, true)); return; }
@@ -113,7 +117,9 @@ $check = function (string $name, $got, $want) use (&$fail): void {
     $fail = 1;
 };
 
-$k10 = $d["raporty"]["10"];
+// --- ranking adresatow: strona interpelacje ---
+$inter = $read("'"$out"'/interpelacje.html");
+$k10 = $inter["raporty"]["10"];
 $m = null;
 foreach ($k10["ministerstwa"] as $row) { if ($row["klucz"] === "minister testowy") { $m = $row; } }
 if ($m === null) { echo "BŁĄD brak adresata testowego\n"; exit(1); }
@@ -127,42 +133,41 @@ $check("mianownik = na czas + po terminie + milczenie", $m["rozstrzygniete"], 72
 $check("pytania do wielu adresatow wykluczone", $k10["meta"]["wylaczone"]["wielu_adresatow"], 7);
 
 $t7 = null; $t10 = null;
-foreach ($d["kadencje"] as $k) { if ($k["numer"] === 7) { $t7 = $k; } if ($k["numer"] === 10) { $t10 = $k; } }
+foreach ($inter["kadencje"] as $k) { if ($k["numer"] === 7) { $t7 = $k; } if ($k["numer"] === 10) { $t10 = $k; } }
 $check("kadencja z odpowiedziami bez daty jest niemierzalna", $t7["mierzalna"], false);
+$check("kadencja z kompletem dat jest mierzalna", $t10["mierzalna"], true);
+$check("domyslna kadencja jest mierzalna", $inter["domyslna_kadencja"], 10);
+$check("strona interpelacji nie niesie danych poslow", isset($k10["poslowie"]), false);
 
-// --- droga pytania: opoznienie kancelarii liczone od WPLYWU ---
-$kanc = $k10["droga"]["kancelaria"];
-$check("kancelaria: mediana od wplywu do przekazania", $kanc["mediana_dni"], 5);
-$check("kancelaria: zadne pytanie nie przekroczylo terminu", $kanc["ponad_termin"], 0);
-
-// --- podpisy pod odpowiedziami ---
+// --- droga pytania: osobna strona, wlasny wycinek ---
+$kanc = $read("'"$out"'/droga.html")["raporty"]["10"]["droga"];
+$check("kancelaria: mediana od wplywu do przekazania", $kanc["kancelaria"]["mediana_dni"], 5);
+$check("kancelaria: zadne pytanie nie przekroczylo terminu", $kanc["kancelaria"]["ponad_termin"], 0);
 $podpisy = [];
-foreach ($k10["droga"]["podpisy"] as $row) { $podpisy[$row["klucz"]] = $row["n"]; }
-// Kazde pytanie z odpowiedzia ma podpis "Minister Testowy", takze te do wielu adresatow.
+foreach ($kanc["podpisy"] as $row) { $podpisy[$row["klucz"]] = $row["n"]; }
 $check("podpis rozpoznany jako minister", $podpisy["minister"] ?? 0, 84);
 
-// --- serie szablonowe ---
-$check("wykryto jedna serie szablonowa", $k10["serie"]["serii"], 1);
-$check("seria obejmuje 4 pytania", $k10["serie"]["pytan_w_seriach"], 4);
-
-// --- poslowie: pytanie dwoch autorow liczy sie kazdemu z nich ---
+// --- poslowie i serie: osobna strona ---
+$p10 = $read("'"$out"'/poslowie.html")["raporty"]["10"];
+$check("wykryto jedna serie szablonowa", $p10["serie"]["serii"], 1);
+$check("seria obejmuje 4 pytania", $p10["serie"]["pytan_w_seriach"], 4);
 $poslowie = [];
-foreach ($k10["poslowie"] as $row) { $poslowie[$row["id"]] = $row; }
+foreach ($p10["poslowie"] as $row) { $poslowie[$row["id"]] = $row; }
 $check("posel bez pytan ma zero", $poslowie[13]["pytan"], 0);
-// Posel 11: 75 wlasnych (bez wykluczonych wieloadresatowych) + 3 wspolne z poslem 12.
 $check("wspolne pytanie liczy sie obu autorom", $poslowie[11]["pytan"], 78);
 $check("autor serii ma 4 pytania w seriach", $poslowie[12]["w_seriach"], 4);
 $check("unikalne tematy pomijaja powtorzenia", $poslowie[12]["tematow"], 4);
 
-// --- nieobecnosci ---
-$abs = [];
-foreach ($k10["nieobecnosci"]["poslowie"] as $row) { $abs[$row["id"]] = $row; }
-$check("nieobecnosci: mianownik per posel", $abs[11]["glosowan"], 10);
-$check("nieobecnosci: posel 11 opuscil 2", $abs[11]["nieobecnosci"], 2);
-$check("nieobecnosci: udzial posla 12", $abs[12]["udzial_nieobecnosci"], 0.5);
-$check("nieobecnosci: posel bez absencji", $abs[13]["nieobecnosci"], 0);
-$check("kadencja z kompletem dat jest mierzalna", $t10["mierzalna"], true);
-$check("domyslna kadencja jest mierzalna", $d["domyslna_kadencja"], 10);
+// --- nieobecnosci: osobna strona, tylko kadencje z glosowaniami ---
+$abs = $read("'"$out"'/nieobecnosci.html");
+// Klucze JSON-a wracaja w PHP jako inty - porownujemy po normalizacji.
+$check("strona nieobecnosci pomija kadencje bez glosowan", array_map(intval(...), array_keys($abs["raporty"])), [10]);
+$rows = [];
+foreach ($abs["raporty"]["10"]["nieobecnosci"]["poslowie"] as $row) { $rows[$row["id"]] = $row; }
+$check("nieobecnosci: mianownik per posel", $rows[11]["glosowan"], 10);
+$check("nieobecnosci: posel 11 opuscil 2", $rows[11]["nieobecnosci"], 2);
+$check("nieobecnosci: udzial posla 12", $rows[12]["udzial_nieobecnosci"], 0.5);
+$check("nieobecnosci: posel bez absencji", $rows[13]["nieobecnosci"], 0);
 
 exit($fail);
 '
@@ -172,8 +177,12 @@ php "$root/bin/build-vacatio.php" --db="$db" --out="$out" >/dev/null
 php "$root/bin/build-vacatio.php" --db="$db" --out="$out" --exclude-technical >/dev/null
 
 php -r '
-$all  = json_decode(file_get_contents("'"$out"'/vacatio.json"), true, 512, JSON_THROW_ON_ERROR);
-$only = json_decode(file_get_contents("'"$out"'/vacatio-merytoryczne.json"), true, 512, JSON_THROW_ON_ERROR);
+$read = static function (string $file): array {
+    $page = file_get_contents($file);
+    return json_decode((string) preg_replace("/^.*?const DATA = (.*?);\n.*$/s", "$1", $page), true, 512, JSON_THROW_ON_ERROR);
+};
+$all  = $read("'"$out"'/vacatio.html");
+$only = $read("'"$out"'/vacatio-merytoryczne.html");
 $fail = 0;
 $check = function (string $name, $got, $want) use (&$fail): void {
     if ($got === $want) { printf("OK   %-46s %s\n", $name, var_export($got, true)); return; }
@@ -198,8 +207,9 @@ $check("wariant odsiany", $only["meta"]["wariant"], "merytoryczne");
 exit($fail);
 '
 
-for f in index.html vacatio.html vacatio-merytoryczne.html; do
+for f in index.html interpelacje.html droga.html poslowie.html nieobecnosci.html vacatio.html vacatio-merytoryczne.html; do
     [ -s "$out/$f" ] || { echo "BŁĄD: nie powstał $f"; exit 1; }
-    grep -q '__DATA__' "$out/$f" && { echo "BŁĄD: dane nie zostały wstrzyknięte do $f"; exit 1; }
+    grep -q '__DATA__\|<!--@' "$out/$f" && { echo "BŁĄD: niewypełnione znaczniki w $f"; exit 1; }
+    grep -q 'nav class="pages"' "$out/$f" || { echo "BŁĄD: brak nawigacji w $f"; exit 1; }
 done
-echo "OK   wygenerowano trzy strony z wstrzykniętymi danymi"
+echo "OK   wygenerowano 7 stron z kompletem znaczników i nawigacją"

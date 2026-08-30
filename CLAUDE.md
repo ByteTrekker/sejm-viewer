@@ -42,7 +42,9 @@ src/Import/   upsert do SQLite, transakcja na stronę wyników
 src/Domain/   termin ustawowy, normalizacja nazw, klasyfikator aktów technicznych
 src/Report/   RankingBuilder i VacatioBuilder — cała metodologia w dwóch plikach
 src/Storage/  schemat i połączenie
-public/       template*.html (źródło) -> *.html (z wstrzykniętymi danymi)
+public/pages/     szablon na każdą funkcję (jedna strona = jedna funkcja)
+public/partials/  style.css, core.js, nav.html — części wspólne wszystkich stron
+src/Web/          PageComposer: szablon + części wspólne + dane -> gotowa strona
 docs/adr/     decyzje architektoniczne wraz z uzasadnieniem i odrzuconymi wariantami
 scripts/      bramki: składnia, konwencja commitów, test dymny
 var/          baza SQLite — nie w repozytorium
@@ -87,7 +89,14 @@ przypis: liczba bez tego kontekstu krzywdzi konkretne osoby.
 * **Normalizator jest źródłem prawdy przy raportowaniu, nie przy imporcie.**
   Klucze liczymy z surowej nazwy w momencie budowania raportu, żeby zmiana reguł
   nie wymagała ponownego pobrania danych.
-* **Dane wstrzykiwane inline** do wygenerowanego HTML-a. Dashboard ma działać
+* **Jedna funkcja = jedna strona.** Każda strona dostaje wyłącznie swój wycinek
+  danych (`PAGE_SLICES` w `bin/build.php`). Wcześniej jeden `index.html` niósł
+  komplet i ważył 1,2 MB — czytelnik zainteresowany nieobecnościami ściągał
+  ranking resortów i listy pytań.
+* **Style, rdzeń JS i nawigacja żyją w `public/partials/`**, nigdy w szablonie
+  strony. Zanim to powstało, dwa szablony niosły 173 z 183 linii identycznego
+  stylu i każda poprawka wymagała dwóch edycji.
+* **Dane wstrzykiwane inline** do wygenerowanego HTML-a. Strona ma działać
   z `file://`, bez serwera i bez CDN-a.
 * Wygenerowane pliki (`public/*.html` poza szablonami, `public/*.json`,
   `var/`) **nie wchodzą do repozytorium** — CI to sprawdza.
@@ -104,7 +113,7 @@ pytest + mutmut + pip-audit + CodeQL), przełożonemu na PHP:
 | testy jednostkowe | `phpunit` | `tests/Unit` |
 | próg pokrycia | `scripts/check-coverage.sh 90` | `src/Domain`, `src/Console` |
 | testy mutacyjne | `infection` (MSI 90 / pokryte 95) | `src/Domain`, `src/Console` |
-| test dymny | `scripts/smoke.sh` | trzy dashboardy end-to-end, niezmienniki N1–N5 |
+| test dymny | `scripts/smoke.sh` | 7 stron end-to-end, niezmienniki N1–N5 |
 | audyt zależności | `composer audit` | `require-dev` |
 | bezpieczeństwo | CodeQL (`javascript-typescript`, `actions`) | JS dashboardów, workflowy |
 

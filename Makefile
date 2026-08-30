@@ -49,6 +49,6 @@ commits: ## Konwencja commitów w origin/main..HEAD
 check: lint style stan test coverage mutation smoke audit ## Bramki CI możliwe do uruchomienia lokalnie
 
 clean: ## Usuń wygenerowane artefakty (baza zostaje)
-	rm -f public/index.html public/vacatio.html public/vacatio-merytoryczne.html
-	rm -f public/data.json public/vacatio.json public/vacatio-merytoryczne.json
+	rm -f public/index.html public/interpelacje.html public/droga.html public/poslowie.html public/nieobecnosci.html
+	rm -f public/vacatio.html public/vacatio-merytoryczne.html
 	rm -rf var/coverage var/infection.log

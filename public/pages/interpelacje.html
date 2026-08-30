@@ -1,0 +1,435 @@
+<title>Milczenie ministerstw</title>
+<!--@style-->
+
+<div class="wrap">
+  <!--@nav-->
+
+  <header class="masthead">
+    <h1>Ranking milczenia ministerstw</h1>
+    <p class="dek">
+      Regulamin Sejmu daje adresatowi <b>21 dni</b> na pisemną odpowiedź na interpelację
+      lub zapytanie poselskie (art. 192 ust. 1 i art. 195 ust. 1). Ten ranking liczy,
+      kto ten termin trzyma, a kto milczy — na pełnych danych z API Sejmu.
+    </p>
+    <div class="controls">
+      <span class="switch-label">Kadencja</span>
+      <div class="seg" id="term-seg" role="group" aria-label="Wybierz kadencję"></div>
+    </div>
+    <div class="stamp" id="stamp"></div>
+  </header>
+
+  <section id="compare-section">
+    <h2>Kadencje obok siebie</h2>
+    <p class="sub">
+      Odsetek pytań, na które odpowiedź przyszła po terminie lub nie przyszła wcale.
+      Każda kadencja liczona na własną datę odcięcia — zamknięta na dzień jej końca,
+      trwająca na dziś. Bez tego trwająca kadencja wypadałaby sztucznie lepiej.
+    </p>
+    <div class="card"><figure>
+      <div id="compare"></div>
+      <figcaption>Kliknij słupek, aby przełączyć ranking na tę kadencję. Uwaga: między kadencjami resorty były dzielone i łączone, więc porównywalny jest poziom zagregowany, a nie pojedynczy resort.</figcaption>
+    </figure></div>
+  </section>
+
+  <section id="kpi-section">
+    <h2 id="kpi-title"></h2>
+    <p class="sub" id="kpi-sub"></p>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <div id="notice" hidden></div>
+
+  <section id="ranking-section">
+    <h2 id="ranking-title">Ranking adresatów</h2>
+    <p class="sub">
+      Kliknij nagłówek kolumny, aby posortować. W rankingu tylko adresaci z co najmniej
+      <span id="minsample"></span> rozstrzygniętymi pytaniami.
+    </p>
+    <div class="controls">
+      <div class="seg" id="metric-seg" role="group" aria-label="Miara"></div>
+      <input type="search" id="filter" placeholder="Filtruj adresata…" aria-label="Filtruj adresata">
+    </div>
+    <div class="scroller">
+      <table id="ranking"><thead><tr id="ranking-head"></tr></thead><tbody id="ranking-body"></tbody></table>
+    </div>
+    <details class="method">
+      <summary>Jak liczymy (i czego ten ranking nie mówi)</summary>
+      <ol>
+        <li>Termin biegnie od <b>daty przekazania pytania adresatowi</b>, a nie od wpłynięcia do Sejmu — inaczej obciążalibyśmy resort opóźnieniem kancelarii. Samo to opóźnienie pokazuje osobna strona „Droga pytania”.</li>
+        <li><b>Prolongata nie wydłuża terminu.</b> Regulamin nie przewiduje przedłużenia; pismo o zwłoce liczymy osobno jako sygnał, nie usprawiedliwienie.</li>
+        <li>Pytania skierowane do <b>kilku adresatów naraz są wyłączone</b> — API nie wiąże odpowiedzi z konkretnym adresatem, więc nie da się uczciwie przypisać odpowiedzialności. Liczbę wyłączonych pytań podajemy w stopce.</li>
+        <li>Pytania bez odpowiedzi, którym <b>termin jeszcze nie upłynął</b>, nie wchodzą do mianownika.</li>
+        <li>Odpowiedzi, dla których <b>API nie podaje daty</b> (wartownik <code>0000-12-30</code>), są wyłączone z mianownika. Nie wiadomo, czy przyszły w terminie — a potraktowanie ich jak natychmiastowych dawałoby fikcyjną punktualność. Kadencja VII składa się z nich niemal w całości i dlatego nie ma rankingu.</li>
+        <li>Wskaźnik milczenia (0–100) = 40% udziału po terminie + 25% udziału bez odpowiedzi + 15% udziału prolongat + 20% znormalizowanej mediany czasu odpowiedzi.</li>
+        <li>Ranking mierzy <b>terminowość, nie jakość</b>. Odpowiedź „nie posiadamy takich danych” w 3 dni wygląda tu lepiej niż rzetelna analiza w 25 dni. Kolumna „tylko skan” to jedyne dostępne w API proxy jakości.</li>
+      </ol>
+    </details>
+  </section>
+
+  <section id="trend-section">
+    <h2>Terminowość w czasie</h2>
+    <p class="sub">Odsetek pytań przekazanych w danym miesiącu, na które odpowiedź przyszła po terminie (lub nie przyszła wcale).</p>
+    <div class="card"><figure>
+      <div id="trend"></div>
+      <figcaption id="trend-caption"></figcaption>
+    </figure></div>
+  </section>
+
+  <section id="clubs-section">
+    <h2>Kto pyta, a kto zostaje bez odpowiedzi</h2>
+    <p class="sub">Odsetek pytań po terminie, w podziale na klub autora pytania. Pytanie kilku posłów z różnych klubów liczy się każdemu klubowi.</p>
+    <div class="card"><figure>
+      <div id="clubs"></div>
+      <figcaption>Uwzględniono kluby z co najmniej 100 rozstrzygniętymi pytaniami.</figcaption>
+    </figure></div>
+  </section>
+
+  <section id="worst-section">
+    <h2>Najdłużej bez odpowiedzi</h2>
+    <p class="sub">Konkretne pytania, na które nikt nie odpowiedział — posortowane po liczbie dni po ustawowym terminie.</p>
+    <div class="card"><ul class="worst" id="worst"></ul></div>
+  </section>
+
+  <section id="answered-section">
+    <h2>Najdłużej czekały na odpowiedź</h2>
+    <p class="sub">Pytania, na które odpowiedź w końcu przyszła — tylko z dużym opóźnieniem. Każda pozycja linkuje do treści pytania i osobno do treści odpowiedzi.</p>
+    <div class="card"><ul class="worst" id="answered"></ul></div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+/*@core*/
+
+state.term = firstAvailableTerm(k => k.mierzalna);
+
+const ranked = () => report().ministerstwa.filter(m => m.w_rankingu);
+
+/* ---------- porownanie kadencji ---------- */
+function drawCompare() {
+  const rows = DATA.kadencje;
+  const rowH = 44, P = { t: 8, r: 64, b: 26, l: 132 }, W = 900;
+  const H = P.t + P.b + rows.length * rowH;
+  const iw = W - P.l - P.r;
+  const maxX = Math.min(1, Math.max(...rows.filter(r => r.mierzalna).map(r => r.udzial_po_terminie)) * 1.15);
+
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Odsetek pytań po terminie w kolejnych kadencjach' });
+  const grid = svgEl('g', { class: 'grid' });
+  const axis = svgEl('g', { class: 'axis' });
+
+  for (let v = 0; v <= maxX + 1e-9; v += 0.1) {
+    const x = P.l + (iw * v) / maxX;
+    grid.append(svgEl('line', { x1: x, x2: x, y1: P.t, y2: P.t + rows.length * rowH }));
+    const t = svgEl('text', { x, y: H - 8, 'text-anchor': 'middle' });
+    t.textContent = Math.round(v * 100) + '%';
+    axis.append(t);
+  }
+  svg.append(grid);
+
+  rows.forEach((r, i) => {
+    const y = P.t + i * rowH;
+    const w = Math.max(2, (iw * r.udzial_po_terminie) / maxX);
+    const on = r.numer === state.term;
+    const bar = r.mierzalna
+      ? svgEl('rect', { x: P.l, y: y + 11, width: w, height: rowH - 24, rx: 4,
+                        fill: 'var(--series-1)', opacity: on ? 1 : 0.32, style: 'cursor:pointer' })
+      : svgEl('text', { x: P.l, y: y + rowH / 2 + 5, class: 'axis', 'font-style': 'italic' });
+    if (!r.mierzalna) { bar.setAttribute('fill', 'var(--ink-3)'); bar.textContent = 'brak danych o dacie odpowiedzi w API'; }
+
+    const name = svgEl('text', { x: P.l - 12, y: y + rowH / 2 + 1, 'text-anchor': 'end', class: 'serieslabel', style: on ? 'font-weight:600' : '' });
+    name.textContent = `Kadencja ${ROMAN[r.numer] ?? r.numer}`;
+    const years = svgEl('text', { x: P.l - 12, y: y + rowH / 2 + 15, 'text-anchor': 'end', class: 'axis' });
+    years.setAttribute('fill', 'var(--ink-3)');
+    years.setAttribute('font-size', '10.5');
+    years.textContent = `${r.od} – ${r.zamknieta ? r.do : 'trwa'}`;
+    const val = svgEl('text', { x: P.l + w + 8, y: y + rowH / 2 + 5, class: 'serieslabel', style: on ? 'font-weight:600' : '' });
+    val.textContent = r.mierzalna ? fmtPct(r.udzial_po_terminie, 0) : '';
+
+    const hit = svgEl('rect', { x: 0, y, width: W, height: rowH, fill: 'transparent', style: r.mierzalna ? 'cursor:pointer' : '' });
+    hit.addEventListener('mousemove', e => showTip(e, `<b>Kadencja ${ROMAN[r.numer] ?? r.numer}</b>
+      <div class="row">po terminie: ${r.mierzalna ? fmtPct(r.udzial_po_terminie, 1) : 'brak danych'}</div>
+      <div class="row">bez odpowiedzi: ${fmtInt(r.bez_odpowiedzi)}</div>
+      <div class="row">pytań: ${fmtInt(r.pytania)}</div>
+      <div class="row">data odcięcia: ${r.odciecie}</div>`));
+    hit.addEventListener('mouseleave', hideTip);
+    if (r.mierzalna) hit.addEventListener('click', () => { if (state.term !== r.numer) { state.term = r.numer; syncSwitch(); renderAll(); } });
+
+    svg.append(bar, name, years, val, hit);
+  });
+  svg.append(axis);
+  document.getElementById('compare').replaceChildren(svg);
+}
+
+function syncSwitch() {
+  document.querySelectorAll('#term-seg button').forEach((b, i) =>
+    b.setAttribute('aria-pressed', String(DATA.kadencje[i].numer === state.term)));
+}
+
+/* ---------- komunikat o niemierzalnej kadencji ---------- */
+const HIDDEN_WHEN_UNMEASURABLE = ['ranking-section', 'trend-section', 'clubs-section', 'answered-section'];
+
+function renderNotice() {
+  const k = termInfo(state.term);
+  const host = document.getElementById('notice');
+  HIDDEN_WHEN_UNMEASURABLE.forEach(id => { document.getElementById(id).hidden = !k.mierzalna; });
+
+  if (k.mierzalna) { host.hidden = true; host.replaceChildren(); return; }
+
+  host.hidden = false;
+  host.className = 'notice';
+  host.replaceChildren(
+    el('h3', { text: `Kadencji ${ROMAN[k.numer] ?? k.numer} nie da się ocenić` }),
+    el('p', {}, 'API Sejmu zwraca dla tej kadencji datę odpowiedzi jako wartownik ',
+      el('code', { text: '0000-12-30' }),
+      ` — dotyczy to ${fmtInt(k.odpowiedzi_bez_daty)} z ${fmtInt(k.pytania)} pytań. Nie istnieje ani jedna datowana odpowiedź inna niż pismo o prolongacie.`),
+    el('p', { text: 'Bez daty odpowiedzi nie da się orzec, czy termin został dotrzymany. Ranking dla tej kadencji nie jest pokazywany — pokazanie go oznaczałoby fikcyjną punktualność bliską 100%, bo brak daty wygląda w danych jak odpowiedź natychmiastowa.' }),
+    el('p', {}, `Pewne pozostają dwie liczby: ${fmtInt(k.pytania)} pytań skierowanych i ${fmtInt(k.bez_odpowiedzi)} takich, na które nie przyszła żadna odpowiedź — te ostatnie są wypisane niżej. Daty da się odzyskać wyłącznie ze stron `,
+      el('code', { text: 'sejm.gov.pl/sejm7.nsf' }), ' — to scraping, nie API.'),
+  );
+}
+
+/* ---------- KPI ---------- */
+function renderKpis() {
+  const all = report().ministerstwa;
+  const totals = all.reduce((a, m) => ({
+    skierowane: a.skierowane + m.skierowane,
+    rozstrzygniete: a.rozstrzygniete + m.rozstrzygniete,
+    po_terminie: a.po_terminie + m.po_terminie,
+    bez: a.bez + m.bez_odpowiedzi_po_terminie,
+  }), { skierowane: 0, rozstrzygniete: 0, po_terminie: 0, bez: 0 });
+  const pool = ranked();
+  const worst = pool.length ? pool.reduce((a, b) => (b.wskaznik_milczenia > a.wskaznik_milczenia ? b : a)) : null;
+  const k = termInfo(state.term);
+
+  document.getElementById('kpi-title').textContent = `Kadencja ${ROMAN[state.term] ?? state.term}`;
+  document.getElementById('kpi-sub').textContent =
+    `${k.od} – ${k.zamknieta ? k.do : 'trwa'}. ${k.zamknieta ? 'Kadencja zamknięta, wszystkie terminy upłynęły.' : 'Kadencja w toku — pytania z ostatnich tygodni wciąż biegną w terminie i nie wchodzą do mianownika.'}`;
+
+  const cards = k.mierzalna
+    ? [
+        ['Pytań w analizie', fmtInt(totals.skierowane), 'interpelacje i zapytania poselskie'],
+        ['Po terminie', fmtPct((totals.po_terminie + totals.bez) / totals.rozstrzygniete), `${fmtInt(totals.po_terminie + totals.bez)} z ${fmtInt(totals.rozstrzygniete)} rozstrzygniętych`],
+        ['Bez odpowiedzi', fmtInt(totals.bez), 'mimo upływu terminu'],
+        ['Najwyższy wskaźnik', worst ? worst.wskaznik_milczenia.toLocaleString('pl-PL') : '—', worst ? worst.nazwa : 'brak danych'],
+      ]
+    : [
+        ['Pytań w analizie', fmtInt(totals.skierowane), 'interpelacje i zapytania poselskie'],
+        ['Odpowiedzi bez daty', fmtInt(k.odpowiedzi_bez_daty), 'API nie podaje, kiedy przyszły'],
+        ['Bez żadnej odpowiedzi', fmtInt(totals.bez), 'to jedyna pewna liczba dla tej kadencji'],
+        ['Terminowość', '—', 'niemożliwa do policzenia'],
+      ];
+
+  document.getElementById('kpis').replaceChildren(...cards.map(([label, value, note]) => el('div', { class: 'kpi' },
+    el('div', { class: 'label', text: label }),
+    el('div', { class: 'value', text: value }),
+    el('div', { class: 'note', text: note }),
+  )));
+}
+
+/* ---------- ranking ---------- */
+const COLUMNS = [
+  { key: 'nazwa', label: 'Adresat', type: 'text' },
+  { key: 'wskaznik_milczenia', label: 'Wskaźnik milczenia', type: 'bar', max: 100 },
+  { key: 'udzial_po_terminie', label: 'Po terminie', type: 'pct' },
+  { key: 'udzial_bez_odpowiedzi', label: 'Bez odpowiedzi', type: 'pct' },
+  { key: 'mediana_dni', label: 'Mediana dni', type: 'days' },
+  { key: 'p90_dni', label: '90. centyl', type: 'days' },
+  { key: 'udzial_prolongat', label: 'Prolongaty', type: 'pct' },
+  { key: 'udzial_tylko_skan', label: 'Tylko skan', type: 'pct' },
+  { key: 'skierowane', label: 'Pytań', type: 'int' },
+];
+const METRICS = [
+  { key: 'wskaznik_milczenia', label: 'Wskaźnik milczenia', max: 100 },
+  { key: 'udzial_po_terminie', label: 'Po terminie', max: 1 },
+  { key: 'udzial_bez_odpowiedzi', label: 'Bez odpowiedzi', max: 1 },
+  { key: 'mediana_dni', label: 'Mediana dni', max: null },
+];
+const rankState = { metric: METRICS[0], sort: 'wskaznik_milczenia', dir: -1, filter: '' };
+
+const seg = document.getElementById('metric-seg');
+METRICS.forEach(m => {
+  const b = el('button', { type: 'button', text: m.label, 'aria-pressed': String(m.key === rankState.metric.key) });
+  b.onclick = () => { rankState.metric = m; rankState.sort = m.key; rankState.dir = -1; renderTable(); };
+  seg.append(b);
+});
+document.getElementById('filter').addEventListener('input', e => { rankState.filter = e.target.value.toLowerCase(); renderTable(); });
+
+const scoreClass = v => (v >= 45 ? 'critical' : v >= 30 ? 'serious' : v >= 18 ? 'warning' : 'good');
+
+function renderTable() {
+  seg.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String(METRICS[i].key === rankState.metric.key)));
+
+  const pool = ranked();
+  const metricCol = rankState.metric;
+  const scale = metricCol.max ?? Math.max(...pool.map(m => m[metricCol.key] ?? 0));
+
+  const columns = COLUMNS.map(c => {
+    if (c.key === 'nazwa') return c;
+    if (c.key === metricCol.key) {
+      return { ...c, render: m => {
+        const v = m[c.key] ?? 0;
+        const fill = el('div', { class: 'barfill' });
+        fill.style.width = Math.max(2, (100 * v) / scale) + '%';
+        const text = c.type === 'pct' ? fmtPct(v, 0) : (c.type === 'days' ? v + ' d' : v.toLocaleString('pl-PL'));
+        return el('td', {}, el('div', { class: 'barcell' },
+          el('div', { class: 'bartrack' }, fill), el('span', { class: 'barval', text })));
+      } };
+    }
+    if (c.key === 'wskaznik_milczenia') {
+      return { ...c, render: m => el('td', {}, el('span', { class: 'pill ' + scoreClass(m[c.key]), text: m[c.key].toLocaleString('pl-PL') })) };
+    }
+    return c;
+  });
+
+  sortableTable({
+    headId: 'ranking-head', bodyId: 'ranking-body', columns,
+    rows: pool.filter(m => m.nazwa.toLowerCase().includes(rankState.filter)),
+    state: rankState, limit: 100, rerender: renderTable,
+    tip: m => `<b>${m.nazwa}</b>
+      <div class="row">${fmtInt(m.skierowane)} pytań · ${fmtInt(m.odpowiedzi)} odpowiedzi</div>
+      <div class="row">na czas: ${fmtInt(m.na_czas)} · po terminie: ${fmtInt(m.po_terminie)}</div>
+      <div class="row">bez odpowiedzi: ${fmtInt(m.bez_odpowiedzi_po_terminie)} · w biegu: ${fmtInt(m.w_biegu)}</div>
+      <div class="row">mediana opóźnienia: ${m.mediana_opoznienia ?? '—'} d · maks.: ${m.max_opoznienie ?? '—'} d</div>`,
+  });
+
+  document.getElementById('ranking-title').textContent = `Ranking adresatów — kadencja ${ROMAN[state.term] ?? state.term}`;
+  document.getElementById('minsample').textContent = report().meta.min_probka;
+}
+
+/* ---------- trend ---------- */
+function drawTrend() {
+  const pts = report().miesiace.filter(m => m.rozstrzygniete >= 40 && m.w_biegu / m.skierowane <= 0.1);
+  const host = document.getElementById('trend');
+  if (pts.length < 3) {
+    host.replaceChildren(el('p', { class: 'sub', text: 'Za mało miesięcy z zamkniętym terminem, aby narysować trend.' }));
+    document.getElementById('trend-caption').textContent = '';
+    return;
+  }
+
+  const W = 900, H = 300, P = { t: 16, r: 56, b: 34, l: 44 };
+  const iw = W - P.l - P.r, ih = H - P.t - P.b;
+  const maxY = Math.min(1, Math.max(0.5, Math.ceil(Math.max(...pts.map(p => p.udzial_po_terminie)) * 10) / 10 + 0.1));
+  const X = i => P.l + (iw * i) / Math.max(1, pts.length - 1);
+  const Y = v => P.t + ih - (ih * v) / maxY;
+
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Odsetek pytań po terminie w kolejnych miesiącach' });
+  const grid = svgEl('g', { class: 'grid' });
+  const axis = svgEl('g', { class: 'axis' });
+
+  for (let v = 0; v <= maxY + 1e-9; v += 0.2) {
+    grid.append(svgEl('line', { x1: P.l, x2: P.l + iw, y1: Y(v), y2: Y(v) }));
+    const t = svgEl('text', { x: P.l - 10, y: Y(v) + 4, 'text-anchor': 'end' });
+    t.textContent = Math.round(v * 100) + '%';
+    axis.append(t);
+  }
+  const every = pts.length > 30 ? 6 : 3;
+  pts.forEach((p, i) => {
+    if (i % every !== 0) return;
+    const t = svgEl('text', { x: X(i), y: H - 12, 'text-anchor': 'middle' });
+    t.textContent = p.miesiac;
+    axis.append(t);
+  });
+
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(p.udzial_po_terminie).toFixed(1)}`).join(' ');
+  svg.append(grid,
+    svgEl('path', { d: `${d} L${X(pts.length - 1).toFixed(1)},${Y(0)} L${X(0).toFixed(1)},${Y(0)} Z`, fill: 'var(--series-1)', opacity: 0.10 }),
+    svgEl('path', { d, fill: 'none', stroke: 'var(--series-1)', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }),
+    axis);
+
+  const last = pts[pts.length - 1];
+  const lbl = svgEl('text', { x: X(pts.length - 1) + 10, y: Y(last.udzial_po_terminie) + 4, class: 'serieslabel' });
+  lbl.textContent = fmtPct(last.udzial_po_terminie, 0);
+  svg.append(lbl);
+
+  pts.forEach((p, i) => {
+    svg.append(svgEl('circle', { cx: X(i), cy: Y(p.udzial_po_terminie), r: 2.5, fill: 'var(--series-1)' }));
+    const hit = svgEl('circle', { cx: X(i), cy: Y(p.udzial_po_terminie), r: 9, fill: 'transparent', style: 'cursor:crosshair' });
+    hit.addEventListener('mousemove', e => showTip(e, `<b>${p.miesiac}</b>
+      <div class="row">po terminie: ${fmtPct(p.udzial_po_terminie, 1)}</div>
+      <div class="row">mediana: ${p.mediana_dni ?? '—'} dni</div>
+      <div class="row">pytań: ${fmtInt(p.skierowane)}</div>`));
+    hit.addEventListener('mouseleave', hideTip);
+    svg.append(hit);
+  });
+  host.replaceChildren(svg);
+
+  document.getElementById('trend-caption').textContent =
+    `Miesiące od ${pts[0].miesiac} do ${last.miesiac}. Pominięto miesiące, w których większości pytań termin jeszcze nie upłynął — punkt byłby sztucznie zaniżony.`;
+}
+
+/* ---------- kluby ---------- */
+function drawClubs() {
+  const rows = report().kluby.filter(c => c.rozstrzygniete >= 100).sort((a, b) => b.udzial_po_terminie - a.udzial_po_terminie);
+  hbar('clubs', rows.map(c => ({
+    label: c.klucz,
+    value: c.udzial_po_terminie,
+    display: fmtPct(c.udzial_po_terminie, 0),
+    tip: `<b>${c.klucz}</b>
+      <div class="row">po terminie: ${fmtPct(c.udzial_po_terminie, 1)}</div>
+      <div class="row">bez odpowiedzi: ${fmtInt(c.bez_odpowiedzi_po_terminie)}</div>
+      <div class="row">mediana: ${c.mediana_dni ?? '—'} dni</div>
+      <div class="row">pytań: ${fmtInt(c.skierowane)}</div>`,
+  })), { label: 'Odsetek pytań po terminie według klubu', labelWidth: 148, tick: v => Math.round(v * 100) + '%' });
+}
+
+/* ---------- listy ---------- */
+function renderWorst() {
+  const items = report().najdluzej_bez_odpowiedzi.slice(0, 25);
+  const host = document.getElementById('worst');
+  if (items.length === 0) {
+    host.replaceChildren(el('li', {}, el('span', {}), el('span', { class: 'thin', text: 'W tej kadencji każde pytanie doczekało się odpowiedzi.' })));
+    return;
+  }
+  host.replaceChildren(...items.map(q => el('li', {},
+    el('span', { class: 'days', text: `+${fmtInt(q.dni_po_terminie)} d` }),
+    el('span', {},
+      el('a', { href: q.url, target: '_blank', rel: 'noopener', text: q.tytul }),
+      el('span', { class: 'who', text: `${q.adresat} · ${q.rodzaj} nr ${q.nr} · przekazano ${q.przekazano}` }),
+      sourceLinks(q),
+    ),
+  )));
+}
+
+function renderAnswered() {
+  const items = (report().najdluzej_do_odpowiedzi || []).slice(0, 25);
+  const host = document.getElementById('answered');
+  if (items.length === 0) {
+    host.replaceChildren(el('li', {}, el('span', {}), el('span', { class: 'thin', text: 'W tej kadencji żadna odpowiedź nie przyszła po terminie.' })));
+    return;
+  }
+  host.replaceChildren(...items.map(q => el('li', {},
+    el('span', { class: 'days wait', text: `${fmtInt(q.dni_oczekiwania)} d` }),
+    el('span', {},
+      el('a', { href: q.url, target: '_blank', rel: 'noopener', text: q.tytul }),
+      el('span', { class: 'who', text: `${q.adresat} · ${q.rodzaj} nr ${q.nr} · ${q.przekazano} → ${q.odpowiedziano} · ${fmtInt(q.dni_po_terminie)} dni po terminie${q.kto_odpowiedzial ? ' · ' + q.kto_odpowiedzial : ''}` }),
+      sourceLinks(q),
+    ),
+  )));
+}
+
+/* ---------- render ---------- */
+function renderAll() {
+  hideTip();
+  renderStamp('stamp', [`Termin ustawowy: ${report().meta.termin_dni} dni`]);
+  renderKpis();
+  renderNotice();
+  if (termInfo(state.term).mierzalna) {
+    renderTable();
+    drawTrend();
+    drawClubs();
+    renderAnswered();
+  }
+  renderWorst();
+  document.getElementById('footer').replaceChildren(
+    el('div', { text: `Dane: api.sejm.gov.pl, pobrane ${(DATA.pobrano || '').slice(0, 10)}.` }),
+    el('div', { text: `Wyłączone z analizy: ${fmtInt(report().meta.wylaczone.wielu_adresatow)} pytań do wielu adresatów naraz, ${fmtInt(report().meta.wylaczone.brak_daty_przekazania)} bez daty przekazania.` }),
+  );
+  drawCompare();
+}
+
+mountTermSwitch('term-seg', renderAll);
+renderAll();
+</script>

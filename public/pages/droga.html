@@ -1,0 +1,131 @@
+<title>Droga pytania</title>
+<!--@style-->
+
+<div class="wrap">
+  <!--@nav-->
+
+  <header class="masthead">
+    <h1>Droga pytania</h1>
+    <p class="dek">
+      Zanim resort zobaczy interpelację, przechodzi ona przez Kancelarię Sejmu. Ranking
+      terminowości liczy termin dopiero od przekazania — żeby nie obciążać resortu cudzą
+      zwłoką — więc to opóźnienie znikałoby z obrazu. Tu jest pokazane osobno.
+    </p>
+    <div class="controls">
+      <span class="switch-label">Kadencja</span>
+      <div class="seg" id="term-seg" role="group" aria-label="Wybierz kadencję"></div>
+    </div>
+    <div class="stamp" id="stamp"></div>
+  </header>
+
+  <section>
+    <h2 id="kpi-title"></h2>
+    <p class="sub">
+      Ta miara nie potrzebuje daty odpowiedzi — wystarczą data wpływu i data przekazania,
+      obie realne we wszystkich kadencjach. Dlatego działa także dla kadencji VII, dla której
+      rankingu terminowości policzyć się nie da.
+    </p>
+    <div class="kpis" id="droga-kpi"></div>
+  </section>
+
+  <section>
+    <h2>Ile trwa przekazanie</h2>
+    <p class="sub">Dni między wpłynięciem pytania do Sejmu a przekazaniem go adresatowi.</p>
+    <div class="card"><figure>
+      <div id="lag-chart"></div>
+      <figcaption id="lag-caption"></figcaption>
+    </figure></div>
+  </section>
+
+  <section>
+    <h2>Kto podpisuje odpowiedź</h2>
+    <p class="sub">
+      Miara szczebla, na którym resort umieszcza kontakt z parlamentem — <b>nie</b> miara jakości.
+      Podsekretarz stanu bywa merytorycznie właściwszym sygnatariuszem niż minister.
+    </p>
+    <div class="card"><figure>
+      <div id="sign-chart"></div>
+      <figcaption id="sign-caption"></figcaption>
+    </figure></div>
+  </section>
+
+  <section id="lag-worst-section">
+    <h2>Czekały na przekazanie dłużej niż wynosi cały termin na odpowiedź</h2>
+    <p class="sub">Pytania, dla których sama droga przez kancelarię trwała ponad 21 dni.</p>
+    <div class="card"><ul class="worst" id="lag-worst"></ul></div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+/*@core*/
+
+function renderAll() {
+  hideTip();
+  const d = report().droga;
+  const k = d.kancelaria;
+  const deadline = report().meta.termin_dni;
+  const info = termInfo(state.term);
+
+  renderStamp('stamp', [`Termin ustawowy na odpowiedź: ${deadline} dni`]);
+  document.getElementById('kpi-title').textContent =
+    `Kadencja ${ROMAN[state.term] ?? state.term} · ${info.od} – ${info.zamknieta ? info.do : 'trwa'}`;
+
+  document.getElementById('droga-kpi').replaceChildren(...[
+    ['Mediana przekazania', `${k.mediana_dni} dni`, `średnia ${String(k.srednia_dni).replace('.', ',')} dnia, 90. centyl ${k.p90_dni} dni`],
+    ['Zjedzone terminu', fmtPct(k.udzial_terminu_zjedzony, 0), `zanim resort zobaczy pytanie (z ${deadline} dni)`],
+    ['Dłużej niż cały termin', fmtInt(k.ponad_termin), `${fmtPct(k.udzial_ponad_termin, 1)} pytań czekało na samo przekazanie`],
+    ['Rekord', k.maks_dni === null ? '—' : `${fmtInt(k.maks_dni)} dni`, 'od wpływu do przekazania'],
+  ].map(([label, value, note]) => el('div', { class: 'kpi' },
+    el('div', { class: 'label', text: label }),
+    el('div', { class: 'value', text: value }),
+    el('div', { class: 'note', text: note }),
+  )));
+
+  hbar('lag-chart', k.przedzialy.map(b => ({
+    label: b.etykieta,
+    value: b.n,
+    display: fmtPct(b.n / k.pytan, 0),
+    tip: `<b>${b.etykieta}</b><div class="row">${fmtInt(b.n)} pytań</div>`,
+  })), { label: 'Opóźnienie kancelarii', labelWidth: 112, tick: v => fmtInt(Math.round(v)) });
+
+  document.getElementById('lag-caption').textContent =
+    `${fmtInt(k.pytan)} pytań w kadencji ${ROMAN[state.term] ?? state.term}. Mierzone raz na pytanie, nie na adresata.`;
+
+  const total = d.podpisy.reduce((a, p) => a + p.n, 0);
+  hbar('sign-chart', d.podpisy.map(p => ({
+    label: p.nazwa,
+    value: p.n,
+    display: fmtPct(p.udzial, 0),
+    tip: `<b>${p.nazwa}</b><div class="row">${fmtInt(p.n)} odpowiedzi</div>`,
+  })), { label: 'Kto podpisuje odpowiedź', labelWidth: 152, tick: v => fmtInt(Math.round(v)) });
+
+  const minister = d.podpisy.find(p => p.klucz === 'minister');
+  document.getElementById('sign-caption').textContent = minister
+    ? `Minister osobiście podpisuje ${fmtPct(minister.udzial, 0)} z ${fmtInt(total)} pism.`
+    : `${fmtInt(total)} pism.`;
+
+  const section = document.getElementById('lag-worst-section');
+  section.hidden = k.najdluzej.length === 0;
+  document.getElementById('lag-worst').replaceChildren(...k.najdluzej.map(q => el('li', {},
+    el('span', { class: 'days', text: `${fmtInt(q.dni)} d` }),
+    el('span', {},
+      el('a', { href: q.url, target: '_blank', rel: 'noopener', text: q.tytul }),
+      el('span', { class: 'who', text: `${q.rodzaj} nr ${q.nr} · wpłynęło ${q.wplynelo} → przekazano ${q.przekazano}` }),
+      el('div', { class: 'links' },
+        el('a', { class: 'src', href: q.url, target: '_blank', rel: 'noopener', text: 'treść pytania ↗' })),
+    ),
+  )));
+
+  document.getElementById('footer').replaceChildren(
+    el('div', { text: `Dane: api.sejm.gov.pl, pobrane ${(DATA.pobrano || '').slice(0, 10)}.` }),
+    el('div', { class: 'thin', text: 'Opóźnienie liczone raz na pytanie: pytanie skierowane do kilku resortów jest przekazywane jednym pismem i raz trafia do statystyki.' }),
+  );
+}
+
+mountTermSwitch('term-seg', renderAll);
+renderAll();
+</script>

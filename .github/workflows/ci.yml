@@ -101,9 +101,9 @@ jobs:
       - name: Brak wygenerowanych plików w repozytorium
         run: |
           found=0
-          for path in public/index.html public/vacatio.html \
-                      public/vacatio-merytoryczne.html public/data.json \
-                      public/vacatio.json public/vacatio-merytoryczne.json \
+          for path in public/index.html public/interpelacje.html public/droga.html \
+                      public/poslowie.html public/nieobecnosci.html \
+                      public/vacatio.html public/vacatio-merytoryczne.html \
                       var/sejm.sqlite; do
             if [ -e "$path" ]; then
               echo "BŁĄD: $path jest wygenerowany i nie powinien być w repozytorium"
@@ -112,10 +112,13 @@ jobs:
           done
           exit "$found"
 
-      - name: Szablony mają miejsce na wstrzyknięcie danych
+      - name: Szablony mają komplet znaczników
         run: |
-          for tpl in public/template.html public/template-vacatio.html; do
-            grep -q '/\*__DATA__\*/null' "$tpl" \
-              || { echo "BŁĄD: brak znacznika /*__DATA__*/null w $tpl"; exit 1; }
+          for tpl in public/pages/*.html; do
+            grep -q '<!--@style-->' "$tpl" || { echo "BŁĄD: brak <!--@style--> w $tpl"; exit 1; }
+            grep -q '<!--@nav-->'   "$tpl" || { echo "BŁĄD: brak <!--@nav--> w $tpl"; exit 1; }
+            grep -q '/\*@core\*/'   "$tpl" || { echo "BŁĄD: brak /*@core*/ w $tpl"; exit 1; }
+            grep -q '/\*__DATA__\*/null' "$tpl" || { echo "BŁĄD: brak /*__DATA__*/null w $tpl"; exit 1; }
           done
-          echo "OK   szablony w porządku"
+          test -f public/partials/style.css && test -f public/partials/core.js && test -f public/partials/nav.html
+          echo "OK   $(ls public/pages/*.html | wc -l | tr -d ' ') szablonów, komplet części wspólnych"

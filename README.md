@@ -4,10 +4,13 @@ Rankingi obywatelskie z danych Sejmu. Dwa dashboardy stojące na tej samej zasad
 terminem ustawowym**, liczymy, kto go dotrzymuje, i pokazujemy to na pełnych
 danych, nie na próbce.
 
-| Dashboard | Miernik ustawowy | Zakres | Plik |
+| Strona | Miernik ustawowy | Zakres | Plik |
 |---|---|---|---|
-| Ranking milczenia ministerstw | 21 dni na odpowiedź na interpelację | 162 103 pytania, 2011–2026 | `public/index.html` |
-| Nieobecności w głosowaniach | — (brak progu ustawowego) | 28 447 głosowań imiennych, kadencje VII–X | `public/index.html` |
+| Start | — | rozdzielnik z liczbą wiodącą każdej funkcji | `public/index.html` |
+| Milczenie ministerstw | 21 dni na odpowiedź na interpelację | 162 103 pytania, 2011–2026 | `public/interpelacje.html` |
+| Droga pytania | jw., mierzone przed startem terminu | opóźnienie Kancelarii Sejmu, kto podpisuje | `public/droga.html` |
+| Posłowie i serie | — | aktywność i serie szablonowe | `public/poslowie.html` |
+| Nieobecności w głosowaniach | — (brak progu ustawowego) | 28 447 głosowań imiennych, kadencje VII–X | `public/nieobecnosci.html` |
 | Vacatio legis | 14 dni od ogłoszenia do wejścia w życie | 19 410 aktów Dz.U., 2015–2026 | `public/vacatio.html` |
 | Vacatio legis — bez aktów technicznych | jw., po odsianiu 2 229 aktów administracyjnych | 15 058 rozporządzeń | `public/vacatio-merytoryczne.html` |
 
@@ -140,9 +143,13 @@ wysłana w 3 dni wygląda tu lepiej niż rzetelna analiza w 25 dni. Jedyne dost�
 w API proxy jakości to kolumna „tylko skan" — odpowiedź wysłana wyłącznie jako
 PDF, bez treści tekstowej.
 
-## Co jeszcze pokazuje dashboard interpelacji
+## Struktura stron
 
-Poza rankingiem adresatów strona niesie cztery wymiary liczone z tych samych danych:
+Każda funkcja ma **własną stronę** z własnym wycinkiem danych; wspólne są tylko
+style, rdzeń JS i nawigacja (`public/partials/`). Podział wziął się z rozmiaru:
+jeden plik ze wszystkim ważył 1,2 MB, a dziś najcięższa strona ma 512 KB, a start 26 KB.
+
+Poza rankingiem adresatów projekt niesie cztery wymiary liczone z tych samych danych:
 
 - **Droga pytania** — opóźnienie Kancelarii Sejmu między wpływem a przekazaniem
   adresatowi. Ranking terminowości liczy termin dopiero od przekazania, więc bez tej

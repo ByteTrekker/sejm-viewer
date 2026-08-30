@@ -17,6 +17,7 @@ use Milczenie\Domain\IssuerNormalizer;
 use Milczenie\Domain\TechnicalActClassifier;
 use Milczenie\Report\VacatioBuilder;
 use Milczenie\Storage\Database;
+use Milczenie\Web\PageComposer;
 
 $options = Options::fromGetopt(['from::', 'to::', 'db::', 'out::', 'exclude-technical', 'name::']);
 
@@ -46,14 +47,10 @@ $report = (new VacatioBuilder(
     $excludeTechnical ? new TechnicalActClassifier() : null,
 ))->build($from, $to);
 
-$json = json_encode($report, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
-file_put_contents(sprintf('%s/%s.json', $outDir, $name), $json . PHP_EOL);
-
-$template = file_get_contents($outDir . '/template-vacatio.html');
-if ($template === false) {
-    throw new RuntimeException('Brak public/template-vacatio.html');
-}
-file_put_contents(sprintf('%s/%s.html', $outDir, $name), str_replace('/*__DATA__*/null', $json, $template));
+// Obie wersje (pelna i bez aktow technicznych) powstaja z jednego szablonu
+// i roznia sie wylacznie zbiorem danych.
+$html = (new PageComposer($outDir))->render('vacatio.html', 'vacatio', $report);
+file_put_contents(sprintf('%s/%s.html', $outDir, $name), $html);
 
 $ranked = array_values(array_filter($report['organy'], static fn (array $r): bool => $r['w_rankingu']));
 

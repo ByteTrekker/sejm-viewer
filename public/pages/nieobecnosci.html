@@ -1,0 +1,143 @@
+<title>Nieobecności w głosowaniach</title>
+<!--@style-->
+
+<div class="wrap">
+  <!--@nav-->
+
+  <header class="masthead">
+    <h1>Nieobecności w głosowaniach</h1>
+    <p class="caveat">
+      <b>API podaje fakt nieobecności, nie jej przyczynę.</b> Delegacja zagraniczna, zwolnienie
+      lekarskie, urlop rodzicielski, obowiązki premiera lub ministra, zawieszony albo wygaszony
+      mandat i zwykła absencja wyglądają w danych <b>identycznie</b>. Czołówka tej tabeli składa
+      się w dużej części z osób, których nieobecność ma znaną i niekwestionowaną przyczynę.
+      Tabela mówi wyłącznie, w ilu głosowaniach poseł nie wziął udziału — każdy wniosek
+      o przyczynach jest nadinterpretacją.
+    </p>
+    <div class="controls">
+      <span class="switch-label">Kadencja</span>
+      <div class="seg" id="term-seg" role="group" aria-label="Wybierz kadencję"></div>
+    </div>
+    <div class="stamp" id="stamp"></div>
+  </header>
+
+  <section id="compare-section">
+    <h2>Kadencje obok siebie</h2>
+    <div class="card"><figure>
+      <div id="absence-compare"></div>
+      <figcaption id="absence-compare-caption"></figcaption>
+    </figure></div>
+  </section>
+
+  <section>
+    <h2 id="clubs-title">Kluby</h2>
+    <p class="sub" id="absence-sub"></p>
+    <div class="card"><figure>
+      <div id="absence-clubs"></div>
+      <figcaption>Uwzględniono kluby z co najmniej 1 000 oddanych głosów.</figcaption>
+    </figure></div>
+  </section>
+
+  <section>
+    <h2>Posłowie</h2>
+    <p class="sub">
+      Kolumna „głosowań łącznie” pokazuje mianownik: poseł, który objął lub stracił mandat
+      w trakcie kadencji, ma go odpowiednio mniejszy. Kliknij nagłówek kolumny, aby posortować.
+    </p>
+    <div class="controls">
+      <input type="search" id="absence-filter" placeholder="Filtruj posła lub klub…" aria-label="Filtruj posła">
+    </div>
+    <div class="scroller">
+      <table id="absences"><thead><tr id="absences-head"></tr></thead><tbody id="absences-body"></tbody></table>
+    </div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+/*@core*/
+
+state.term = firstAvailableTerm(k => k.nieobecnosci_udzial !== null && k.nieobecnosci_udzial !== undefined);
+
+const ABSENCE_COLUMNS = [
+  { key: 'nazwa', label: 'Poseł', type: 'text' },
+  { key: 'klub', label: 'Klub', type: 'text' },
+  { key: 'udzial_nieobecnosci', label: 'Nieobecności', type: 'pct', digits: 1 },
+  { key: 'nieobecnosci', label: 'Głosowań opuszczonych', type: 'int' },
+  { key: 'glosowan', label: 'Głosowań łącznie', type: 'int' },
+];
+const absenceState = { sort: 'udzial_nieobecnosci', dir: -1, filter: '' };
+
+document.getElementById('absence-filter').addEventListener('input', e => {
+  absenceState.filter = e.target.value.toLowerCase();
+  renderTable();
+});
+
+function renderTable() {
+  const a = report().nieobecnosci;
+  sortableTable({
+    headId: 'absences-head', bodyId: 'absences-body', columns: ABSENCE_COLUMNS,
+    rows: a.poslowie.filter(m => m.w_rankingu)
+      .filter(m => (m.nazwa + ' ' + (m.klub ?? '')).toLowerCase().includes(absenceState.filter)),
+    state: absenceState, limit: 60, rerender: renderTable,
+    tip: m => `<b>${m.nazwa}</b>
+      <div class="row">${m.klub ?? 'brak klubu'}${m.okreg ? ' · ' + m.okreg : ''}</div>
+      <div class="row">opuścił ${fmtInt(m.nieobecnosci)} z ${fmtInt(m.glosowan)} głosowań</div>`,
+  });
+}
+
+function renderAll() {
+  hideTip();
+  const a = report().nieobecnosci;
+  renderStamp('stamp', [`${fmtInt(a.glosowan)} głosowań imiennych`]);
+
+  document.getElementById('absence-sub').textContent =
+    `Kadencja ${ROMAN[state.term] ?? state.term}: ${fmtInt(a.glosowan)} głosowań, ${fmtInt(a.poslow)} posłów, `
+    + `średnio ${fmtPct(a.udzial_ogolem, 1)} nieobecności. W tabeli posłowie z co najmniej ${a.min_probka} głosowaniami.`;
+  document.getElementById('clubs-title').textContent = `Kluby — kadencja ${ROMAN[state.term] ?? state.term}`;
+
+  const withVotes = DATA.kadencje.filter(k => k.nieobecnosci_udzial !== null && k.nieobecnosci_udzial !== undefined);
+  document.getElementById('compare-section').hidden = withVotes.length < 2;
+  if (withVotes.length >= 2) {
+    hbar('absence-compare', withVotes.map(k => ({
+      label: `Kadencja ${ROMAN[k.numer] ?? k.numer}`,
+      value: k.nieobecnosci_udzial,
+      display: fmtPct(k.nieobecnosci_udzial, 1),
+      tip: `<b>Kadencja ${ROMAN[k.numer] ?? k.numer}</b>
+        <div class="row">${fmtPct(k.nieobecnosci_udzial, 1)} nieobecności</div>
+        <div class="row">${fmtInt(k.nieobecnosci_glosowan)} głosowań imiennych</div>`,
+    })), { label: 'Nieobecności w kolejnych kadencjach', labelWidth: 142, tick: v => Math.round(v * 100) + '%' });
+
+    document.getElementById('absence-compare-caption').textContent =
+      'Ta sama miara i te same reguły, ale nie ten sam ustrój głosowania: w kadencji IX '
+      + 'wprowadzono głosowanie zdalne w czasie pandemii, co obniża odsetek nieobecności '
+      + 'mechanicznie. Porównanie między kadencjami nie jest równoważne.';
+  }
+
+  hbar('absence-clubs', a.kluby.filter(c => c.glosowan >= 1000).map(c => ({
+    label: c.klucz,
+    value: c.udzial_nieobecnosci,
+    display: fmtPct(c.udzial_nieobecnosci, 1),
+    tip: `<b>${c.klucz}</b>
+      <div class="row">${fmtInt(c.poslow)} posłów</div>
+      <div class="row">${fmtInt(c.nieobecnosci)} z ${fmtInt(c.glosowan)} głosowań</div>`,
+  })), { label: 'Nieobecności według klubu', labelWidth: 152, tick: v => Math.round(v * 100) + '%' });
+
+  renderTable();
+
+  document.getElementById('footer').replaceChildren(
+    el('div', { text: `Dane: api.sejm.gov.pl, głosowania pobrane ${(a.pobrano || '').slice(0, 10)}.` }),
+    el('div', { class: 'thin', text: 'Mianownik jest per poseł: liczą się wyłącznie te głosowania, w których poseł w ogóle występuje na liście. Posłowie obejmujący mandat w trakcie kadencji nie są karani za głosowania sprzed ślubowania.' }),
+  );
+}
+
+mountTermSwitch(
+  'term-seg',
+  renderAll,
+  k => k.nieobecnosci_udzial === null || k.nieobecnosci_udzial === undefined,
+);
+renderAll();
+</script>
