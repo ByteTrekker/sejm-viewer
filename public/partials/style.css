@@ -242,3 +242,13 @@
   .lead-card { background: var(--surface-1); border: 1px solid var(--line); border-left: 3px solid var(--series-1);
                border-radius: 0 10px 10px 0; padding: 16px 20px; margin-bottom: 14px; }
   .lead-card p { margin: 0; font-size: 16.5px; line-height: 1.6; color: var(--ink-1); max-width: 68ch; }
+
+  /* --- przelacznik jezyka --- */
+  nav.pages .langs { display: flex; gap: 2px; padding: 0 0 10px; margin-left: auto; }
+  nav.pages .langs a, nav.pages .langs span {
+    font-size: 12px; font-family: var(--mono); text-decoration: none; color: var(--ink-3);
+    padding: 4px 9px; border-radius: 6px;
+  }
+  nav.pages .langs a:hover { background: var(--surface-2); color: var(--ink-1); }
+  nav.pages .langs span[aria-current] { background: var(--surface-1); color: var(--ink-1); }
+  nav.pages ul { flex: 1; }

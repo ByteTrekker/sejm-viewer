@@ -123,7 +123,10 @@ $db->setMeta("acts_fetched_at", "2024-06-01T00:00:00+00:00");
 '
 
 echo "--- ranking milczenia ---"
-php "$root/bin/build.php" --db="$db" --out="$out" --snapshot=2024-06-01 >/dev/null
+# Braki tlumaczen build zglasza na STDERR jako ostrzezenie - strona ma powstac
+# nawet niepelna. Tu jest bramka, wiec dziennik zostaje i jest sprawdzany nizej.
+php "$root/bin/build.php" --db="$db" --out="$out" --snapshot=2024-06-01 \
+    >/dev/null 2>"$out/build.log" || { cat "$out/build.log"; exit 1; }
 
 php -r '
 $read = static function (string $file): array {
@@ -259,6 +262,29 @@ for f in index.html interpelacje.html droga.html poslowie.html nieobecnosci.html
 done
 echo "OK   wygenerowano 7 stron z kompletem znaczników i nawigacją"
 
+# Wersja angielska. Brak tlumaczenia NIE zostawia widocznego znacznika - wraca
+# polski tekst pod angielskim adresem, czego po samej stronie nie widac. Dlatego
+# bramka czyta to, co build zglosil, a nie szuka klamer w wyniku.
+for f in index.html interpelacje.html droga.html poslowie.html nieobecnosci.html; do
+    [ -s "$out/en/$f" ] || { echo "BŁĄD: nie powstała angielska wersja $f"; exit 1; }
+    grep -q '{{' "$out/en/$f" && { echo "BŁĄD: nieusunięty znacznik w en/$f"; exit 1; }
+    grep -q '{{' "$out/$f" && { echo "BŁĄD: nieusunięty znacznik w $f"; exit 1; }
+done
+
+if grep -q 'BRAK TLUMACZEN' "$out/build.log"; then
+    echo "BŁĄD: build zgłosił brakujące tłumaczenia:"
+    grep -A25 'BRAK TLUMACZEN' "$out/build.log"
+    exit 1
+fi
+echo "OK   wersja angielska kompletna — build nie zgłosił brakujących tłumaczeń"
+
+# Przelacznik jezyka ma prowadzic do TEGO SAMEGO dokumentu, nie na strone glowna.
+grep -q 'href="en/interpelacje.html" hreflang="en"' "$out/interpelacje.html" \
+    || { echo "BŁĄD: przełącznik na stronie polskiej nie prowadzi do tej samej strony"; exit 1; }
+grep -q 'href="../interpelacje.html" hreflang="pl"' "$out/en/interpelacje.html" \
+    || { echo "BŁĄD: przełącznik na stronie angielskiej nie prowadzi do tej samej strony"; exit 1; }
+echo "OK   przełącznik języka prowadzi do tego samego dokumentu"
+
 # Profile leza w podkatalogu, wiec ich nawigacja musi byc przedrostkowana.
 profil=$(ls "$out"/posel/*.html 2>/dev/null | head -1)
 if [ -n "$profil" ]; then
@@ -267,4 +293,14 @@ if [ -n "$profil" ]; then
     grep -q 'href="index.html"' "$profil" \
         && { echo "BŁĄD: profil ma odnośnik bez przedrostka"; exit 1; }
     echo "OK   nawigacja w profilu prowadzi poza podkatalog"
+
+    # Z profilu przelacznik musi zejsc do katalogu jezyka i wejsc w ten sam profil.
+    nazwa=$(basename "$profil")
+    grep -q "href=\"../en/posel/$nazwa\"" "$profil" \
+        || { echo "BŁĄD: przełącznik w profilu nie prowadzi do tego samego profilu"; exit 1; }
+    [ -s "$out/en/posel/$nazwa" ] \
+        || { echo "BŁĄD: brak angielskiej wersji profilu $nazwa"; exit 1; }
+    grep -q "href=\"../../posel/$nazwa\"" "$out/en/posel/$nazwa" \
+        || { echo "BŁĄD: przełącznik w angielskim profilu nie wraca do polskiego"; exit 1; }
+    echo "OK   przełącznik języka w profilu prowadzi do tego samego profilu"
 fi

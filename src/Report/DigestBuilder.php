@@ -36,14 +36,21 @@ final class DigestBuilder
         return implode(' ', array_filter($parts, static fn (string $part): bool => $part !== ''));
     }
 
+    /**
+     * Liczby wychodza jako znacznik {{#...}}, nie goly tekst.
+     *
+     * Raport powstaje raz i zasila obie wersje jezykowe, a polski i angielski maja
+     * odwrotne separatory: 1 234,5 wobec 1,234.5. PageComposer przepisuje znacznik
+     * regula przy skladaniu strony, wiec liczba nie trafia do slownika.
+     */
     private function pct(float $value, int $decimals = 1): string
     {
-        return str_replace('.', ',', number_format(100 * $value, $decimals)) . '%';
+        return '{{#' . str_replace('.', ',', number_format(100 * $value, $decimals)) . '%}}';
     }
 
     private function num(int $value): string
     {
-        return number_format($value, 0, ',', ' ');
+        return '{{#' . number_format($value, 0, ',', ' ') . '}}';
     }
 
     /**
@@ -130,34 +137,34 @@ final class DigestBuilder
         $closest = $close[0] ?? null;
 
         return [
-            'rytm' => 'Po posiedzeniu',
-            'okres' => sprintf('Posiedzenie nr %d, ostatni dzień %s', $sitting, (string) $last['date']),
-            'wstep' => sprintf('%d głosowań imiennych.', $votings),
+            'rytm' => '{{Po posiedzeniu}}',
+            'okres' => sprintf('{{Posiedzenie nr}} %d{{, ostatni dzień}} %s', $sitting, (string) $last['date']),
+            'wstep' => sprintf('%d {{głosowań imiennych.}}', $votings),
             'akapit' => $this->paragraph([
                 sprintf(
-                    'Na %d. posiedzeniu Sejmu odbyło się %s głosowań imiennych.',
+                    '{{Na posiedzeniu nr}} %d {{Sejmu odbyło się}} %s {{głosowań imiennych.}}',
                     $sitting,
                     $this->num($votings),
                 ),
                 $unexcused > 0
-                    ? sprintf('Posłowie opuścili je %s razy bez usprawiedliwienia.', $this->num($unexcused))
-                    : 'Wszystkie nieobecności były usprawiedliwione.',
+                    ? sprintf('{{Posłowie opuścili je}} %s {{razy bez usprawiedliwienia.}}', $this->num($unexcused))
+                    : '{{Wszystkie nieobecności były usprawiedliwione.}}',
                 $closest !== null && abs((int) $closest['za'] - (int) $closest['przeciw']) <= 20
                     ? sprintf(
-                        'Najciaśniejsze głosowanie rozstrzygnęło się stosunkiem %d do %d.',
+                        '{{Najciaśniejsze głosowanie rozstrzygnęło się stosunkiem}} %d {{do}} %d.',
                         (int) $closest['za'],
                         (int) $closest['przeciw'],
                     )
-                    : 'Żadne głosowanie nie było rozstrzygnięte różnicą mniejszą niż dwadzieścia głosów.',
+                    : '{{Żadne głosowanie nie było rozstrzygnięte różnicą mniejszą niż dwadzieścia głosów.}}',
             ]),
             'punkty' => [
                 [
-                    'naglowek' => 'Najwięcej nieusprawiedliwionych nieobecności',
+                    'naglowek' => '{{Najwięcej nieusprawiedliwionych nieobecności}}',
                     'pozycje' => array_map(
                         static fn (array $r): string => sprintf(
-                            '%s (%s) — %d z %d głosowań',
-                            $r['nazwa'] ?? ('poseł #' . $r['mp_id']),
-                            $r['klub'] ?? 'brak klubu',
+                            '%s (%s) — %d {{z}} %d {{głosowań}}',
+                            $r['nazwa'] ?? ('{{poseł}} #' . $r['mp_id']),
+                            $r['klub'] ?? '{{brak klubu}}',
                             (int) $r['nieuspr'],
                             (int) $r['glosowan'],
                         ),
@@ -165,7 +172,7 @@ final class DigestBuilder
                     ),
                 ],
                 [
-                    'naglowek' => 'Najciaśniejsze głosowania',
+                    'naglowek' => '{{Najciaśniejsze głosowania}}',
                     'pozycje' => array_map(
                         static fn (array $r): string => sprintf(
                             '%d : %d — %s',
@@ -226,28 +233,28 @@ final class DigestBuilder
         )['n'] ?? 0);
 
         return [
-            'rytm' => 'Tygodniowy',
+            'rytm' => '{{Tygodniowy}}',
             'okres' => sprintf('%s – %s', $from->format('Y-m-d'), $to->format('Y-m-d')),
-            'wstep' => 'Pytania przekazane w tym tygodniu, na które nie ma jeszcze odpowiedzi, oraz najświeższe rozporządzenia bez vacatio legis.',
+            'wstep' => '{{Pytania przekazane w tym tygodniu, na które nie ma jeszcze odpowiedzi, oraz najświeższe rozporządzenia bez vacatio legis.}}',
             'akapit' => $this->paragraph([
                 sprintf(
-                    'W tym tygodniu Kancelaria Sejmu przekazała adresatom %s pytań.',
+                    '{{W tym tygodniu Kancelaria Sejmu przekazała adresatom}} %s {{pytań.}}',
                     $this->num($przekazanych),
                 ),
-                sprintf('Ustawowy termin na odpowiedź to 21 dni, więc rozliczymy je za trzy tygodnie.'),
+                '{{Ustawowy termin na odpowiedź to 21 dni, więc rozliczymy je za trzy tygodnie.}}',
                 $fast !== []
                     ? sprintf(
-                        'W tym samym czasie %s rozporządzeń weszło w życie z dnia na dzień, bez okresu na dostosowanie.',
+                        '{{W tym samym czasie}} %s {{rozporządzeń weszło w życie z dnia na dzień, bez okresu na dostosowanie.}}',
                         $this->num(count($fast)),
                     )
-                    : 'Żadne rozporządzenie nie weszło w życie z dnia na dzień.',
+                    : '{{Żadne rozporządzenie nie weszło w życie z dnia na dzień.}}',
             ]),
             'punkty' => [
                 [
-                    'naglowek' => 'Przekazane w tym tygodniu, wciąż bez odpowiedzi',
+                    'naglowek' => '{{Przekazane w tym tygodniu, wciąż bez odpowiedzi}}',
                     'pozycje' => array_map(
                         static fn (array $r): string => sprintf(
-                            '%s nr %d do: %s — %s',
+                            '%s {{nr}} %d {{do:}} %s — %s',
                             $r['kind'],
                             (int) $r['num'],
                             (string) $r['adresat'],
@@ -257,10 +264,10 @@ final class DigestBuilder
                     ),
                 ],
                 [
-                    'naglowek' => 'Rozporządzenia wchodzące w życie z dnia na dzień',
+                    'naglowek' => '{{Rozporządzenia wchodzące w życie z dnia na dzień}}',
                     'pozycje' => array_map(
                         static fn (array $r): string => sprintf(
-                            '%s (%s) — ogłoszone %s, obowiązuje od %s',
+                            '%s (%s) — {{ogłoszone}} %s{{, obowiązuje od}} %s',
                             mb_substr((string) $r['title'], 0, 80),
                             (string) $r['display_address'],
                             (string) $r['promulgation'],
@@ -487,13 +494,13 @@ final class DigestBuilder
         $najdalsza = $coalition['pary'] === [] ? null : $coalition['pary'][count($coalition['pary']) - 1];
 
         return [
-            'rytm' => 'Kwartalny',
-            'okres' => sprintf('Cała kadencja %s, stan bieżący', $term),
-            'wstep' => sprintf('%s głosowań imiennych z ustaloną linią klubową.', $this->num($coalition['glosowan'])),
+            'rytm' => '{{Kwartalny}}',
+            'okres' => sprintf('{{Cała kadencja}} %s{{, stan bieżący}}', $term),
+            'wstep' => sprintf('%s {{głosowań imiennych z ustaloną linią klubową.}}', $this->num($coalition['glosowan'])),
             'akapit' => $this->paragraph([
                 $najmniejSpojny !== null && $najbardziej !== null
                     ? sprintf(
-                        'Najmniej spójnym klubem pozostaje %s — %s oddanych głosów było niezgodnych z linią własnego klubu, wobec %s w najbardziej zdyscyplinowanym klubie %s.',
+                        '{{Najmniej spójnym klubem pozostaje}} %s — %s {{oddanych głosów było niezgodnych z linią własnego klubu, wobec}} %s {{w najbardziej zdyscyplinowanym klubie}} %s.',
                         (string) $najmniejSpojny['klucz'],
                         $this->pct((float) $najmniejSpojny['udzial_wbrew'], 2),
                         $this->pct((float) $najbardziej['udzial_wbrew'], 2),
@@ -502,7 +509,7 @@ final class DigestBuilder
                     : '',
                 $najblizsza !== null
                     ? sprintf(
-                        'Najczęściej razem głosują %s i %s — ta sama linia w %s głosowań.',
+                        '{{Najczęściej razem głosują}} %s {{i}} %s — {{ta sama linia w}} %s {{głosowań.}}',
                         (string) $najblizsza['a'],
                         (string) $najblizsza['b'],
                         $this->pct((float) $najblizsza['zgodnosc']),
@@ -510,20 +517,20 @@ final class DigestBuilder
                     : '',
                 $najdalsza !== null
                     ? sprintf(
-                        'Najrzadziej — %s i %s, %s.',
+                        '{{Najrzadziej}} — %s {{i}} %s, %s.',
                         (string) $najdalsza['a'],
                         (string) $najdalsza['b'],
                         $this->pct((float) $najdalsza['zgodnosc']),
                     )
                     : '',
-                sprintf('Klub zmieniło dotąd %s posłów.', $this->num((int) $discipline['transfery']['poslow'])),
+                sprintf('{{Transfery klubowe dotąd:}} %s {{posłów.}}', $this->num((int) $discipline['transfery']['poslow'])),
             ]),
             'punkty' => [
                 [
-                    'naglowek' => 'Kluby najczęściej głosujące niezgodnie z własną linią',
+                    'naglowek' => '{{Kluby najczęściej głosujące niezgodnie z własną linią}}',
                     'pozycje' => array_map(
                         fn (array $c): string => sprintf(
-                            '%s — %s głosów wbrew linii, %s głosowań jednomyślnych',
+                            '%s — %s {{głosów wbrew linii,}} %s {{głosowań jednomyślnych}}',
                             (string) $c['klucz'],
                             $this->pct((float) $c['udzial_wbrew'], 2),
                             $this->pct((float) $c['udzial_jednomyslnych'], 0),
@@ -532,10 +539,10 @@ final class DigestBuilder
                     ),
                 ],
                 [
-                    'naglowek' => 'Pary klubów najczęściej głosujące tak samo',
+                    'naglowek' => '{{Pary klubów najczęściej głosujące tak samo}}',
                     'pozycje' => array_map(
                         fn (array $p): string => sprintf(
-                            '%s + %s — %s zgodności w %s wspólnych głosowaniach',
+                            '%s + %s — %s {{zgodności w}} %s {{wspólnych głosowaniach}}',
                             (string) $p['a'],
                             (string) $p['b'],
                             $this->pct((float) $p['zgodnosc']),
@@ -560,7 +567,7 @@ final class DigestBuilder
 
         $to = new \DateTimeImmutable((string) $latest);
 
-        return $this->forPeriod($term, $to->modify('-30 days'), $to, 'Miesięczny');
+        return $this->forPeriod($term, $to->modify('-30 days'), $to, '{{Miesięczny}}');
     }
 
     /**
@@ -659,41 +666,41 @@ final class DigestBuilder
             'rytm' => $rytm,
             'okres' => sprintf('%s – %s', $from->format('Y-m-d'), $to->format('Y-m-d')),
             'wstep' => sprintf(
-                '%s pytań do rządu, %s głosowań imiennych, %s aktów w Dzienniku Ustaw.',
+                '%s {{pytań do rządu,}} %s {{głosowań imiennych,}} %s {{aktów w Dzienniku Ustaw.}}',
                 $this->num($sent),
                 $this->num((int) $glosowania['glosowan']),
                 $this->num((int) $akty['aktow']),
             ),
             'akapit' => $this->paragraph([
                 sprintf(
-                    'W okresie %s – %s posłowie skierowali do rządu %s pytań.',
+                    '{{W okresie}} %s – %s {{posłowie skierowali do rządu}} %s {{pytań.}}',
                     $from->format('Y-m-d'),
                     $to->format('Y-m-d'),
                     $this->num($sent),
                 ),
                 $lider !== null
                     ? sprintf(
-                        'Najwięcej z nich, bo %s, czeka wciąż na odpowiedź od resortu: %s.',
+                        '{{Najwięcej z nich, bo}} %s{{, czeka wciąż na odpowiedź od resortu:}} %s.',
                         $this->num((int) $lider['bez_odpowiedzi']),
                         (string) $lider['adresat'],
                     )
-                    : 'Każde z nich doczekało się odpowiedzi.',
+                    : '{{Każde z nich doczekało się odpowiedzi.}}',
                 $bezOdpowiedzi > 0
                     ? sprintf(
-                        'W pięciu najbardziej milczących resortach leży razem %s pytań bez odpowiedzi.',
+                        '{{W pięciu najbardziej milczących resortach leży razem}} %s {{pytań bez odpowiedzi.}}',
                         $this->num($bezOdpowiedzi),
                     )
                     : '',
                 (int) $glosowania['glosowan'] > 0
                     ? sprintf(
-                        'Odbyło się %s głosowań imiennych, w których posłowie byli nieobecni %s razy bez usprawiedliwienia.',
+                        '{{Odbyło się}} %s {{głosowań imiennych, w których posłowie byli nieobecni}} %s {{razy bez usprawiedliwienia.}}',
                         $this->num((int) $glosowania['glosowan']),
                         $this->num((int) $glosowania['nieusprawiedliwione']),
                     )
-                    : 'W tym okresie Sejm nie głosował imiennie.',
+                    : '{{W tym okresie Sejm nie głosował imiennie.}}',
                 (int) $akty['aktow'] > 0
                     ? sprintf(
-                        'W Dzienniku Ustaw ogłoszono %s aktów, z czego %s weszło w życie szybciej niż w ustawowe 14 dni, a %s z dnia na dzień.',
+                        '{{W Dzienniku Ustaw ogłoszono}} %s {{aktów, z czego}} %s {{weszło w życie szybciej niż w ustawowe 14 dni, a}} %s {{z dnia na dzień.}}',
                         $this->num((int) $akty['aktow']),
                         $this->num((int) $akty['ponizej']),
                         $this->num((int) $akty['natychmiast']),
@@ -702,9 +709,9 @@ final class DigestBuilder
             ]),
             'punkty' => [
                 [
-                    'naglowek' => 'Najwięcej pytań wciąż bez odpowiedzi',
+                    'naglowek' => '{{Najwięcej pytań wciąż bez odpowiedzi}}',
                     'pozycje' => array_map(
-                        static fn (array $r): string => sprintf('%s — %d pytań', (string) $r['adresat'], (int) $r['bez_odpowiedzi']),
+                        static fn (array $r): string => sprintf('%s — %d {{pytań}}', (string) $r['adresat'], (int) $r['bez_odpowiedzi']),
                         $silent,
                     ),
                 ],
@@ -712,9 +719,9 @@ final class DigestBuilder
                     'naglowek' => 'Najwięcej nieusprawiedliwionych nieobecności',
                     'pozycje' => array_map(
                         fn (array $r): string => sprintf(
-                            '%s (%s) — %s z %s głosowań',
-                            (string) ($r['nazwa'] ?? 'poseł #' . $r['mp_id']),
-                            (string) ($r['klub'] ?? 'brak klubu'),
+                            '%s (%s) — %s {{z}} %s {{głosowań}}',
+                            (string) ($r['nazwa'] ?? '{{poseł}} #' . $r['mp_id']),
+                            (string) ($r['klub'] ?? '{{brak klubu}}'),
                             $this->num((int) $r['nieuspr']),
                             $this->num((int) $r['glosowan']),
                         ),
@@ -722,10 +729,10 @@ final class DigestBuilder
                     ),
                 ],
                 [
-                    'naglowek' => 'Rozporządzenia bez okresu na dostosowanie',
+                    'naglowek' => '{{Rozporządzenia bez okresu na dostosowanie}}',
                     'pozycje' => array_map(
                         static fn (array $r): string => sprintf(
-                            '%s (%s) — ogłoszone %s, obowiązuje od %s',
+                            '%s (%s) — {{ogłoszone}} %s{{, obowiązuje od}} %s',
                             mb_substr((string) $r['title'], 0, 78),
                             (string) $r['display_address'],
                             (string) $r['promulgation'],

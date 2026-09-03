@@ -98,20 +98,21 @@ jobs:
 
       # Wygenerowane dashboardy mają setki kilobajtów zapieczonych danych.
       # Wersjonowanie ich zamienia diff w szum i rozjeżdża się ze źródłem.
+      # Straz pyta gita, co sledzi, zamiast wyliczac nazwy plikow. Lista nazw
+      # zdezaktualizowala sie dwa razy: raz przy nowych stronach, raz przy
+      # katalogu wersji angielskiej - 507 wygenerowanych plikow przeszlo obok.
       - name: Brak wygenerowanych plików w repozytorium
         run: |
-          found=0
-          for path in public/index.html public/interpelacje.html public/droga.html \
-                      public/poslowie.html public/nieobecnosci.html public/dyscyplina.html \
-                      public/koalicje.html public/raporty.html \
-                      public/vacatio.html public/vacatio-merytoryczne.html \
-                      public/posel var/sejm.sqlite; do
-            if [ -e "$path" ]; then
-              echo "BŁĄD: $path jest wygenerowany i nie powinien być w repozytorium"
-              found=1
-            fi
-          done
-          exit "$found"
+          tracked=$(git ls-files \
+            'public/*.html' 'public/**/*.html' 'public/*.json' 'var/*' \
+            | grep -v '^public/pages/' \
+            | grep -v '^public/partials/' || true)
+          if [ -n "$tracked" ]; then
+            echo "BŁĄD: te pliki są wygenerowane i nie powinny być w repozytorium:"
+            echo "$tracked"
+            exit 1
+          fi
+          echo "OK   repozytorium niesie tylko szablony i części wspólne"
 
       - name: Szablony mają komplet znaczników
         run: |

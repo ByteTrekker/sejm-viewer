@@ -94,6 +94,22 @@ przypis: liczba bez tego kontekstu krzywdzi konkretne osoby.
   danych (`PAGE_SLICES` w `bin/build.php`). Wcześniej jeden `index.html` niósł
   komplet i ważył 1,2 MB — czytelnik zainteresowany nieobecnościami ściągał
   ranking resortów i listy pytań.
+* **Tekst interfejsu jest oznaczony `{{...}}`**, a tłumaczenia leżą
+  w `public/partials/i18n/<lang>.json`. Brak wpisu daje polski tekst i głośne
+  ostrzeżenie w buildzie; test dymny traktuje takie ostrzeżenie jako błąd.
+  Trzy reguły, każda wynikła z defektu:
+  1. **Tłumaczenie nie może zawierać `'`, `"` ani `\`** — podmiana jest tekstowa,
+     także w środku literału JS i wstrzykniętego JSON-a. `members' and other bills`
+     zamknęło literał i wywaliło cały skrypt wersji angielskiej. Znaki
+     typograficzne (`’ ” “`) są bezpieczne i poprawniejsze; `PageComposer`
+     odrzuca pozostałe przy wczytywaniu słownika.
+  2. **Liczby idą znacznikiem `{{#...}}`, nie słownikiem.** Polski zapisuje
+     `1 234,5` tam, gdzie angielski `1,234.5`, a raport powstaje raz dla obu
+     wersji. Formatowanie po stronie przeglądarki steruje stała `LOCALE`.
+  3. **Dane zostają po polsku.** Nazwiska posłów, nazwy resortów i tytuły aktów
+     to nazwy własne — tłumaczymy tylko to, co sami napisaliśmy. Wartości
+     nadawane przez nas (rodzaj pytania, kategoria głosowania) mają słowniki
+     `KIND_LABELS` i `CATEGORY_LABELS` w `core.js`.
 * **Style, rdzeń JS i nawigacja żyją w `public/partials/`**, nigdy w szablonie
   strony. Zanim to powstało, dwa szablony niosły 173 z 183 linii identycznego
   stylu i każda poprawka wymagała dwóch edycji.
