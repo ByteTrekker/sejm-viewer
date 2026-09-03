@@ -7,9 +7,9 @@
   <header class="masthead">
     <h1>Przykładowe raporty</h1>
     <p class="dek">
-      Trzy raporty w trzech rytmach, złożone z danych, które projekt już liczy.
-      Mają pokazać, <b>co da się z danych zebrać w danym okresie</b> — zanim powstanie
-      jakakolwiek automatyzacja.
+      Cztery raporty w czterech rytmach, złożone z danych, które projekt już liczy.
+      Każdy ma gotowy akapit — bo raport złożony z samych wypunktowań wygląda jak zrzut
+      z bazy i nie widać po nim, czy nadaje się do opublikowania.
     </p>
     <p class="caveat">
       <b>Nic się tu nie uruchamia samo i nic nigdzie nie jest wysyłane.</b> To zrzut
@@ -69,6 +69,10 @@ function renderAll() {
   host.replaceChildren(...digests.map(d => el('section', {},
     el('h2', { text: `${d.rytm} — kadencja ${ROMAN[state.term] ?? state.term}` }),
     el('p', { class: 'sub', text: `${d.okres}. ${d.wstep}` }),
+    d.akapit ? el('div', { class: 'lead-card' },
+      el('div', { class: 'eyebrow', text: 'Tak by to brzmiało' }),
+      el('p', { text: d.akapit }),
+    ) : el('span'),
     el('div', { class: 'card' },
       ...d.punkty.map(p => el('div', { style: 'margin-bottom:18px' },
         el('div', { class: 'eyebrow', text: p.naglowek }),
