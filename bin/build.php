@@ -21,6 +21,7 @@ declare(strict_types=1);
 require __DIR__ . '/bootstrap.php';
 
 use Milczenie\Console\Options;
+use Milczenie\Domain\LegalSource;
 use Milczenie\Domain\RecipientNormalizer;
 use Milczenie\Report\AbsenceBuilder;
 use Milczenie\Report\CoalitionBuilder;
@@ -174,6 +175,7 @@ foreach (PAGE_SLICES as $page => $keys) {
     $default = isset($slices[$defaultTerm]) ? $defaultTerm : max(array_keys($slices));
 
     $html = $composer->render($page . '.html', $page, [
+        'podstawy' => LegalSource::all(),
         'kadencje' => $kadencje,
         'domyslna_kadencja' => $default,
         'pobrano' => $fetchedAt,
@@ -205,6 +207,7 @@ $vacatio = $db->fetchRow(
 $counts = static fn (string $sql): int => (int) ($db->fetchRow($sql)['n'] ?? 0);
 
 $index = [
+    'podstawy' => LegalSource::all(),
     'wygenerowano' => $today->format('Y-m-d'),
     'pobrano' => $fetchedAt,
     'skroty' => [
@@ -244,6 +247,7 @@ $profiles = 0;
 foreach ($reports as $term => $report) {
     foreach ($profileBuilder->buildAll($term, $report) as $id => $profile) {
         $page = $composer->render('posel.html', 'poslowie', [
+            'podstawy' => LegalSource::all(),
             'wygenerowano' => $today->format('Y-m-d'),
             'pobrano' => $fetchedAt,
             'profil' => $profile,

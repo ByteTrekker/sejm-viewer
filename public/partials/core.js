@@ -197,6 +197,41 @@ function sortableTable(cfg) {
   return rows.length;
 }
 
+/* ---------- podstawa prawna ---------- */
+/**
+ * Przypis do przepisu, na ktorym stoi prog. Prog ustawowy jest najwazniejsza liczba
+ * w projekcie, wiec tym bardziej musi prowadzic do tekstu aktu.
+ */
+function legalRef(key, label) {
+  const src = (DATA.podstawy ?? {})[key];
+  if (!src) return el('span', { text: label ?? '' });
+
+  return el('a', {
+    href: src.url,
+    target: '_blank',
+    rel: 'noopener',
+    title: `${src.akt}, ${src.adres} — ${src.o_czym}`,
+    text: label ?? src.przepis,
+  });
+}
+
+/** Lista wszystkich podstaw prawnych - do stopki strony. */
+function legalFooter() {
+  const sources = Object.values(DATA.podstawy ?? {});
+  if (sources.length === 0) return el('span');
+
+  const row = el('div', { class: 'links', style: 'margin-top:8px' });
+  const seen = new Set();
+  sources.forEach(s => {
+    if (seen.has(s.adres)) return;
+    seen.add(s.adres);
+    row.append(el('a', { class: 'src', href: s.url, target: '_blank', rel: 'noopener',
+      text: `${s.akt.split(' ').slice(0, 3).join(' ')}… (${s.adres}) ↗` }));
+  });
+
+  return row;
+}
+
 /* ---------- odnosnik do profilu posla ---------- */
 /**
  * Kolumna z nazwiskiem prowadzaca do profilu. Profile powstaja per kadencja,

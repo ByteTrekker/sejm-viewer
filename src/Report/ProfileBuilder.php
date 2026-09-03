@@ -81,6 +81,12 @@ final class ProfileBuilder
             $profiles[$id] = [
                 'id' => $id,
                 'kadencja' => $term,
+                // Oficjalna strona posla: identyfikator jest dopelniany do trzech cyfr.
+                'url_sejm' => sprintf(
+                    'https://www.sejm.gov.pl/sejm%d.nsf/posel.xsp?id=%03d&type=A',
+                    $term,
+                    $id,
+                ),
                 'nazwa' => $mp['nazwa'],
                 'klub' => $mp['klub'],
                 'okreg' => $mp['okreg'],
@@ -277,6 +283,7 @@ final class ProfileBuilder
                 'glos' => (string) $row['vote'],
                 'klub' => isset($row['club']) ? (string) $row['club'] : null,
                 'wbrew' => false,
+                'url' => $this->votingUrl($term, (int) $row['sitting'], (int) $row['number']),
             ];
         }
 
@@ -341,10 +348,25 @@ final class ProfileBuilder
                 'linia' => (string) $row['linia'],
                 'klub' => (string) $row['club'],
                 'wbrew' => true,
+                'url' => $this->votingUrl($term, (int) $row['sitting'], (int) $row['number']),
             ];
         }
 
         return $out;
+    }
+
+    /**
+     * Strona konkretnego glosowania na sejm.gov.pl - wraz z imiennym wykazem glosow.
+     */
+    private function votingUrl(int $term, int $sitting, int $number): string
+    {
+        return sprintf(
+            'https://www.sejm.gov.pl/sejm%d.nsf/agent.xsp?symbol=glosowania&NrKadencji=%d&NrPosiedzenia=%d&NrGlosowania=%d',
+            $term,
+            $term,
+            $sitting,
+            $number,
+        );
     }
 
     /**
