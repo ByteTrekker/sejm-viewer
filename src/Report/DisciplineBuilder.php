@@ -201,6 +201,52 @@ final class DisciplineBuilder
     }
 
     /**
+     * Odroznia zmiane nazwy klubu od przenosin poslow.
+     *
+     * Regula jest waska i sprawdzalna: przemianowanie przenosi CALY klub JEDNEGO
+     * dnia. Wymagamy wiec obu warunkow naraz - co najmniej 90% ruchu na tej samej
+     * granicy dat i objecie co najmniej 90% wszystkich, ktorzy kiedykolwiek pod
+     * stara nazwa glosowali. Odejscie 40 poslow PiS do RozwojPlus to 19% klubu,
+     * wiec zostaje transferem; PSL -> PSL-TD to 32 z 32 jednego dnia i nie jest.
+     * Trzeci warunek - nazwa docelowa nie moze istniec wczesniej - odsiewa
+     * wchloniecia malych kol przez kluby, ktore juz byly.
+     *
+     * @param array{n: int, granice: array<string, int>} $flow
+     *
+     * @return array<string, mixed>
+     */
+    private function classifyFlow(
+        string $from,
+        string $to,
+        array $flow,
+        int $sourceSize,
+        string $targetFirstSeen,
+    ): array {
+        $boundaries = $flow['granice'];
+        arsort($boundaries);
+        $topBoundary = (string) array_key_first($boundaries);
+        $onSameDay = $boundaries[$topBoundary];
+
+        $arrival = explode('/', $topBoundary)[1];
+
+        $rename = $sourceSize > 0
+            && $onSameDay >= 0.9 * $flow['n']
+            && $flow['n'] >= 0.9 * $sourceSize
+            // Nazwa docelowa musi byc nowa. Bez tego wchloniecie malego kola przez
+            // istniejacy klub wyglada jak przemianowanie: cztery osoby z ID weszly
+            // do PSL, co jest calym ID, ale PSL istnial wczesniej i istnial dalej.
+            && $targetFirstSeen !== '' && $targetFirstSeen >= $arrival;
+
+        return [
+            'z' => $from,
+            'do' => $to,
+            'n' => $flow['n'],
+            'zmiana_szyldu' => $rename,
+            'data' => $rename ? $arrival : null,
+        ];
+    }
+
+    /**
      * Okresy przynaleznosci klubowej: klub zapisany przy glosie plus pierwsza
      * i ostatnia data, kiedy posel glosowal pod tym szyldem.
      *
@@ -257,12 +303,68 @@ final class DisciplineBuilder
         // rozne liczby transferow - 144 na jednej i 131 na drugiej.
         $spellsPerMember = array_map(static fn (array $spells): int => count($spells), $byMember);
 
+        // Przeplywy miedzy klubami z KOMPLETU zmian, nie z przycietej listy: strona
+        // rozkladu mandatow pokazuje, kto komu ubyl i przybyl, a suma sald musi
+        // wychodzic na zero. Z czterdziestu najruchliwszych poslow nie wyszlaby.
+        $flows = [];
+        $size = [];
+        $firstSeen = [];
+        foreach ($byMember as $spells) {
+            foreach ($spells as $spell) {
+                $size[$spell['klub']] = ($size[$spell['klub']] ?? 0) + 1;
+                $firstSeen[$spell['klub']] = min($firstSeen[$spell['klub']] ?? $spell['od'], $spell['od']);
+            }
+
+            for ($i = 1, $n = count($spells); $i < $n; ++$i) {
+                $key = $spells[$i - 1]['klub'] . "\0" . $spells[$i]['klub'];
+                $flows[$key]['n'] = ($flows[$key]['n'] ?? 0) + 1;
+                $boundary = $spells[$i - 1]['do'] . '/' . $spells[$i]['od'];
+                $flows[$key]['granice'][$boundary] = ($flows[$key]['granice'][$boundary] ?? 0) + 1;
+            }
+        }
+
+        $transitions = [];
+        foreach ($flows as $key => $flow) {
+            [$from, $to] = explode("\0", (string) $key, 2);
+            $transitions[] = $this->classifyFlow($from, $to, $flow, $size[$from] ?? 0, $firstSeen[$to] ?? '');
+        }
+
+        usort($transitions, static fn (array $a, array $b): int => [$b['n'], $a['z']] <=> [$a['n'], $b['z']]);
+
+        // Zmiana nazwy klubu wyglada w danych dokladnie jak masowy transfer, bo API
+        // zapisuje przy glosie nazwe, nie tozsamosc klubu. Bez tego rozdzielenia
+        // kadencja X mialaby 144 "przenosiny", z czego 91 to samo przemianowanie
+        // PSL na PSL-TD, Nowej Lewicy na Lewice i Polski 2050 na Polske 2050-TD.
+        $renamed = [];
+        foreach ($transitions as $t) {
+            if ($t['zmiana_szyldu']) {
+                $renamed[$t['z'] . "\0" . $t['do']] = true;
+            }
+        }
+
+        $realMovers = array_values(array_filter($movers, function (array $m) use ($renamed): bool {
+            $spells = $m['okresy'];
+            for ($i = 1, $n = count($spells); $i < $n; ++$i) {
+                if (!isset($renamed[$spells[$i - 1]['klub'] . "\0" . $spells[$i]['klub']])) {
+                    return true;
+                }
+            }
+
+            return false;
+        }));
+
         return [
-            'poslow' => count($movers),
+            'poslow' => count($realMovers),
             'wszystkich' => count($byMember),
-            'udzial' => $byMember === [] ? 0.0 : round(count($movers) / count($byMember), 4),
-            'lista' => array_slice($movers, 0, 40),
+            'udzial' => $byMember === [] ? 0.0 : round(count($realMovers) / count($byMember), 4),
+            'lista' => array_slice($realMovers, 0, 40),
             'klubow_per_posel' => $spellsPerMember,
+            'przeplywy' => $transitions,
+            'zmiany_szyldu' => array_values(array_filter(
+                $transitions,
+                static fn (array $t): bool => $t['zmiana_szyldu'],
+            )),
+            'z_przemianowaniami' => count($movers),
         ];
     }
 }

@@ -28,6 +28,11 @@ final class LegalSource
             'tytul' => 'Regulamin Sejmu Rzeczypospolitej Polskiej',
             'adres' => 'M.P. 1992 nr 26 poz. 185',
         ],
+        'konstytucja' => [
+            'eli' => 'DU/1997/483',
+            'tytul' => 'Konstytucja Rzeczypospolitej Polskiej',
+            'adres' => 'Dz.U. 1997 nr 78 poz. 483',
+        ],
         'ogloszenia' => [
             'eli' => 'DU/2000/718',
             'tytul' => 'Ustawa o ogłaszaniu aktów normatywnych i niektórych innych aktów prawnych',
@@ -50,6 +55,16 @@ final class LegalSource
             'akt' => 'regulamin',
             'przepis' => 'art. 195 ust. 1',
             'o_czym' => '21 dni na odpowiedź na zapytanie poselskie',
+        ],
+        'sklad_izby' => [
+            'akt' => 'konstytucja',
+            'przepis' => 'art. 96 ust. 1',
+            'o_czym' => 'Sejm składa się z 460 posłów',
+        ],
+        'wiekszosc_glosow' => [
+            'akt' => 'konstytucja',
+            'przepis' => 'art. 120',
+            'o_czym' => 'ustawy zapadają zwykłą większością głosów przy kworum połowy składu',
         ],
         'vacatio_standard' => [
             'akt' => 'ogloszenia',

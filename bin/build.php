@@ -27,6 +27,7 @@ use Milczenie\Report\AbsenceBuilder;
 use Milczenie\Report\CoalitionBuilder;
 use Milczenie\Report\DigestBuilder;
 use Milczenie\Report\DisciplineBuilder;
+use Milczenie\Report\MandateBuilder;
 use Milczenie\Report\MemberBuilder;
 use Milczenie\Report\ProcessBuilder;
 use Milczenie\Report\ProfileBuilder;
@@ -45,6 +46,7 @@ const PAGE_SLICES = [
     'koalicje' => ['meta', 'koalicje'],
     'raporty' => ['meta', 'raporty', 'archiwum'],
     'sklad' => ['meta', 'sklad'],
+    'mandaty' => ['meta', 'mandaty'],
 ];
 
 // Skrypt budujacy, nie usluga: profile poslow trzymaja w pamieci glosowania calej
@@ -109,6 +111,7 @@ foreach ($terms as $term) {
     // Po pozostalych budowniczych: sklad izby skleja ich wyniki, zamiast liczyc
     // te same wskazniki po raz drugi wlasnymi zapytaniami.
     $report['sklad'] = (new RosterBuilder($db))->build($term, $report, $closed);
+    $report['mandaty'] = (new MandateBuilder($db))->build($term, $report);
     $digests = new DigestBuilder($db);
     $report['raporty'] = $digests->build($term);
     $report['archiwum'] = $digests->archive($term);
@@ -138,6 +141,9 @@ foreach ($terms as $term) {
         'adresatow_w_rankingu' => count($ranked),
         'mierzalna' => $measurable,
         'odpowiedzi_bez_daty' => $undated,
+        // Przelacznik kadencji na stronie mandatow wyszarza te, dla ktorych nie
+        // pobrano glosowan - bez glosow nie da sie odczytac skladu izby.
+        'mandaty_mandatow' => $report['mandaty']['meta']['mandatow'] ?? null,
         'nieobecnosci_udzial' => $report['nieobecnosci']['udzial_ogolem'] ?? null,
         'nieobecnosci_glosowan' => $report['nieobecnosci']['glosowan'] ?? null,
         'dyscyplina_udzial' => $report['dyscyplina']['udzial_ogolem'] ?? null,
@@ -184,7 +190,7 @@ foreach (PAGE_SLICES as $page => $keys) {
         // ma ja wyszarzyc, a nie pokazac pusta tabele.
         // Strony oparte na glosowaniach pomijaja kadencje, dla ktorych ich nie pobrano -
         // przelacznik ma je wyszarzyc, a nie pokazac pusta tabele.
-        foreach (['nieobecnosci', 'dyscyplina', 'koalicje'] as $needsVotings) {
+        foreach (['nieobecnosci', 'dyscyplina', 'koalicje', 'mandaty'] as $needsVotings) {
             if ($page === $needsVotings && ($slice[$needsVotings] ?? null) === null) {
                 continue 2;
             }
