@@ -36,6 +36,27 @@ php bin/fetch.php && php bin/build.php && open public/index.html
 Nie ma zależności zewnętrznych — `composer install` nie jest potrzebny.
 Wymagane: PHP 8.2+ z `pdo_sqlite`, `curl`, `mbstring`.
 
+### Odświeżanie przyrostowe
+
+Pełne pobranie to około pięciu godzin. Odświeżenie tego, co nowe — sekundy:
+
+```bash
+make refresh
+```
+
+| Zbiór | Pełne pobranie | Przyrostowo | Jak to działa |
+|---|---|---|---|
+| pytania i odpowiedzi | 19 570 rekordów | **177** | API filtruje po **dacie modyfikacji** (`?since=`), więc stare pytanie wraca, gdy dojdzie do niego odpowiedź |
+| głosowania | 4 563 żądania, ~14 min | **6 żądań, 9 s** | głosowanie raz zapisane się nie zmienia — posiedzenie jest zamknięte |
+| akty Dz.U. | 756 aktów rocznika | **22** | akt raz ogłoszony nie zmienia daty wejścia w życie |
+
+`--since=auto` bierze punkt odcięcia z najnowszej znanej daty modyfikacji i cofa się
+o dobę: rekord zapisany w trakcie poprzedniego pobierania mógłby inaczej wypaść między
+dwoma przebiegami. `--refresh` przy głosowaniach i aktach wymusza pobranie także tego,
+co już jest w bazie.
+
+**Kadencje VII–IX są zamknięte — ich danych nie trzeba odświeżać nigdy.**
+
 ### Dodatkowe ETL-e
 
 ```bash

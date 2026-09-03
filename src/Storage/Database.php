@@ -16,7 +16,8 @@ final class Database
             receipt_date  TEXT,
             sent_date     TEXT,
             authors       TEXT NOT NULL,
-            author_count  INTEGER NOT NULL
+            author_count  INTEGER NOT NULL,
+            last_modified TEXT
         );
 
         CREATE TABLE IF NOT EXISTS addressee (
@@ -152,7 +153,10 @@ final class Database
         $pdo->exec('PRAGMA synchronous = NORMAL');
         $pdo->exec(self::SCHEMA);
 
-        return new self($pdo);
+        $database = new self($pdo);
+        $database->migrate();
+
+        return $database;
     }
 
     /**
@@ -196,6 +200,35 @@ final class Database
         $values = $stmt->fetchAll(\PDO::FETCH_COLUMN);
 
         return array_map(intval(...), $values);
+    }
+
+    /**
+     * CREATE TABLE IF NOT EXISTS nie dodaje kolumn do tabeli, ktora juz istnieje,
+     * a baza waży prawie gigabajt i nikt jej nie zbuduje od nowa dla jednej kolumny.
+     *
+     * @var array<string, string> tabela.kolumna => definicja
+     */
+    private const MIGRATIONS = [
+        'question.last_modified' => 'ALTER TABLE question ADD COLUMN last_modified TEXT',
+    ];
+
+    private function migrate(): void
+    {
+        foreach (self::MIGRATIONS as $target => $sql) {
+            [$table, $column] = explode('.', $target);
+
+            $exists = false;
+            foreach ($this->fetchAll(sprintf('PRAGMA table_info(%s)', $table)) as $row) {
+                if (($row['name'] ?? null) === $column) {
+                    $exists = true;
+                    break;
+                }
+            }
+
+            if (!$exists) {
+                $this->pdo->exec($sql);
+            }
+        }
     }
 
     public function setMeta(string $key, string $value): void

@@ -71,16 +71,27 @@ final class QuestionImporter
         return $count;
     }
 
-    public function import(int $term, QuestionKind $kind): int
+    /**
+     * @param string|null $since data modyfikacji, od ktorej dociagamy; null = wszystko
+     */
+    public function import(int $term, QuestionKind $kind, ?string $since = null): int
     {
-        $total = $this->api->countItems($term, $kind->endpoint());
-        $this->log(sprintf('  kadencja %d / %s: %d rekordow w API', $term, $kind->value, $total));
+        $query = $since === null ? [] : ['since' => $since];
+        $total = $this->api->countItems($term, $kind->endpoint(), $query);
+        $this->log(sprintf(
+            '  kadencja %d / %s: %d rekordow%s',
+            $term,
+            $kind->value,
+            $total,
+            $since === null ? ' w API' : ' zmienionych od ' . $since,
+        ));
 
         $questionStmt = $this->db->pdo->prepare(
-            'INSERT INTO question (id, kind, term, num, title, receipt_date, sent_date, authors, author_count)
-             VALUES (:id, :kind, :term, :num, :title, :receipt_date, :sent_date, :authors, :author_count)
+            'INSERT INTO question (id, kind, term, num, title, receipt_date, sent_date, authors, author_count, last_modified)
+             VALUES (:id, :kind, :term, :num, :title, :receipt_date, :sent_date, :authors, :author_count, :last_modified)
              ON CONFLICT (id) DO UPDATE SET title = excluded.title, receipt_date = excluded.receipt_date,
-                 sent_date = excluded.sent_date, authors = excluded.authors, author_count = excluded.author_count',
+                 sent_date = excluded.sent_date, authors = excluded.authors, author_count = excluded.author_count,
+                 last_modified = excluded.last_modified',
         );
         $addresseeStmt = $this->db->pdo->prepare(
             'INSERT INTO addressee (question_id, recipient_raw, recipient_key, sent_date)
@@ -98,7 +109,7 @@ final class QuestionImporter
 
         $imported = 0;
 
-        foreach ($this->api->paginate($term, $kind->endpoint()) as $page) {
+        foreach ($this->api->paginate($term, $kind->endpoint(), $query) as $page) {
             $this->db->pdo->beginTransaction();
 
             foreach ($page as $item) {
@@ -115,6 +126,7 @@ final class QuestionImporter
                     'sent_date' => $this->date($item['sentDate'] ?? null),
                     'authors' => json_encode($authors, JSON_THROW_ON_ERROR),
                     'author_count' => count($authors),
+                    'last_modified' => isset($item['lastModified']) ? substr((string) $item['lastModified'], 0, 19) : null,
                 ]);
 
                 foreach ($this->recipients($item) as $recipient) {

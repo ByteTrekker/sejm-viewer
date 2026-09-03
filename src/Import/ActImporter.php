@@ -28,7 +28,7 @@ final class ActImporter
     /**
      * @param list<string> $types
      */
-    public function import(string $publisher, int $year, array $types = self::TYPES): int
+    public function import(string $publisher, int $year, array $types = self::TYPES, bool $refresh = false): int
     {
         $index = $this->api->fetchActsIndex($publisher, $year);
         $refs = [];
@@ -39,6 +39,25 @@ final class ActImporter
             }
 
             $refs[] = ['publisher' => $publisher, 'year' => $year, 'pos' => (int) $item['pos']];
+        }
+
+        if (!$refresh) {
+            // Akt raz ogloszony nie zmienia daty wejscia w zycie. Przy cotygodniowym
+            // odswiezaniu biezacego rocznika liczy sie wylacznie to, co doszlo.
+            $stored = [];
+            foreach ($this->db->fetchAll(
+                'SELECT pos FROM act WHERE publisher = :publisher AND year = :year',
+                ['publisher' => $publisher, 'year' => $year],
+            ) as $row) {
+                $stored[(int) $row['pos']] = true;
+            }
+
+            $all = count($refs);
+            $refs = array_values(array_filter($refs, static fn (array $r): bool => !isset($stored[$r['pos']])));
+
+            if ($all !== count($refs)) {
+                $this->log(sprintf('  pominieto %d aktow juz zapisanych (--refresh pobiera je ponownie)', $all - count($refs)));
+            }
         }
 
         $this->log(sprintf('  %s %d: %d aktow do pobrania (z %d w roczniku)', $publisher, $year, count($refs), count($index)));

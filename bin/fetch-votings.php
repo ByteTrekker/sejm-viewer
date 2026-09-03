@@ -11,6 +11,7 @@ declare(strict_types=1);
  * Uzycie:
  *   php bin/fetch-votings.php --term=10
  *   php bin/fetch-votings.php --term=8,9,10
+ *   php bin/fetch-votings.php --term=10 --refresh   # takze te juz zapisane
  */
 
 require __DIR__ . '/bootstrap.php';
@@ -20,7 +21,7 @@ use Milczenie\Import\VotingImporter;
 use Milczenie\Sejm\SejmApiClient;
 use Milczenie\Storage\Database;
 
-$options = Options::fromGetopt(['term::', 'db::']);
+$options = Options::fromGetopt(['term::', 'db::', 'refresh']);
 $terms = $options->commaListOfInt('term', [10]);
 $dbPath = $options->string('db', __DIR__ . '/../var/sejm.sqlite');
 
@@ -33,7 +34,7 @@ $importer = new VotingImporter(new SejmApiClient(logger: $log(...)), $db, $log(.
 $total = 0;
 foreach ($terms as $term) {
     $log(sprintf('Glosowania kadencji %d...', $term));
-    $total += $importer->import($term);
+    $total += $importer->import($term, $options->has('refresh'));
 }
 
 $db->setMeta('votings_fetched_at', (new DateTimeImmutable())->format(DateTimeInterface::ATOM));

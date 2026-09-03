@@ -21,9 +21,12 @@ final class VotingImporter
     ) {
     }
 
-    public function import(int $term): int
+    /**
+     * @param bool $refresh true = pobierz ponownie takze to, co juz jest w bazie
+     */
+    public function import(int $term, bool $refresh = false): int
     {
-        $paths = $this->votingPaths($term);
+        $paths = $this->votingPaths($term, $refresh);
         $this->log(sprintf('  kadencja %d: %d glosowan do pobrania', $term, count($paths)));
 
         if ($paths === []) {
@@ -116,7 +119,7 @@ final class VotingImporter
     /**
      * @return list<string>
      */
-    private function votingPaths(int $term): array
+    private function votingPaths(int $term, bool $refresh = false): array
     {
         $sittings = $this->api->fetchProceedings($term);
         $headerPaths = array_map(
@@ -139,7 +142,34 @@ final class VotingImporter
             }
         }
 
-        return $paths;
+        if ($refresh) {
+            return $paths;
+        }
+
+        // Glosowanie raz zapisane juz sie nie zmieni - posiedzenie jest zamkniete.
+        // Pomijanie ich zamienia cotygodniowe odswiezenie z 4,5 tys. zadan w kilkadziesiat.
+        $stored = [];
+        foreach ($this->db->fetchAll('SELECT sitting, number FROM voting WHERE term = :term', ['term' => $term]) as $row) {
+            $stored[$row['sitting'] . ':' . $row['number']] = true;
+        }
+
+        $fresh = array_values(array_filter(
+            $paths,
+            static function (string $path) use ($stored, $term): bool {
+                if (preg_match(sprintf('#/term%d/votings/(\d+)/(\d+)$#', $term), $path, $m) !== 1) {
+                    return true;
+                }
+
+                return !isset($stored[$m[1] . ':' . $m[2]]);
+            },
+        ));
+
+        $skipped = count($paths) - count($fresh);
+        if ($skipped > 0) {
+            $this->log(sprintf('  pominieto %d glosowan juz zapisanych (--refresh pobiera je ponownie)', $skipped));
+        }
+
+        return $fresh;
     }
 
     private function log(string $message): void

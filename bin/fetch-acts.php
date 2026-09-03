@@ -21,7 +21,7 @@ use Milczenie\Import\ActImporter;
 use Milczenie\Sejm\SejmApiClient;
 use Milczenie\Storage\Database;
 
-$options = Options::fromGetopt(['from::', 'to::', 'publisher::', 'types::', 'db::']);
+$options = Options::fromGetopt(['from::', 'to::', 'publisher::', 'types::', 'db::', 'refresh']);
 
 $from = $options->int('from', 2015);
 $to = $options->int('to', (int) date('Y'));
@@ -37,7 +37,7 @@ $importer = new ActImporter(new SejmApiClient(logger: $log(...)), $db, new Issue
 
 $total = 0;
 foreach (range($from, $to) as $year) {
-    $total += $importer->import($publisher, $year, $types);
+    $total += $importer->import($publisher, $year, $types, $options->has('refresh'));
 }
 
 $db->setMeta('acts_fetched_at', (new DateTimeImmutable())->format(DateTimeInterface::ATOM));
