@@ -1,0 +1,100 @@
+<title>Przykładowe raporty</title>
+<!--@style-->
+
+<div class="wrap">
+  <!--@nav-->
+
+  <header class="masthead">
+    <h1>Przykładowe raporty</h1>
+    <p class="dek">
+      Trzy raporty w trzech rytmach, złożone z danych, które projekt już liczy.
+      Mają pokazać, <b>co da się z danych zebrać w danym okresie</b> — zanim powstanie
+      jakakolwiek automatyzacja.
+    </p>
+    <p class="caveat">
+      <b>Nic się tu nie uruchamia samo i nic nigdzie nie jest wysyłane.</b> To zrzut
+      wykonany przy budowaniu strony. Okresy liczą się wstecz od najnowszej danej,
+      a nie od dzisiaj — inaczej „ostatnie siedem dni” byłoby puste za każdym razem,
+      gdy Sejm nie obradował.
+    </p>
+    <div class="controls">
+      <span class="switch-label">Kadencja</span>
+      <div class="seg" id="term-seg" role="group" aria-label="Wybierz kadencję"></div>
+    </div>
+    <div class="stamp" id="stamp"></div>
+  </header>
+
+  <div id="digests"></div>
+
+  <section>
+    <h2>Jaki rytm ma sens</h2>
+    <p class="sub">
+      Rytm powinien wynikać z danych, nie z kalendarza. Sejm obraduje blokami — około
+      dwóch posiedzeń miesięcznie po kilka dni — więc raport tygodniowy w tygodniu bez
+      posiedzenia będzie pusty.
+    </p>
+    <div class="scroller">
+      <table id="cadence"><thead><tr id="cadence-head"></tr></thead><tbody id="cadence-body"></tbody></table>
+    </div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+/*@core*/
+
+const CADENCE = [
+  { rytm: 'Po posiedzeniu', co: 'Nieusprawiedliwione nieobecności, głosy wbrew linii klubu, najciaśniejsze głosowania', dlaczego: 'dane przychodzą blokami, nie codziennie' },
+  { rytm: 'Tygodniowo', co: 'Pytania, którym minął termin; rozporządzenia bez vacatio legis', dlaczego: 'termin ustawowy to 21 dni — częściej nic się nie zmienia' },
+  { rytm: 'Miesięcznie', co: 'Ranking milczenia, zmiany w czołówce resortów', dlaczego: 'miesiąc to około półtora cyklu terminu' },
+  { rytm: 'Kwartalnie', co: 'Dyscyplina klubowa, macierz koalicji', dlaczego: 'potrzebują masy głosowań, żeby odsetki się ustabilizowały' },
+  { rytm: 'Rocznie', co: 'Porównania międzykadencyjne, vacatio legis rocznikami', dlaczego: 'inaczej porównuje się niepełne okresy' },
+];
+
+function renderAll() {
+  hideTip();
+  renderStamp('stamp');
+
+  const digests = report().raporty ?? [];
+  const host = document.getElementById('digests');
+
+  if (digests.length === 0) {
+    host.replaceChildren(el('section', {}, el('p', { class: 'sub', text: 'Dla tej kadencji nie ma danych, z których dałoby się złożyć raport.' })));
+    return;
+  }
+
+  host.replaceChildren(...digests.map(d => el('section', {},
+    el('h2', { text: `${d.rytm} — kadencja ${ROMAN[state.term] ?? state.term}` }),
+    el('p', { class: 'sub', text: `${d.okres}. ${d.wstep}` }),
+    el('div', { class: 'card' },
+      ...d.punkty.map(p => el('div', { style: 'margin-bottom:18px' },
+        el('div', { class: 'eyebrow', text: p.naglowek }),
+        p.pozycje.length
+          ? el('ul', { class: 'worst' }, ...p.pozycje.map((tekst, i) => el('li', { class: 'cat' },
+              el('span', { class: 'count', text: `${i + 1}.` }),
+              el('span', { text: tekst }),
+            )))
+          : el('p', { class: 'sub', text: 'Brak pozycji w tym okresie — i to też jest wynik.' }),
+      )),
+    ),
+  )));
+}
+
+const CADENCE_COLUMNS = [
+  { key: 'rytm', label: 'Rytm', type: 'text' },
+  { key: 'co', label: 'Co ma sens', type: 'text' },
+  { key: 'dlaczego', label: 'Dlaczego tyle', type: 'text' },
+];
+sortableTable({ headId: 'cadence-head', bodyId: 'cadence-body', columns: CADENCE_COLUMNS,
+  rows: CADENCE, state: { sort: 'rytm', dir: 1 }, limit: 10, rerender: () => {} });
+
+document.getElementById('footer').replaceChildren(
+  el('div', { text: 'Dane: api.sejm.gov.pl. Raporty są zrzutem z chwili budowania strony, nie usługą.' }),
+);
+
+mountTermSwitch('term-seg', renderAll);
+renderAll();
+</script>

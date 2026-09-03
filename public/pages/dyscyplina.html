@@ -1,0 +1,189 @@
+<title>Dyscyplina klubowa</title>
+<!--@style-->
+
+<div class="wrap">
+  <!--@nav-->
+
+  <header class="masthead">
+    <h1>Dyscyplina klubowa i transfery</h1>
+    <p class="dek">
+      Klub jest zapisany przy <b>każdym pojedynczym głosie</b>, więc z tych samych danych
+      da się policzyć dwie rzeczy: jak często poseł głosuje inaczej niż większość własnego
+      klubu i kto w trakcie kadencji zmieniał barwy.
+    </p>
+    <p class="caveat">
+      <b>Głos wbrew linii nie jest zdradą ani odwagą — jest faktem.</b> Bywa sprzeciwem
+      sumienia, pomyłką przy pulpicie, głosowaniem w sprawie światopoglądowej zwolnionej
+      z dyscypliny albo nieuwagą. Ta tabela mówi wyłącznie, jak często poseł znalazł się
+      po innej stronie niż większość klubu.
+    </p>
+    <div class="controls">
+      <span class="switch-label">Kadencja</span>
+      <div class="seg" id="term-seg" role="group" aria-label="Wybierz kadencję"></div>
+    </div>
+    <div class="stamp" id="stamp"></div>
+  </header>
+
+  <section>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section>
+    <h2 id="clubs-title">Spójność klubów</h2>
+    <p class="sub" id="clubs-sub"></p>
+    <div class="card"><figure>
+      <div id="clubs-chart"></div>
+      <figcaption>Odsetek głosów oddanych wbrew większości własnego klubu. Niezrzeszeni są pominięci — nie są klubem i nie mają linii.</figcaption>
+    </figure></div>
+    <div class="scroller" style="margin-top:12px">
+      <table id="clubs"><thead><tr id="clubs-head"></tr></thead><tbody id="clubs-body"></tbody></table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Posłowie</h2>
+    <p class="sub" id="members-sub"></p>
+    <div class="controls">
+      <input type="search" id="member-filter" placeholder="Filtruj posła lub klub…" aria-label="Filtruj posła">
+    </div>
+    <div class="scroller">
+      <table id="members"><thead><tr id="members-head"></tr></thead><tbody id="members-body"></tbody></table>
+    </div>
+    <details class="method">
+      <summary>Jak liczymy</summary>
+      <ol>
+        <li><b>Linia klubowa</b> to najczęstszy głos klubu w danym głosowaniu spośród „za”, „przeciw” i „wstrzymał się”. Nieobecność nie jest stanowiskiem — nie wchodzi ani do linii, ani do mianownika. Od tego jest osobna strona.</li>
+        <li>Linię ustalamy tylko dla klubów, które w danym głosowaniu oddały co najmniej <span id="minclub"></span> głosów. Przy piątce podział 3:2 czyniłby buntownikami dwie osoby.</li>
+        <li><b>Niezrzeszeni są wyłączeni.</b> To nie klub, tylko brak klubu — liczenie im dyscypliny jest błędem kategorii. W pierwszym przebiegu dawało im to 25% „buntów”.</li>
+        <li>Poseł, który zmienił klub, jest liczony <b>osobno w każdym z nich</b>. Inaczej głosy oddane w jednym klubie obciążałyby konto drugiego.</li>
+        <li>Większość głosowań jest jednomyślna (wnioski formalne, procedura), więc odsetki są z natury niskie. Kolumna „jednomyślnych” daje skalę odniesienia.</li>
+      </ol>
+    </details>
+  </section>
+
+  <section>
+    <h2>Transfery klubowe</h2>
+    <p class="sub" id="transfers-sub"></p>
+    <div class="card"><ul class="worst" id="transfers"></ul></div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+/*@core*/
+
+state.term = firstAvailableTerm(k => k.dyscyplina_udzial !== null && k.dyscyplina_udzial !== undefined);
+
+const CLUB_COLUMNS = [
+  { key: 'klucz', label: 'Klub', type: 'text' },
+  { key: 'udzial_wbrew', label: 'Głosów wbrew linii', type: 'pct', digits: 2 },
+  { key: 'udzial_jednomyslnych', label: 'Głosowań jednomyślnych', type: 'pct' },
+  { key: 'glosowan', label: 'Głosowań klubu', type: 'int' },
+  { key: 'glosow', label: 'Głosów oddanych', type: 'int' },
+];
+const MEMBER_COLUMNS = [
+  memberColumn(),
+  { key: 'klub', label: 'Klub', type: 'text' },
+  { key: 'udzial_wbrew', label: 'Wbrew linii', type: 'pct', digits: 2 },
+  { key: 'wbrew_linii', label: 'Głosów wbrew', type: 'int' },
+  { key: 'glosowan_z_linia', label: 'Głosów w klubie', type: 'int' },
+];
+const clubState = { sort: 'udzial_wbrew', dir: -1 };
+const memberState = { sort: 'udzial_wbrew', dir: -1, filter: '' };
+
+document.getElementById('member-filter').addEventListener('input', e => {
+  memberState.filter = e.target.value.toLowerCase();
+  renderMembers();
+});
+
+function renderClubs() {
+  sortableTable({
+    headId: 'clubs-head', bodyId: 'clubs-body', columns: CLUB_COLUMNS,
+    rows: report().dyscyplina.kluby, state: clubState, limit: 30, rerender: renderClubs,
+    tip: c => `<b>${c.klucz}</b>
+      <div class="row">${fmtInt(c.wbrew)} z ${fmtInt(c.glosow)} głosów wbrew linii</div>
+      <div class="row">${fmtInt(c.jednomyslnych)} z ${fmtInt(c.glosowan)} głosowań jednomyślnych</div>`,
+  });
+}
+
+function renderMembers() {
+  const d = report().dyscyplina;
+  const shown = sortableTable({
+    headId: 'members-head', bodyId: 'members-body', columns: MEMBER_COLUMNS,
+    rows: d.poslowie.filter(m => m.w_rankingu)
+      .filter(m => (m.nazwa + ' ' + m.klub).toLowerCase().includes(memberState.filter)),
+    state: memberState, limit: 60, rerender: renderMembers,
+    tip: m => `<b>${m.nazwa}</b>
+      <div class="row">${m.klub}</div>
+      <div class="row">${fmtInt(m.wbrew_linii)} z ${fmtInt(m.glosowan_z_linia)} głosów oddanych w tym klubie</div>`,
+  });
+  document.getElementById('members-sub').textContent =
+    `Pokazano ${shown} wierszy. Poseł, który zmienił klub, ma osobny wiersz dla każdego. `
+    + `W zestawieniu tylko pary z co najmniej ${d.min_probka} głosami. Kliknij nagłówek kolumny, aby posortować.`;
+}
+
+function renderAll() {
+  hideTip();
+  const d = report().dyscyplina;
+  renderStamp('stamp', [`${fmtInt(d.glosowan)} głosowań imiennych`]);
+  document.getElementById('minclub').textContent = d.min_klub;
+
+  const najmniej = d.kluby[0];
+  const najbardziej = d.kluby[d.kluby.length - 1];
+
+  document.getElementById('kpis').replaceChildren(...[
+    ['Głosów wbrew linii', fmtPct(d.udzial_ogolem, 2), 'wszystkie kluby razem'],
+    ['Najmniej spójny', najmniej ? najmniej.klucz : '—', najmniej ? `${fmtPct(najmniej.udzial_wbrew, 2)} głosów wbrew linii` : ''],
+    ['Najbardziej spójny', najbardziej ? najbardziej.klucz : '—', najbardziej ? `${fmtPct(najbardziej.udzial_wbrew, 2)} głosów wbrew linii` : ''],
+    ['Zmieniło klub', fmtInt(d.transfery.poslow), `${fmtPct(d.transfery.udzial, 0)} posłów kadencji`],
+  ].map(([label, value, note]) => el('div', { class: 'kpi' },
+    el('div', { class: 'label', text: label }),
+    el('div', { class: 'value', text: value }),
+    el('div', { class: 'note', text: note }),
+  )));
+
+  document.getElementById('clubs-title').textContent = `Spójność klubów — kadencja ${ROMAN[state.term] ?? state.term}`;
+  document.getElementById('clubs-sub').textContent =
+    `Kluby uszeregowane od najmniej do najbardziej zdyscyplinowanego. Średnia dla wszystkich to ${fmtPct(d.udzial_ogolem, 2)}.`;
+
+  hbar('clubs-chart', d.kluby.map(c => ({
+    label: c.klucz,
+    value: c.udzial_wbrew,
+    display: fmtPct(c.udzial_wbrew, 2),
+    tip: `<b>${c.klucz}</b>
+      <div class="row">${fmtInt(c.wbrew)} z ${fmtInt(c.glosow)} głosów wbrew linii</div>
+      <div class="row">głosowań jednomyślnych: ${fmtPct(c.udzial_jednomyslnych, 0)}</div>`,
+  })), { label: 'Głosy wbrew linii według klubu', labelWidth: 152, tick: v => (100 * v).toFixed(1) + '%' });
+
+  renderClubs();
+  renderMembers();
+
+  const t = d.transfery;
+  document.getElementById('transfers-sub').textContent =
+    `${fmtInt(t.poslow)} z ${fmtInt(t.wszystkich)} posłów (${fmtPct(t.udzial, 0)}) głosowało w kadencji `
+    + `${ROMAN[state.term] ?? state.term} pod więcej niż jednym szyldem. Daty pochodzą z pierwszego i ostatniego głosu oddanego w danym klubie.`;
+
+  document.getElementById('transfers').replaceChildren(...t.lista.map(m => el('li', { class: 'cat' },
+    el('span', { class: 'count', text: `${m.zmian}×` }),
+    el('span', {},
+      el('span', { text: m.nazwa }),
+      el('span', { class: 'who', text: m.okresy.map(o => `${o.klub} (od ${o.od})`).join(' → ') }),
+    ),
+  )));
+
+  document.getElementById('footer').replaceChildren(
+    el('div', { text: `Dane: api.sejm.gov.pl, głosowania imienne kadencji ${ROMAN[state.term] ?? state.term}.` }),
+    el('div', { class: 'thin', text: 'Liczone wyłącznie z głosów już pobranych — ta strona nie wymagała ani jednego dodatkowego żądania do API.' }),
+  );
+}
+
+mountTermSwitch(
+  'term-seg',
+  renderAll,
+  k => k.dyscyplina_udzial === null || k.dyscyplina_udzial === undefined,
+);
+renderAll();
+</script>

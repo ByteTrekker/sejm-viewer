@@ -23,8 +23,12 @@ require __DIR__ . '/bootstrap.php';
 use Milczenie\Console\Options;
 use Milczenie\Domain\RecipientNormalizer;
 use Milczenie\Report\AbsenceBuilder;
+use Milczenie\Report\CoalitionBuilder;
+use Milczenie\Report\DigestBuilder;
+use Milczenie\Report\DisciplineBuilder;
 use Milczenie\Report\MemberBuilder;
 use Milczenie\Report\ProcessBuilder;
+use Milczenie\Report\ProfileBuilder;
 use Milczenie\Report\RankingBuilder;
 use Milczenie\Storage\Database;
 use Milczenie\Web\PageComposer;
@@ -35,9 +39,19 @@ const PAGE_SLICES = [
     'droga' => ['meta', 'droga'],
     'poslowie' => ['meta', 'poslowie', 'serie'],
     'nieobecnosci' => ['meta', 'nieobecnosci'],
+    'dyscyplina' => ['meta', 'dyscyplina'],
+    'koalicje' => ['meta', 'koalicje'],
+    'raporty' => ['meta', 'raporty'],
 ];
 
-$options = Options::fromGetopt(['term::', 'db::', 'out::', 'snapshot::']);
+// Skrypt budujacy, nie usluga: profile poslow trzymaja w pamieci glosowania calej
+// kadencji naraz, a domyslne 128 MB na to nie wystarcza.
+ini_set('memory_limit', '512M');
+
+$options = Options::fromGetopt(['term::', 'db::', 'out::', 'snapshot::', 'profile-votes::']);
+
+$profileVotes = $options->nullableString('profile-votes');
+$recentVotes = $profileVotes === 'all' ? null : (int) ($profileVotes ?? ProfileBuilder::DEFAULT_RECENT_VOTES);
 
 $dbPath = $options->string('db', __DIR__ . '/../var/sejm.sqlite');
 $outDir = rtrim($options->string('out', __DIR__ . '/../public'), '/');
@@ -77,6 +91,9 @@ foreach ($terms as $term) {
     $report['droga'] = (new ProcessBuilder($db))->build($term);
     $report += (new MemberBuilder($db, $snapshot))->build($term);
     $report['nieobecnosci'] = (new AbsenceBuilder($db))->build($term);
+    $report['dyscyplina'] = (new DisciplineBuilder($db))->build($term);
+    $report['koalicje'] = (new CoalitionBuilder($db))->build($term);
+    $report['raporty'] = (new DigestBuilder($db))->build($term);
 
     $ranked = array_values(array_filter($report['ministerstwa'], static fn (array $m): bool => $m['w_rankingu']));
     $sum = static fn (string $key): int => array_sum(array_column($report['ministerstwa'], $key));
@@ -105,6 +122,9 @@ foreach ($terms as $term) {
         'odpowiedzi_bez_daty' => $undated,
         'nieobecnosci_udzial' => $report['nieobecnosci']['udzial_ogolem'] ?? null,
         'nieobecnosci_glosowan' => $report['nieobecnosci']['glosowan'] ?? null,
+        'dyscyplina_udzial' => $report['dyscyplina']['udzial_ogolem'] ?? null,
+        'transferow' => $report['dyscyplina']['transfery']['poslow'] ?? null,
+        'koalicje_glosowan' => $report['koalicje']['glosowan'] ?? null,
     ];
     $reports[$term] = $report;
 
@@ -134,8 +154,12 @@ foreach (PAGE_SLICES as $page => $keys) {
         $slice = array_intersect_key($report, array_flip($keys));
         // Kadencja bez glosowan nie trafia na strone nieobecnosci - przelacznik
         // ma ja wyszarzyc, a nie pokazac pusta tabele.
-        if ($page === 'nieobecnosci' && ($slice['nieobecnosci'] ?? null) === null) {
-            continue;
+        // Strony oparte na glosowaniach pomijaja kadencje, dla ktorych ich nie pobrano -
+        // przelacznik ma je wyszarzyc, a nie pokazac pusta tabele.
+        foreach (['nieobecnosci', 'dyscyplina', 'koalicje'] as $needsVotings) {
+            if ($page === $needsVotings && ($slice[$needsVotings] ?? null) === null) {
+                continue 2;
+            }
         }
         $slices[$term] = $slice;
     }
@@ -188,7 +212,11 @@ $index = [
         'mediana' => $latest['droga']['kancelaria']['mediana_dni'] ?? 0,
         'milczacy' => count(array_filter($latest['poslowie'] ?? [], static fn (array $m): bool => $m['pytan'] === 0)),
         'absencja' => $latest['nieobecnosci']['udzial_ogolem'] ?? 0.0,
+        'nieusprawiedliwione' => $latest['nieobecnosci']['udzial_nieusprawiedliwionych'] ?? 0.0,
         'glosowan' => $counts('SELECT COUNT(*) AS n FROM voting'),
+        'transferow' => $latest['dyscyplina']['transfery']['poslow'] ?? 0,
+        'koalicja' => $latest['koalicje']['pary'][0]['zgodnosc'] ?? 0.0,
+        'poslow' => $latest['dyscyplina']['transfery']['wszystkich'] ?? 0,
         'ponizej' => (float) ($vacatio['ponizej'] ?? 0),
         'aktow' => (int) ($vacatio['aktow'] ?? 0),
     ],
@@ -201,6 +229,35 @@ $index = [
         ['zbior' => 'Posłowie', 'ile' => $counts('SELECT COUNT(*) AS n FROM mp'), 'zakres' => '4 kadencje', 'odswiezanie' => 'miesięcznie'],
     ],
 ];
+
+// --- profile poslow: osobna strona na posla, zeby dalo sie ja podlinkowac ---
+$profileDir = $outDir . '/posel';
+if (!is_dir($profileDir) && !mkdir($profileDir, 0o775, true) && !is_dir($profileDir)) {
+    throw new RuntimeException('Nie mozna utworzyc katalogu ' . $profileDir);
+}
+
+$profileBuilder = new ProfileBuilder($db, $recentVotes);
+$profiles = 0;
+
+foreach ($reports as $term => $report) {
+    foreach ($profileBuilder->buildAll($term, $report) as $id => $profile) {
+        $page = $composer->render('posel.html', 'poslowie', [
+            'wygenerowano' => $today->format('Y-m-d'),
+            'pobrano' => $fetchedAt,
+            'profil' => $profile,
+        ]);
+
+        file_put_contents(sprintf('%s/%d-%d.html', $profileDir, $term, $id), $page);
+        $profiles++;
+    }
+}
+
+fwrite(STDERR, sprintf(
+    '  profili poslow: %d (lista glosowan: %s)%s',
+    $profiles,
+    $recentVotes === null ? 'pelna' : $recentVotes . ' ostatnich + wszystkie wbrew linii',
+    PHP_EOL,
+));
 
 $html = $composer->render('index.html', 'index', $index);
 file_put_contents($outDir . '/index.html', $html);

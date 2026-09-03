@@ -10,6 +10,8 @@ fetch: ## Pobierz komplet danych z API (kilkanaście minut)
 	php bin/fetch.php --term=7,8,9,10
 	php bin/fetch-acts.php --from=2015 --to=2026
 	php bin/fetch-votings.php --term=7,8,9,10
+	php bin/fetch-attendance.php --term=7,8,9,10
+	php bin/fetch-social.php --term=7,8,9,10
 
 build: ## Zbuduj wszystkie trzy dashboardy z bazy
 	php bin/build.php
@@ -49,6 +51,7 @@ commits: ## Konwencja commitów w origin/main..HEAD
 check: lint style stan test coverage mutation smoke audit ## Bramki CI możliwe do uruchomienia lokalnie
 
 clean: ## Usuń wygenerowane artefakty (baza zostaje)
+	rm -rf public/posel
 	rm -f public/index.html public/interpelacje.html public/droga.html public/poslowie.html public/nieobecnosci.html
-	rm -f public/vacatio.html public/vacatio-merytoryczne.html
+	rm -f public/vacatio.html public/vacatio-merytoryczne.html public/koalicje.html public/dyscyplina.html public/raporty.html
 	rm -rf var/coverage var/infection.log

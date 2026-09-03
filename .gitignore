@@ -10,6 +10,10 @@
 /public/nieobecnosci.html
 /public/vacatio.html
 /public/vacatio-merytoryczne.html
+/public/koalicje.html
+/public/dyscyplina.html
+/public/raporty.html
+/public/posel/
 
 # Narzędzia jakości
 /.php-cs-fixer.cache

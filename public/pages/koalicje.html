@@ -1,0 +1,202 @@
+<title>Kto z kim głosuje</title>
+<!--@style-->
+
+<div class="wrap">
+  <!--@nav-->
+
+  <header class="masthead">
+    <h1>Kto z kim głosuje</h1>
+    <p class="dek">
+      Dla każdego głosowania ustalamy linię każdego klubu, a potem liczymy, ile razy dwie
+      linie były takie same. Miara jest <b>na poziomie klubu, nie posła</b>, więc klub
+      dwustuosobowy i piętnastoosobowy ważą tyle samo.
+    </p>
+    <div class="controls">
+      <span class="switch-label">Kadencja</span>
+      <div class="seg" id="term-seg" role="group" aria-label="Wybierz kadencję"></div>
+    </div>
+    <div class="stamp" id="stamp"></div>
+  </header>
+
+  <section>
+    <h2 id="matrix-title">Macierz zgodności</h2>
+    <p class="sub">
+      Jedna uśredniona liczba zaciera treść: przy wnioskach formalnych zgadzają się niemal
+      wszyscy, a podziały widać dopiero przy ustawach. Wybierz rodzaj głosowania.
+    </p>
+    <div class="controls">
+      <div class="seg" id="cat-seg" role="group" aria-label="Rodzaj głosowania"></div>
+    </div>
+    <div class="card">
+      <div class="matrix-wrap"><div id="matrix"></div></div>
+      <div class="legend" id="legend"></div>
+      <figcaption id="matrix-caption" style="margin-top:10px"></figcaption>
+    </div>
+  </section>
+
+  <section>
+    <h2>Pary klubów</h2>
+    <p class="sub" id="pairs-sub"></p>
+    <div class="scroller">
+      <table id="pairs"><thead><tr id="pairs-head"></tr></thead><tbody id="pairs-body"></tbody></table>
+    </div>
+    <details class="method">
+      <summary>Jak liczymy</summary>
+      <ol>
+        <li><b>Linia klubowa</b> to najczęstszy głos klubu w danym głosowaniu spośród „za”, „przeciw” i „wstrzymał się”. Nieobecność nie jest stanowiskiem.</li>
+        <li>Linię ustalamy tylko dla klubów, które w danym głosowaniu oddały co najmniej 10 głosów, i tylko dla głosowań, w których linię ma więcej niż jeden klub.</li>
+        <li><b>Niezrzeszeni są wyłączeni</b> — nie są klubem i nie mają linii.</li>
+        <li>Para klubów wchodzi do zestawienia po co najmniej <span id="minshared"></span> wspólnych głosowaniach. Poniżej tego progu odsetek jest szumem — klub istniejący przez dwa posiedzenia potrafi mieć 100% zgodności z kimkolwiek.</li>
+        <li>Rodzaj głosowania rozpoznajemy z tytułu i opisu; <b>pierwsza pasująca reguła wygrywa</b>, a wszystko nierozpoznane trafia do koszyka „pozostałe” zamiast być wciskane do najbliższej kategorii.</li>
+        <li>Zgodność linii <b>nie znaczy porozumienia</b>. Dwa kluby mogą głosować tak samo z zupełnie różnych powodów, a przy wnioskach formalnych zgadza się prawie cała izba.</li>
+      </ol>
+    </details>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+/*@core*/
+
+state.term = firstAvailableTerm(k => k.koalicje_glosowan !== null && k.koalicje_glosowan !== undefined);
+
+// Sekwencyjna rampa jednego odcienia: jasny = rzadko razem, ciemny = niemal zawsze.
+const RAMP = ['#cde2fb', '#b7d3f6', '#9ec5f4', '#86b6ef', '#6da7ec', '#5598e7',
+              '#3987e5', '#2a78d6', '#256abf', '#1c5cab', '#184f95', '#104281', '#0d366b'];
+const RANGE = { lo: 0.3, hi: 1.0 };
+const rampIndex = v => Math.max(0, Math.min(RAMP.length - 1,
+  Math.round(((v - RANGE.lo) / (RANGE.hi - RANGE.lo)) * (RAMP.length - 1))));
+const cellColor = v => RAMP[rampIndex(v)];
+const cellInk = v => (rampIndex(v) >= 7 ? '#ffffff' : '#0d2137');
+
+const catState = { key: null };
+
+function pairsFor(key) {
+  const d = report().koalicje;
+  return d.pary
+    .map(p => {
+      if (key === null) return { ...p, w: p.wspolnych, z: p.zgodnosc };
+      const c = p.wg_kategorii[key];
+      return c ? { ...p, w: c.wspolnych, z: c.zgodnosc } : null;
+    })
+    .filter(Boolean);
+}
+
+function drawMatrix() {
+  const d = report().koalicje;
+  const pairs = pairsFor(catState.key);
+  const lookup = {};
+  pairs.forEach(p => { lookup[p.a + '|' + p.b] = p; lookup[p.b + '|' + p.a] = p; });
+
+  const clubs = d.kluby.filter(c => pairs.some(p => p.a === c || p.b === c));
+  const host = document.getElementById('matrix');
+  if (clubs.length < 2) {
+    host.replaceChildren(el('p', { class: 'sub', text: 'Za mało wspólnych głosowań w tej kategorii, aby zbudować macierz.' }));
+    return;
+  }
+
+  const cell = 52, left = 128, top = 96;
+  const W = left + clubs.length * cell + 8;
+  const H = top + clubs.length * cell + 8;
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, class: 'matrix', role: 'img',
+    'aria-label': 'Macierz zgodności linii klubowych', style: `min-width:${W}px` });
+
+  clubs.forEach((c, i) => {
+    const y = top + i * cell + cell / 2 + 4;
+    const rowLabel = svgEl('text', { x: left - 10, y, 'text-anchor': 'end', class: 'lbl' });
+    rowLabel.textContent = c;
+    const colLabel = svgEl('text', { x: left + i * cell + cell / 2, y: top - 10, class: 'lbl',
+      transform: `rotate(-45 ${left + i * cell + cell / 2} ${top - 10})`, 'text-anchor': 'start' });
+    colLabel.textContent = c;
+    svg.append(rowLabel, colLabel);
+  });
+
+  clubs.forEach((a, i) => clubs.forEach((b, j) => {
+    const x = left + j * cell, y = top + i * cell;
+    if (a === b) {
+      svg.append(svgEl('rect', { class: 'cell diag', x, y, width: cell, height: cell }));
+      return;
+    }
+    const p = lookup[a + '|' + b];
+    if (!p) {
+      const r = svgEl('rect', { class: 'cell', x, y, width: cell, height: cell, fill: 'var(--surface-2)' });
+      svg.append(r);
+      return;
+    }
+    const r = svgEl('rect', { class: 'cell', x, y, width: cell, height: cell, fill: cellColor(p.z) });
+    const t = svgEl('text', { class: 'val', x: x + cell / 2, y: y + cell / 2 + 4, 'text-anchor': 'middle', fill: cellInk(p.z) });
+    t.textContent = Math.round(100 * p.z);
+    const hit = svgEl('rect', { x, y, width: cell, height: cell, fill: 'transparent', style: 'cursor:crosshair' });
+    hit.addEventListener('mousemove', e => showTip(e, `<b>${a} + ${b}</b>
+      <div class="row">ta sama linia w ${fmtPct(p.z, 1)} głosowań</div>
+      <div class="row">${fmtInt(p.w)} wspólnych głosowań${catState.key ? ' w kategorii „' + catState.key + '”' : ''}</div>`));
+    hit.addEventListener('mouseleave', hideTip);
+    svg.append(r, t, hit);
+  }));
+
+  host.replaceChildren(svg);
+
+  document.getElementById('legend').replaceChildren(
+    el('span', { text: `${Math.round(100 * RANGE.lo)}%` }),
+    el('span', { class: 'swatches' }, ...RAMP.map(c => { const i = el('i'); i.style.background = c; return i; })),
+    el('span', { text: '100% — odsetek głosowań z tą samą linią' }),
+  );
+
+  const total = pairs.reduce((a, p) => a + p.w, 0);
+  document.getElementById('matrix-caption').textContent = catState.key === null
+    ? `Wszystkie ${fmtInt(d.glosowan)} głosowań z linią więcej niż jednego klubu.`
+    : `Kategoria „${catState.key}”. Pary z co najmniej ${d.min_wspolnych} wspólnymi głosowaniami; razem ${fmtInt(total)} par-głosowań.`;
+}
+
+const PAIR_COLUMNS = [
+  { key: 'para', label: 'Para klubów', type: 'text' },
+  { key: 'z', label: 'Ta sama linia', type: 'pct', digits: 1 },
+  { key: 'w', label: 'Wspólnych głosowań', type: 'int' },
+];
+const pairState = { sort: 'z', dir: -1 };
+
+function renderPairs() {
+  const rows = pairsFor(catState.key).map(p => ({ ...p, para: `${p.a} + ${p.b}` }));
+  sortableTable({
+    headId: 'pairs-head', bodyId: 'pairs-body', columns: PAIR_COLUMNS,
+    rows, state: pairState, limit: 60, rerender: renderPairs,
+    tip: p => `<b>${p.a} + ${p.b}</b><div class="row">${fmtInt(Math.round(p.z * p.w))} z ${fmtInt(p.w)} głosowań z tą samą linią</div>`,
+  });
+  document.getElementById('pairs-sub').textContent =
+    `${rows.length} par klubów${catState.key ? ` w kategorii „${catState.key}”` : ''}. Kliknij nagłówek kolumny, aby posortować.`;
+}
+
+function renderAll() {
+  hideTip();
+  const d = report().koalicje;
+  renderStamp('stamp', [`${fmtInt(d.glosowan)} głosowań z linią`]);
+  document.getElementById('minshared').textContent = d.min_wspolnych;
+  document.getElementById('matrix-title').textContent = `Macierz zgodności — kadencja ${ROMAN[state.term] ?? state.term}`;
+
+  const seg = document.getElementById('cat-seg');
+  const options = [{ key: null, label: 'Wszystkie głosowania', n: d.glosowan },
+    ...d.kategorie.map(c => ({ key: c.nazwa, label: c.nazwa, n: c.glosowan }))];
+  if (!options.some(o => o.key === catState.key)) catState.key = null;
+
+  seg.replaceChildren(...options.map(o => {
+    const b = el('button', { type: 'button', text: o.label, 'aria-pressed': String(o.key === catState.key),
+      title: `${fmtInt(o.n)} głosowań` });
+    b.onclick = () => { catState.key = o.key; renderAll(); };
+    return b;
+  }));
+
+  drawMatrix();
+  renderPairs();
+
+  document.getElementById('footer').replaceChildren(
+    el('div', { text: `Dane: api.sejm.gov.pl, głosowania imienne kadencji ${ROMAN[state.term] ?? state.term}.` }),
+    el('div', { class: 'thin', text: 'Zgodność linii nie znaczy porozumienia — dwa kluby mogą głosować tak samo z zupełnie różnych powodów.' }),
+  );
+}
+
+mountTermSwitch('term-seg', renderAll, k => k.koalicje_glosowan === null || k.koalicje_glosowan === undefined);
+renderAll();
+</script>

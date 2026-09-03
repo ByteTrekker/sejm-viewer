@@ -102,9 +102,10 @@ jobs:
         run: |
           found=0
           for path in public/index.html public/interpelacje.html public/droga.html \
-                      public/poslowie.html public/nieobecnosci.html \
+                      public/poslowie.html public/nieobecnosci.html public/dyscyplina.html \
+                      public/koalicje.html public/raporty.html \
                       public/vacatio.html public/vacatio-merytoryczne.html \
-                      var/sejm.sqlite; do
+                      public/posel var/sejm.sqlite; do
             if [ -e "$path" ]; then
               echo "BŁĄD: $path jest wygenerowany i nie powinien być w repozytorium"
               found=1
