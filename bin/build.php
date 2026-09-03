@@ -245,7 +245,7 @@ foreach ($reports as $term => $report) {
             'wygenerowano' => $today->format('Y-m-d'),
             'pobrano' => $fetchedAt,
             'profil' => $profile,
-        ]);
+        ], '../');
 
         file_put_contents(sprintf('%s/%d-%d.html', $profileDir, $term, $id), $page);
         $profiles++;

@@ -258,3 +258,13 @@ for f in index.html interpelacje.html droga.html poslowie.html nieobecnosci.html
     grep -q 'nav class="pages"' "$out/$f" || { echo "BŁĄD: brak nawigacji w $f"; exit 1; }
 done
 echo "OK   wygenerowano 7 stron z kompletem znaczników i nawigacją"
+
+# Profile leza w podkatalogu, wiec ich nawigacja musi byc przedrostkowana.
+profil=$(ls "$out"/posel/*.html 2>/dev/null | head -1)
+if [ -n "$profil" ]; then
+    grep -q 'href="\.\./index.html"' "$profil" \
+        || { echo "BŁĄD: nawigacja w profilu nie prowadzi poza podkatalog"; exit 1; }
+    grep -q 'href="index.html"' "$profil" \
+        && { echo "BŁĄD: profil ma odnośnik bez przedrostka"; exit 1; }
+    echo "OK   nawigacja w profilu prowadzi poza podkatalog"
+fi

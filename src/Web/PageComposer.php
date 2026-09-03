@@ -25,15 +25,17 @@ final class PageComposer
 
     /**
      * @param array<string, mixed> $data
+     * @param string $prefix przedrostek dla odnosnikow, gdy strona lezy w podkatalogu
+     *                       (profile poslow siedza w public/posel/, wiec potrzebuja '../')
      */
-    public function render(string $template, string $page, array $data): string
+    public function render(string $template, string $page, array $data, string $prefix = ''): string
     {
         $html = $this->read('pages/' . $template);
 
         $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 
         $html = str_replace('<!--@style-->', "<style>\n" . $this->read('partials/style.css') . '</style>', $html);
-        $html = str_replace('<!--@nav-->', $this->nav($page), $html);
+        $html = str_replace('<!--@nav-->', $this->nav($page, $prefix), $html);
         $html = str_replace('/*@core*/', $this->read('partials/core.js'), $html);
         $html = str_replace('/*__DATA__*/null', $json, $html);
 
@@ -44,15 +46,24 @@ final class PageComposer
         return $html;
     }
 
-    private function nav(string $page): string
+    private function nav(string $page, string $prefix): string
     {
         $nav = $this->read('partials/nav.html');
 
-        return (string) preg_replace(
+        $nav = (string) preg_replace(
             '/(<a href="[^"]+" data-page="' . preg_quote($page, '/') . '")/',
             '$1 aria-current="page"',
             $nav,
         );
+
+        if ($prefix === '') {
+            return $nav;
+        }
+
+        // Odnosniki w nawigacji sa wzgledne wobec katalogu public/, wiec strona
+        // lezaca glebiej musi dostac przedrostek - inaczej kazdy link z profilu
+        // posla prowadzi do nieistniejacego posel/index.html.
+        return (string) preg_replace('/<a href="(?!https?:)/', '<a href="' . $prefix, $nav);
     }
 
     private function read(string $relative): string
