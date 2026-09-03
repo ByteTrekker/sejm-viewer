@@ -125,6 +125,20 @@ final class SejmApiClient
     }
 
     /**
+     * Wariant fetchMany() zwracajacy razem z odpowiedzia sciezke, ktora ja wywolala.
+     * Odpowiedzi wracaja w kolejnosci ukonczenia, a zasoby takie jak statystyki
+     * glosowan posla nie niosa w tresci jego identyfikatora - bez sciezki nie da sie
+     * ich przypisac.
+     *
+     * @param list<string> $paths
+     * @return \Generator<int, array{path: string, data: array<mixed>}>
+     */
+    public function fetchManyWithPaths(array $paths, int $concurrency = 8): \Generator
+    {
+        yield from $this->runMany($paths, $concurrency);
+    }
+
+    /**
      * Rownolegle pobranie wielu zasobow. Przy kilkunastu tysiacach zadan sekwencyjny
      * curl to pol godziny, wiec uzywamy curl_multi z ograniczona liczba polaczen,
      * zeby nie zajechac API. Odpowiedzi wracaja w kolejnosci ukonczenia, nie zadania -
@@ -134,6 +148,17 @@ final class SejmApiClient
      * @return \Generator<int, array<mixed>>
      */
     public function fetchMany(array $paths, int $concurrency = 8): \Generator
+    {
+        foreach ($this->runMany($paths, $concurrency) as $item) {
+            yield $item['data'];
+        }
+    }
+
+    /**
+     * @param list<string> $paths
+     * @return \Generator<int, array{path: string, data: array<mixed>}>
+     */
+    private function runMany(array $paths, int $concurrency): \Generator
     {
         $multi = curl_multi_init();
         $this->failures = 0;
@@ -176,7 +201,7 @@ final class SejmApiClient
                 } else {
                     $decoded = json_decode($body, true);
                     if (is_array($decoded)) {
-                        yield $decoded;
+                        yield ['path' => $path, 'data' => $decoded];
                     } else {
                         $this->failures++;
                         $this->log(sprintf('  ! %s -> odpowiedz nie jest JSON-em (%d B)', $path, strlen($body)));

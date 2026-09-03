@@ -69,6 +69,18 @@ final class Database
             PRIMARY KEY (term, sitting, number, mp_id)
         );
 
+        CREATE TABLE IF NOT EXISTS mp_attendance (
+            term        INTEGER NOT NULL,
+            mp_id       INTEGER NOT NULL,
+            sitting     INTEGER NOT NULL,
+            date        TEXT NOT NULL,
+            num_votings INTEGER NOT NULL,
+            num_voted   INTEGER NOT NULL,
+            num_missed  INTEGER NOT NULL,
+            excused     INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (term, mp_id, sitting, date)
+        );
+
         CREATE TABLE IF NOT EXISTS act (
             eli               TEXT PRIMARY KEY,
             publisher         TEXT NOT NULL,
@@ -108,6 +120,7 @@ final class Database
         CREATE INDEX IF NOT EXISTS idx_act_year ON act (year, type);
         CREATE INDEX IF NOT EXISTS idx_act_issuer_key ON act_issuer (issuer_key);
         CREATE INDEX IF NOT EXISTS idx_vote_mp ON vote (term, mp_id);
+        CREATE INDEX IF NOT EXISTS idx_attendance_day ON mp_attendance (term, mp_id, date);
         SQL;
 
     private function __construct(public readonly \PDO $pdo)

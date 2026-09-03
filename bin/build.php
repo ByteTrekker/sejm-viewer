@@ -23,6 +23,8 @@ require __DIR__ . '/bootstrap.php';
 use Milczenie\Console\Options;
 use Milczenie\Domain\RecipientNormalizer;
 use Milczenie\Report\AbsenceBuilder;
+use Milczenie\Report\CoalitionBuilder;
+use Milczenie\Report\DisciplineBuilder;
 use Milczenie\Report\MemberBuilder;
 use Milczenie\Report\ProcessBuilder;
 use Milczenie\Report\RankingBuilder;
@@ -35,6 +37,8 @@ const PAGE_SLICES = [
     'droga' => ['meta', 'droga'],
     'poslowie' => ['meta', 'poslowie', 'serie'],
     'nieobecnosci' => ['meta', 'nieobecnosci'],
+    'dyscyplina' => ['meta', 'dyscyplina'],
+    'koalicje' => ['meta', 'koalicje'],
 ];
 
 $options = Options::fromGetopt(['term::', 'db::', 'out::', 'snapshot::']);
@@ -77,6 +81,8 @@ foreach ($terms as $term) {
     $report['droga'] = (new ProcessBuilder($db))->build($term);
     $report += (new MemberBuilder($db, $snapshot))->build($term);
     $report['nieobecnosci'] = (new AbsenceBuilder($db))->build($term);
+    $report['dyscyplina'] = (new DisciplineBuilder($db))->build($term);
+    $report['koalicje'] = (new CoalitionBuilder($db))->build($term);
 
     $ranked = array_values(array_filter($report['ministerstwa'], static fn (array $m): bool => $m['w_rankingu']));
     $sum = static fn (string $key): int => array_sum(array_column($report['ministerstwa'], $key));
@@ -105,6 +111,9 @@ foreach ($terms as $term) {
         'odpowiedzi_bez_daty' => $undated,
         'nieobecnosci_udzial' => $report['nieobecnosci']['udzial_ogolem'] ?? null,
         'nieobecnosci_glosowan' => $report['nieobecnosci']['glosowan'] ?? null,
+        'dyscyplina_udzial' => $report['dyscyplina']['udzial_ogolem'] ?? null,
+        'transferow' => $report['dyscyplina']['transfery']['poslow'] ?? null,
+        'koalicje_glosowan' => $report['koalicje']['glosowan'] ?? null,
     ];
     $reports[$term] = $report;
 
@@ -134,8 +143,12 @@ foreach (PAGE_SLICES as $page => $keys) {
         $slice = array_intersect_key($report, array_flip($keys));
         // Kadencja bez glosowan nie trafia na strone nieobecnosci - przelacznik
         // ma ja wyszarzyc, a nie pokazac pusta tabele.
-        if ($page === 'nieobecnosci' && ($slice['nieobecnosci'] ?? null) === null) {
-            continue;
+        // Strony oparte na glosowaniach pomijaja kadencje, dla ktorych ich nie pobrano -
+        // przelacznik ma je wyszarzyc, a nie pokazac pusta tabele.
+        foreach (['nieobecnosci', 'dyscyplina', 'koalicje'] as $needsVotings) {
+            if ($page === $needsVotings && ($slice[$needsVotings] ?? null) === null) {
+                continue 2;
+            }
         }
         $slices[$term] = $slice;
     }
@@ -188,7 +201,11 @@ $index = [
         'mediana' => $latest['droga']['kancelaria']['mediana_dni'] ?? 0,
         'milczacy' => count(array_filter($latest['poslowie'] ?? [], static fn (array $m): bool => $m['pytan'] === 0)),
         'absencja' => $latest['nieobecnosci']['udzial_ogolem'] ?? 0.0,
+        'nieusprawiedliwione' => $latest['nieobecnosci']['udzial_nieusprawiedliwionych'] ?? 0.0,
         'glosowan' => $counts('SELECT COUNT(*) AS n FROM voting'),
+        'transferow' => $latest['dyscyplina']['transfery']['poslow'] ?? 0,
+        'koalicja' => $latest['koalicje']['pary'][0]['zgodnosc'] ?? 0.0,
+        'poslow' => $latest['dyscyplina']['transfery']['wszystkich'] ?? 0,
         'ponizej' => (float) ($vacatio['ponizej'] ?? 0),
         'aktow' => (int) ($vacatio['aktow'] ?? 0),
     ],

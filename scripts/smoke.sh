@@ -85,16 +85,37 @@ $mkAct(40, "std",  "2024-03-16", "Rozporządzenie Ministra Testowego w sprawie s
 $mkAct(20, "fast", "2024-03-01", "Rozporządzenie Ministra Testowego w sprawie stawek pilnych"); // 0 dni
 $mkAct(10, "tech", "2024-03-01", "Rozporządzenie Ministra Testowego w sprawie uznania za pomnik historii");
 
-// Glosowania: 10 glosowan, posel 11 nieobecny w 2, posel 12 w 5, posel 13 w 0.
+// Dwa kluby po 12 poslow - dopiero przy takiej liczebnosci linia klubowa cos znaczy
+// (prog to 10 glosow). KLUB-C glosuje ZA z dwoma odszczepiencami, KLUB-D zawsze PRZECIW,
+// wiec zgodnosc pary C+D musi wyjsc zerowa.
+$mpStmt = $p->prepare("INSERT INTO mp (id, term, name, club, district, active) VALUES (?, 10, ?, ?, \"Test\", 1)");
+for ($i = 0; $i < 12; $i++) {
+    $mpStmt->execute([100 + $i, "Poseł C" . $i, "KLUB-C"]);
+    $mpStmt->execute([200 + $i, "Poseł D" . $i, "KLUB-D"]);
+}
+
+// Glosowania: 60 glosowan (prog par klubowych to 50), posel 11 nieobecny w 2, posel 12 w 5.
 $v = $p->prepare("INSERT INTO voting (term, sitting, number, date, title, topic, kind, total_voted)
-                  VALUES (10, 1, ?, \"2024-03-01\", \"Glosowanie testowe\", NULL, \"ELECTRONIC\", 3)");
+                  VALUES (10, 1, ?, \"2024-03-01\", \"Sprawozdanie Komisji o rządowym projekcie ustawy\", NULL, \"ELECTRONIC\", 27)");
 $vt = $p->prepare("INSERT INTO vote (term, sitting, number, mp_id, club, vote) VALUES (10, 1, ?, ?, ?, ?)");
-for ($i = 1; $i <= 10; $i++) {
+for ($i = 1; $i <= 60; $i++) {
     $v->execute([$i]);
     $vt->execute([$i, 11, "KLUB-A", $i <= 2 ? "ABSENT" : "YES"]);
     $vt->execute([$i, 12, "KLUB-B", $i <= 5 ? "ABSENT" : "NO"]);
     $vt->execute([$i, 13, "KLUB-A", "YES"]);
+    for ($j = 0; $j < 12; $j++) {
+        // Dwaj poslowie KLUB-C glosuja wbrew linii w kazdym glosowaniu.
+        $vt->execute([$i, 100 + $j, "KLUB-C", $j < 2 ? "NO" : "YES"]);
+        $vt->execute([$i, 200 + $j, "KLUB-D", "NO"]);
+    }
 }
+
+// Frekwencja: dzien posla 11 usprawiedliwiony, posla 12 nie. Posel 13 nie ma wiersza,
+// wiec jego (zerowe) nieobecnosci nie maja danych o usprawiedliwieniu.
+$att = $p->prepare("INSERT INTO mp_attendance (term, mp_id, sitting, date, num_votings, num_voted, num_missed, excused)
+                    VALUES (10, ?, 1, \"2024-03-01\", 60, ?, ?, ?)");
+$att->execute([11, 58, 2, 1]);
+$att->execute([12, 55, 5, 0]);
 
 $db->setMeta("votings_fetched_at", "2024-06-01T00:00:00+00:00");
 $db->setMeta("fetched_at", "2024-06-01T00:00:00+00:00");
@@ -164,10 +185,34 @@ $abs = $read("'"$out"'/nieobecnosci.html");
 $check("strona nieobecnosci pomija kadencje bez glosowan", array_map(intval(...), array_keys($abs["raporty"])), [10]);
 $rows = [];
 foreach ($abs["raporty"]["10"]["nieobecnosci"]["poslowie"] as $row) { $rows[$row["id"]] = $row; }
-$check("nieobecnosci: mianownik per posel", $rows[11]["glosowan"], 10);
+$check("nieobecnosci: mianownik per posel", $rows[11]["glosowan"], 60);
 $check("nieobecnosci: posel 11 opuscil 2", $rows[11]["nieobecnosci"], 2);
-$check("nieobecnosci: udzial posla 12", $rows[12]["udzial_nieobecnosci"], 0.5);
+$check("nieobecnosci: udzial posla 12", round($rows[12]["udzial_nieobecnosci"], 4), round(5 / 60, 4));
 $check("nieobecnosci: posel bez absencji", $rows[13]["nieobecnosci"], 0);
+// Mianownik musi rownac sie liczbie glosowan - zlaczenie po samej dacie potrafilo
+// go zwielokrotnic, gdy dwa posiedzenia dziela dzien.
+$check("mianownik nie jest zawyzony przez zlaczenie", $rows[11]["glosowan"], $abs["raporty"]["10"]["nieobecnosci"]["glosowan"]);
+$check("nieobecnosci usprawiedliwione nie licza sie jako nieuspr.", $rows[11]["nieusprawiedliwione"], 0);
+$check("nieobecnosci bez usprawiedliwienia licza sie w calosci", $rows[12]["nieusprawiedliwione"], 5);
+
+// --- dyscyplina klubowa: linia liczona per (posel, klub) ---
+$dysc = $read("'"$out"'/dyscyplina.html")["raporty"]["10"]["dyscyplina"];
+$kluby = [];
+foreach ($dysc["kluby"] as $c) { $kluby[$c["klucz"]] = $c; }
+$check("kluby ponizej progu nie maja linii", isset($kluby["KLUB-A"]), false);
+$check("KLUB-C: dwoch z dwunastu wbrew linii", round($kluby["KLUB-C"]["udzial_wbrew"], 4), round(2 / 12, 4));
+$check("KLUB-D glosuje jednomyslnie", (float) $kluby["KLUB-D"]["udzial_jednomyslnych"], 1.0);
+$odszczepieniec = null;
+foreach ($dysc["poslowie"] as $m) { if ($m["id"] === 100) { $odszczepieniec = $m; } }
+$check("odszczepieniec wbrew linii w kazdym glosowaniu", (float) $odszczepieniec["udzial_wbrew"], 1.0);
+$check("transfery wykrywaja zmiane klubu", $dysc["transfery"]["poslow"], 0);
+
+// --- kto z kim glosuje ---
+$koal = $read("'"$out"'/koalicje.html")["raporty"]["10"]["koalicje"];
+$para = null;
+foreach ($koal["pary"] as $x) { if ($x["a"] === "KLUB-C" && $x["b"] === "KLUB-D") { $para = $x; } }
+$check("kluby o przeciwnych liniach maja zerowa zgodnosc", (float) $para["zgodnosc"], 0.0);
+$check("kategoria rozpoznana z tytulu glosowania", array_key_exists("projekty rządowe", $para["wg_kategorii"]), true);
 
 exit($fail);
 '

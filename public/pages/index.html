@@ -7,7 +7,7 @@
   <header class="masthead">
     <h1>Co widać w danych Sejmu</h1>
     <p class="dek">
-      Pięć rankingów zbudowanych na jednej zasadzie: bierzemy obowiązek z twardym terminem
+      Siedem rankingów zbudowanych na jednej zasadzie: bierzemy obowiązek z twardym terminem
       ustawowym, liczymy na pełnych danych, kto go dotrzymuje, i pokazujemy wynik razem
       z metodologią. Każda liczba prowadzi do źródła na sejm.gov.pl.
     </p>
@@ -60,9 +60,23 @@ const TILES = [
   {
     href: 'nieobecnosci.html',
     name: 'Nieobecności',
-    desc: 'Udział w głosowaniach imiennych. API podaje fakt nieobecności, nigdy jej przyczynę — i strona mówi to na wierzchu.',
-    figure: d => fmtPct(d.absencja, 1),
-    meta: d => `${fmtInt(d.glosowan)} głosowań imiennych, kadencje VII–X`,
+    desc: 'Udział w głosowaniach imiennych — łącznie i osobno nieusprawiedliwione, według statusu nadanego przez Kancelarię Sejmu.',
+    figure: d => fmtPct(d.nieusprawiedliwione, 1),
+    meta: d => `nieusprawiedliwionych z ${fmtPct(d.absencja, 1)} wszystkich nieobecności`,
+  },
+  {
+    href: 'dyscyplina.html',
+    name: 'Dyscyplina klubowa',
+    desc: 'Kto głosuje wbrew linii własnego klubu i kto zmieniał barwy w trakcie kadencji. Liczone z 13 mln pojedynczych głosów.',
+    figure: d => fmtInt(d.transferow),
+    meta: d => `posłów zmieniło klub — z ${fmtInt(d.poslow)}`,
+  },
+  {
+    href: 'koalicje.html',
+    name: 'Kto z kim głosuje',
+    desc: 'Zgodność linii klubowych para po parze, osobno dla wniosków formalnych, ustaw rządowych i budżetu.',
+    figure: d => fmtPct(d.koalicja, 0),
+    meta: d => `zgodność najbliższej pary klubów`,
   },
   {
     href: 'vacatio.html',

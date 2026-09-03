@@ -6,13 +6,17 @@
 
   <header class="masthead">
     <h1>Nieobecności w głosowaniach</h1>
+    <p class="dek">
+      Nieobecność liczymy dwojako: <b>łącznie</b> — ile głosowań poseł opuścił — oraz
+      <b>nieusprawiedliwione</b>, czyli te dni, których Kancelaria Sejmu nie uznała
+      za usprawiedliwione. Ta druga liczba jest właściwą miarą i po niej domyślnie sortujemy.
+    </p>
     <p class="caveat">
-      <b>API podaje fakt nieobecności, nie jej przyczynę.</b> Delegacja zagraniczna, zwolnienie
-      lekarskie, urlop rodzicielski, obowiązki premiera lub ministra, zawieszony albo wygaszony
-      mandat i zwykła absencja wyglądają w danych <b>identycznie</b>. Czołówka tej tabeli składa
-      się w dużej części z osób, których nieobecność ma znaną i niekwestionowaną przyczynę.
-      Tabela mówi wyłącznie, w ilu głosowaniach poseł nie wziął udziału — każdy wniosek
-      o przyczynach jest nadinterpretacją.
+      <b>Usprawiedliwienie to status formalny, nie ocena zasadności</b> — i dotyczy całego dnia
+      posiedzenia, nie pojedynczego głosowania. API podaje, czy dzień był usprawiedliwiony,
+      ale <b>nie podaje powodu</b>: delegacja zagraniczna, zwolnienie lekarskie i urlop
+      rodzicielski są w danych nierozróżnialne. Wysoki odsetek nieusprawiedliwionych nie
+      przesądza o niczym poza tym, że Kancelaria nie odnotowała usprawiedliwienia.
     </p>
     <div class="controls">
       <span class="switch-label">Kadencja</span>
@@ -34,7 +38,7 @@
     <p class="sub" id="absence-sub"></p>
     <div class="card"><figure>
       <div id="absence-clubs"></div>
-      <figcaption>Uwzględniono kluby z co najmniej 1 000 oddanych głosów.</figcaption>
+      <figcaption>Odsetek <b>nieusprawiedliwionych</b> nieobecności. Uwzględniono kluby z co najmniej 1 000 oddanych głosów.</figcaption>
     </figure></div>
   </section>
 
@@ -65,11 +69,13 @@ state.term = firstAvailableTerm(k => k.nieobecnosci_udzial !== null && k.nieobec
 const ABSENCE_COLUMNS = [
   { key: 'nazwa', label: 'Poseł', type: 'text' },
   { key: 'klub', label: 'Klub', type: 'text' },
-  { key: 'udzial_nieobecnosci', label: 'Nieobecności', type: 'pct', digits: 1 },
-  { key: 'nieobecnosci', label: 'Głosowań opuszczonych', type: 'int' },
+  { key: 'udzial_nieusprawiedliwionych', label: 'Nieusprawiedliwione', type: 'pct', digits: 1 },
+  { key: 'udzial_nieobecnosci', label: 'Nieobecności łącznie', type: 'pct', digits: 1 },
+  { key: 'nieusprawiedliwione', label: 'Opuszczonych bez usprawiedliwienia', type: 'int' },
+  { key: 'nieobecnosci', label: 'Opuszczonych łącznie', type: 'int' },
   { key: 'glosowan', label: 'Głosowań łącznie', type: 'int' },
 ];
-const absenceState = { sort: 'udzial_nieobecnosci', dir: -1, filter: '' };
+const absenceState = { sort: 'udzial_nieusprawiedliwionych', dir: -1, filter: '' };
 
 document.getElementById('absence-filter').addEventListener('input', e => {
   absenceState.filter = e.target.value.toLowerCase();
@@ -85,7 +91,8 @@ function renderTable() {
     state: absenceState, limit: 60, rerender: renderTable,
     tip: m => `<b>${m.nazwa}</b>
       <div class="row">${m.klub ?? 'brak klubu'}${m.okreg ? ' · ' + m.okreg : ''}</div>
-      <div class="row">opuścił ${fmtInt(m.nieobecnosci)} z ${fmtInt(m.glosowan)} głosowań</div>`,
+      <div class="row">opuścił ${fmtInt(m.nieobecnosci)} z ${fmtInt(m.glosowan)} głosowań</div>
+      <div class="row">bez usprawiedliwienia: ${fmtInt(m.nieusprawiedliwione)}${m.udzial_uspr_wsrod_nieobecnosci !== null ? ` (usprawiedliwiono ${fmtPct(m.udzial_uspr_wsrod_nieobecnosci, 0)} nieobecności)` : ''}</div>`,
   });
 }
 
@@ -95,8 +102,9 @@ function renderAll() {
   renderStamp('stamp', [`${fmtInt(a.glosowan)} głosowań imiennych`]);
 
   document.getElementById('absence-sub').textContent =
-    `Kadencja ${ROMAN[state.term] ?? state.term}: ${fmtInt(a.glosowan)} głosowań, ${fmtInt(a.poslow)} posłów, `
-    + `średnio ${fmtPct(a.udzial_ogolem, 1)} nieobecności. W tabeli posłowie z co najmniej ${a.min_probka} głosowaniami.`;
+    `Kadencja ${ROMAN[state.term] ?? state.term}: ${fmtInt(a.glosowan)} głosowań, ${fmtInt(a.poslow)} posłów. `
+    + `Nieobecności łącznie ${fmtPct(a.udzial_ogolem, 1)}, w tym nieusprawiedliwione ${fmtPct(a.udzial_nieusprawiedliwionych, 1)}. `
+    + `W tabeli posłowie z co najmniej ${a.min_probka} głosowaniami.`;
   document.getElementById('clubs-title').textContent = `Kluby — kadencja ${ROMAN[state.term] ?? state.term}`;
 
   const withVotes = DATA.kadencje.filter(k => k.nieobecnosci_udzial !== null && k.nieobecnosci_udzial !== undefined);
@@ -119,18 +127,22 @@ function renderAll() {
 
   hbar('absence-clubs', a.kluby.filter(c => c.glosowan >= 1000).map(c => ({
     label: c.klucz,
-    value: c.udzial_nieobecnosci,
-    display: fmtPct(c.udzial_nieobecnosci, 1),
+    value: c.udzial_nieusprawiedliwionych,
+    display: fmtPct(c.udzial_nieusprawiedliwionych, 1),
     tip: `<b>${c.klucz}</b>
       <div class="row">${fmtInt(c.poslow)} posłów</div>
-      <div class="row">${fmtInt(c.nieobecnosci)} z ${fmtInt(c.glosowan)} głosowań</div>`,
-  })), { label: 'Nieobecności według klubu', labelWidth: 152, tick: v => Math.round(v * 100) + '%' });
+      <div class="row">nieusprawiedliwione: ${fmtInt(c.nieusprawiedliwione)} (${fmtPct(c.udzial_nieusprawiedliwionych, 1)})</div>
+      <div class="row">łącznie opuszczone: ${fmtInt(c.nieobecnosci)} (${fmtPct(c.udzial_nieobecnosci, 1)})</div>`,
+  })), { label: 'Nieusprawiedliwione nieobecności według klubu', labelWidth: 152, tick: v => Math.round(v * 100) + '%' });
 
   renderTable();
 
   document.getElementById('footer').replaceChildren(
     el('div', { text: `Dane: api.sejm.gov.pl, głosowania pobrane ${(a.pobrano || '').slice(0, 10)}.` }),
     el('div', { class: 'thin', text: 'Mianownik jest per poseł: liczą się wyłącznie te głosowania, w których poseł w ogóle występuje na liście. Posłowie obejmujący mandat w trakcie kadencji nie są karani za głosowania sprzed ślubowania.' }),
+    el('div', { class: 'thin', text: a.bez_danych_o_usprawiedliwieniu > 0
+      ? `${fmtInt(a.bez_danych_o_usprawiedliwieniu)} nieobecności nie ma odpowiadającego dnia w statystykach frekwencji — traktujemy je jako nieusprawiedliwione i podajemy tę liczbę zamiast ją ukrywać.`
+      : 'Każda nieobecność ma odpowiadający dzień w statystykach frekwencji.' }),
   );
 }
 
