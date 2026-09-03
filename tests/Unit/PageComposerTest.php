@@ -5,14 +5,16 @@ declare(strict_types=1);
 namespace Milczenie\Tests\Unit;
 
 use Milczenie\Web\PageComposer;
-use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Warstwa tlumaczen: podmiana jest tekstowa, wiec regula bezpieczenstwa
  * i regula formatu liczby sa tu wazniejsze od samego skladania stron.
  */
-#[CoversClass(PageComposer::class)]
+// Bez #[CoversClass]: pokrycie i mutacje obejmuja warstwe czysta (src/Domain,
+// src/Console), a PageComposer czyta pliki, wiec do niej nie nalezy. Deklaracja
+// pokrycia klasy spoza <source> jest ostrzezeniem PHPUnit, a ostrzezenie jest
+// w tym projekcie bledem. Poszerzenie zakresu mutacji to osobna decyzja.
 final class PageComposerTest extends TestCase
 {
     private string $dir;
