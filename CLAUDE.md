@@ -237,8 +237,13 @@ czego nie sprawdzono, jest gorsze niż jej brak — czytelnik podejmuje decyzję
 o scaleniu na podstawie tego, co uznaje za zweryfikowane. Testu dymnego nie
 uruchamia się „na oko": albo `./scripts/smoke.sh` przeszedł, albo nie.
 
-PR pozostaje w stanie **draft** dopóki istnieje znany, nierozwiązany warunek
-blokujący — i ten warunek ma być wymieniony w opisie z nazwy.
+**Każda zmiana trafia na GitHuba przez draft pull request.** Nigdy push na
+`main` — dotyczy to tak samo poprawki jednolinijkowej, jak nowej funkcji.
+Jeden PR na funkcję. Gałąź: `<type>/<krótki-opis-po-angielsku>`.
+
+PR pozostaje w stanie **draft, dopóki człowiek nie powie, że jest gotowy** —
+nie do momentu zniknięcia blokad. Jeżeli istnieje znany warunek blokujący,
+ma być wymieniony w opisie z nazwy. Nie scalamy własnych PR-ów bez polecenia.
 
 ## Dane
 
