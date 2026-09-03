@@ -67,7 +67,7 @@ const DATA = /*__DATA__*/null;
 state.term = firstAvailableTerm(k => k.nieobecnosci_udzial !== null && k.nieobecnosci_udzial !== undefined);
 
 const ABSENCE_COLUMNS = [
-  { key: 'nazwa', label: 'Poseł', type: 'text' },
+  memberColumn(),
   { key: 'klub', label: 'Klub', type: 'text' },
   { key: 'udzial_nieusprawiedliwionych', label: 'Nieusprawiedliwione', type: 'pct', digits: 1 },
   { key: 'udzial_nieobecnosci', label: 'Nieobecności łącznie', type: 'pct', digits: 1 },

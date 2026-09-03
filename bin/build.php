@@ -24,9 +24,11 @@ use Milczenie\Console\Options;
 use Milczenie\Domain\RecipientNormalizer;
 use Milczenie\Report\AbsenceBuilder;
 use Milczenie\Report\CoalitionBuilder;
+use Milczenie\Report\DigestBuilder;
 use Milczenie\Report\DisciplineBuilder;
 use Milczenie\Report\MemberBuilder;
 use Milczenie\Report\ProcessBuilder;
+use Milczenie\Report\ProfileBuilder;
 use Milczenie\Report\RankingBuilder;
 use Milczenie\Storage\Database;
 use Milczenie\Web\PageComposer;
@@ -39,9 +41,17 @@ const PAGE_SLICES = [
     'nieobecnosci' => ['meta', 'nieobecnosci'],
     'dyscyplina' => ['meta', 'dyscyplina'],
     'koalicje' => ['meta', 'koalicje'],
+    'raporty' => ['meta', 'raporty'],
 ];
 
-$options = Options::fromGetopt(['term::', 'db::', 'out::', 'snapshot::']);
+// Skrypt budujacy, nie usluga: profile poslow trzymaja w pamieci glosowania calej
+// kadencji naraz, a domyslne 128 MB na to nie wystarcza.
+ini_set('memory_limit', '512M');
+
+$options = Options::fromGetopt(['term::', 'db::', 'out::', 'snapshot::', 'profile-votes::']);
+
+$profileVotes = $options->nullableString('profile-votes');
+$recentVotes = $profileVotes === 'all' ? null : (int) ($profileVotes ?? ProfileBuilder::DEFAULT_RECENT_VOTES);
 
 $dbPath = $options->string('db', __DIR__ . '/../var/sejm.sqlite');
 $outDir = rtrim($options->string('out', __DIR__ . '/../public'), '/');
@@ -83,6 +93,7 @@ foreach ($terms as $term) {
     $report['nieobecnosci'] = (new AbsenceBuilder($db))->build($term);
     $report['dyscyplina'] = (new DisciplineBuilder($db))->build($term);
     $report['koalicje'] = (new CoalitionBuilder($db))->build($term);
+    $report['raporty'] = (new DigestBuilder($db))->build($term);
 
     $ranked = array_values(array_filter($report['ministerstwa'], static fn (array $m): bool => $m['w_rankingu']));
     $sum = static fn (string $key): int => array_sum(array_column($report['ministerstwa'], $key));
@@ -218,6 +229,35 @@ $index = [
         ['zbior' => 'Posłowie', 'ile' => $counts('SELECT COUNT(*) AS n FROM mp'), 'zakres' => '4 kadencje', 'odswiezanie' => 'miesięcznie'],
     ],
 ];
+
+// --- profile poslow: osobna strona na posla, zeby dalo sie ja podlinkowac ---
+$profileDir = $outDir . '/posel';
+if (!is_dir($profileDir) && !mkdir($profileDir, 0o775, true) && !is_dir($profileDir)) {
+    throw new RuntimeException('Nie mozna utworzyc katalogu ' . $profileDir);
+}
+
+$profileBuilder = new ProfileBuilder($db, $recentVotes);
+$profiles = 0;
+
+foreach ($reports as $term => $report) {
+    foreach ($profileBuilder->buildAll($term, $report) as $id => $profile) {
+        $page = $composer->render('posel.html', 'poslowie', [
+            'wygenerowano' => $today->format('Y-m-d'),
+            'pobrano' => $fetchedAt,
+            'profil' => $profile,
+        ]);
+
+        file_put_contents(sprintf('%s/%d-%d.html', $profileDir, $term, $id), $page);
+        $profiles++;
+    }
+}
+
+fwrite(STDERR, sprintf(
+    '  profili poslow: %d (lista glosowan: %s)%s',
+    $profiles,
+    $recentVotes === null ? 'pelna' : $recentVotes . ' ostatnich + wszystkie wbrew linii',
+    PHP_EOL,
+));
 
 $html = $composer->render('index.html', 'index', $index);
 file_put_contents($outDir . '/index.html', $html);

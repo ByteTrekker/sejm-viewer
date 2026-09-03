@@ -69,6 +69,15 @@ final class Database
             PRIMARY KEY (term, sitting, number, mp_id)
         );
 
+        CREATE TABLE IF NOT EXISTS mp_social (
+            term     INTEGER NOT NULL,
+            mp_id    INTEGER NOT NULL,
+            platform TEXT NOT NULL,
+            handle   TEXT NOT NULL,
+            qid      TEXT NOT NULL,
+            PRIMARY KEY (term, mp_id, platform, handle)
+        );
+
         CREATE TABLE IF NOT EXISTS mp_attendance (
             term        INTEGER NOT NULL,
             mp_id       INTEGER NOT NULL,

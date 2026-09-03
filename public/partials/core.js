@@ -197,6 +197,24 @@ function sortableTable(cfg) {
   return rows.length;
 }
 
+/* ---------- odnosnik do profilu posla ---------- */
+/**
+ * Kolumna z nazwiskiem prowadzaca do profilu. Profile powstaja per kadencja,
+ * wiec adres niesie i kadencje, i identyfikator.
+ */
+function memberColumn(label = 'Poseł') {
+  return {
+    key: 'nazwa',
+    label,
+    type: 'text',
+    render: m => el('td', {}, el('a', {
+      class: 'profile',
+      href: `posel/${m.kadencja ?? state.term}-${m.id}.html`,
+      text: m.nazwa,
+    })),
+  };
+}
+
 /* ---------- odnosniki do zrodla ---------- */
 function sourceLinks(q) {
   const row = el('div', { class: 'links' },

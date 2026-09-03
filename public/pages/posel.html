@@ -1,0 +1,232 @@
+<title>Profil posła</title>
+<!--@style-->
+
+<div class="wrap">
+  <!--@nav-->
+
+  <header class="masthead">
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 id="name"></h1>
+    <div class="links" id="accounts"></div>
+    <div class="stamp" id="stamp"></div>
+  </header>
+
+  <section>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section id="votes-section">
+    <h2>Jak głosował</h2>
+    <p class="sub" id="votes-sub"></p>
+    <div class="card"><figure>
+      <div id="votes-chart"></div>
+      <figcaption id="votes-caption"></figcaption>
+    </figure></div>
+  </section>
+
+  <section id="discipline-section">
+    <h2>Zgodność z linią klubu</h2>
+    <p class="sub" id="discipline-sub"></p>
+    <div class="scroller">
+      <table id="discipline"><thead><tr id="discipline-head"></tr></thead><tbody id="discipline-body"></tbody></table>
+    </div>
+  </section>
+
+  <section id="transfers-section">
+    <h2>Przynależność klubowa</h2>
+    <p class="sub">Daty pochodzą z pierwszego i ostatniego głosu oddanego pod danym szyldem.</p>
+    <div class="card"><ul class="worst" id="transfers"></ul></div>
+  </section>
+
+  <section id="votes-list-section">
+    <h2>Lista głosowań</h2>
+    <p class="sub" id="votes-list-sub"></p>
+    <div class="controls">
+      <div class="seg" id="votes-list-seg" role="group" aria-label="Zakres listy"></div>
+      <input type="search" id="votes-list-filter" placeholder="Filtruj po tytule…" aria-label="Filtruj głosowania">
+    </div>
+    <div class="scroller">
+      <table id="votes-list"><thead><tr id="votes-list-head"></tr></thead><tbody id="votes-list-body"></tbody></table>
+    </div>
+  </section>
+
+  <section id="questions-section">
+    <h2>Pytania do rządu</h2>
+    <p class="sub" id="questions-sub"></p>
+    <div class="card"><ul class="worst" id="questions"></ul></div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+/*@core*/
+
+const P = DATA.profil;
+const VOTE_LABELS = { YES: 'za', NO: 'przeciw', ABSTAIN: 'wstrzymał się', ABSENT: 'nieobecny',
+                      PRESENT: 'obecny, nie głosował', VOTE_VALID: 'głos ważny' };
+
+document.getElementById('eyebrow').textContent =
+  `Kadencja ${ROMAN[P.kadencja] ?? P.kadencja}${P.okreg ? ' · okręg ' + P.okreg : ''}${P.aktywny ? '' : ' · mandat wygasł'}`;
+document.getElementById('name').textContent = P.nazwa;
+
+document.getElementById('accounts').replaceChildren(
+  el('span', { class: 'tag', text: P.klub }),
+  ...P.konta.map(a => el('a', { class: 'src', href: a.url, target: '_blank', rel: 'noopener',
+    text: (a.platforma === 'x' ? '𝕏 @' : a.platforma === 'www' ? 'strona ' : a.platforma + ' ') + (a.platforma === 'www' ? '↗' : a.konto) })),
+);
+
+document.getElementById('stamp').replaceChildren(
+  el('span', { text: `Stan na ${DATA.wygenerowano}` }),
+  el('span', {}, 'Źródło: ', el('a', { href: 'https://api.sejm.gov.pl', text: 'api.sejm.gov.pl' })),
+  ...(P.konta.length ? [el('span', {}, 'Konta: ', el('a', { href: 'https://www.wikidata.org/wiki/' + P.konta[0].qid, target: '_blank', rel: 'noopener', text: P.konta[0].qid }))] : []),
+);
+
+/* ---------- KPI ---------- */
+const f = P.frekwencja;
+const q = P.pytania;
+const kpis = [];
+if (f) {
+  kpis.push(['Nieusprawiedliwione', fmtPct(f.udzial_nieusprawiedliwionych, 1),
+    `${fmtInt(f.nieusprawiedliwione)} z ${fmtInt(f.glosowan)} głosowań`]);
+  kpis.push(['Nieobecności łącznie', fmtPct(f.udzial_nieobecnosci, 1),
+    P.frekwencja_klubu ? `klub ${f.klub}: ${fmtPct(P.frekwencja_klubu.udzial_nieobecnosci, 1)}` : '']);
+}
+if (P.dyscyplina.length) {
+  const total = P.dyscyplina.reduce((a, d) => a + d.glosowan_z_linia, 0);
+  const against = P.dyscyplina.reduce((a, d) => a + d.wbrew_linii, 0);
+  kpis.push(['Wbrew linii klubu', total ? fmtPct(against / total, 2) : '—', `${fmtInt(against)} z ${fmtInt(total)} głosów`]);
+}
+if (q) kpis.push(['Pytań do rządu', fmtInt(q.pytan), `${fmtInt(q.tematow)} unikalnych tematów`]);
+document.getElementById('kpis').replaceChildren(...kpis.map(([label, value, note]) => el('div', { class: 'kpi' },
+  el('div', { class: 'label', text: label }),
+  el('div', { class: 'value', text: value }),
+  el('div', { class: 'note', text: note }),
+)));
+
+/* ---------- rozkład głosów ---------- */
+const votes = P.glosy;
+const votesSection = document.getElementById('votes-section');
+votesSection.hidden = !votes;
+if (votes) {
+  const total = Object.values(votes).reduce((a, n) => a + n, 0);
+  const order = ['YES', 'NO', 'ABSTAIN', 'PRESENT', 'VOTE_VALID', 'ABSENT'];
+  hbar('votes-chart', order.filter(k => votes[k]).map(k => ({
+    label: VOTE_LABELS[k] ?? k,
+    value: votes[k],
+    display: fmtPct(votes[k] / total, 1),
+    tip: `<b>${VOTE_LABELS[k] ?? k}</b><div class="row">${fmtInt(votes[k])} głosowań</div>`,
+  })), { label: 'Rozkład głosów', labelWidth: 150, tick: v => fmtInt(Math.round(v)) });
+  document.getElementById('votes-sub').textContent = `${fmtInt(total)} głosowań imiennych, w których poseł był na liście.`;
+  document.getElementById('votes-caption').textContent =
+    'Nieobecność jest tu jedną z kategorii, a nie brakiem danych — poseł figurował na liście głosowania.';
+}
+
+/* ---------- dyscyplina ---------- */
+const DISC_COLUMNS = [
+  { key: 'klub', label: 'Klub', type: 'text' },
+  { key: 'udzial_wbrew', label: 'Wbrew linii', type: 'pct', digits: 2 },
+  { key: 'wbrew_linii', label: 'Głosów wbrew', type: 'int' },
+  { key: 'glosowan_z_linia', label: 'Głosów w klubie', type: 'int' },
+];
+const discSection = document.getElementById('discipline-section');
+discSection.hidden = P.dyscyplina.length === 0;
+if (P.dyscyplina.length) {
+  const st = { sort: 'glosowan_z_linia', dir: -1 };
+  sortableTable({ headId: 'discipline-head', bodyId: 'discipline-body', columns: DISC_COLUMNS,
+    rows: P.dyscyplina, state: st, limit: 20, rerender: () => {} });
+  document.getElementById('discipline-sub').textContent = P.dyscyplina.length > 1
+    ? 'Poseł głosował pod więcej niż jednym szyldem — zgodność liczona osobno dla każdego klubu.'
+    : 'Odsetek głosów oddanych inaczej niż większość własnego klubu. Nieobecność nie jest stanowiskiem i nie wchodzi do mianownika.';
+}
+
+/* ---------- transfery ---------- */
+const transfersSection = document.getElementById('transfers-section');
+const spells = P.transfery ?? (P.klub ? [{ klub: P.klub, od: null, do: null, glosow: null }] : []);
+transfersSection.hidden = spells.length === 0;
+document.getElementById('transfers').replaceChildren(...spells.map((s, i) => el('li', { class: 'cat' },
+  el('span', { class: 'count', text: `${i + 1}.` }),
+  el('span', {},
+    el('span', { text: s.klub }),
+    el('span', { class: 'who', text: s.od ? `od ${s.od} do ${s.do} · ${fmtInt(s.glosow)} głosów` : 'klub zapisany w rejestrze posłów' }),
+  ),
+)));
+
+/* ---------- lista glosowan ---------- */
+const G = P.glosowania ?? { ostatnie: [], wbrew_linii: [], wbrew_linii_razem: 0, pokazano_ostatnich: 0 };
+const VOTE_COLUMNS = [
+  { key: 'data', label: 'Data', type: 'text' },
+  { key: 'glos', label: 'Głos', type: 'text',
+    render: v => el('td', {}, el('span', { class: 'tag', text: VOTE_LABELS[v.glos] ?? v.glos })) },
+  { key: 'tytul', label: 'Głosowanie', type: 'text',
+    render: v => el('td', {},
+      el('span', { text: v.tytul }),
+      v.wbrew ? el('span', { class: 'who', text: `klub ${v.klub} głosował: ${VOTE_LABELS[v.linia] ?? v.linia}` }) : el('span')) },
+  { key: 'nr', label: 'Nr', type: 'int' },
+];
+const voteListState = { sort: 'data', dir: -1, filter: '', zakres: G.wbrew_linii.length ? 'wbrew' : 'ostatnie' };
+
+const VOTE_SCOPES = [
+  { key: 'ostatnie', label: `Ostatnie ${G.pokazano_ostatnich}`, rows: () => G.ostatnie },
+  { key: 'wbrew', label: `Wbrew linii klubu (${G.wbrew_linii_razem})`, rows: () => G.wbrew_linii },
+];
+
+const voteListSection = document.getElementById('votes-list-section');
+voteListSection.hidden = G.ostatnie.length === 0 && G.wbrew_linii.length === 0;
+
+if (!voteListSection.hidden) {
+  const seg = document.getElementById('votes-list-seg');
+  seg.replaceChildren(...VOTE_SCOPES.map(sc => {
+    const b = el('button', { type: 'button', text: sc.label, 'aria-pressed': String(sc.key === voteListState.zakres) });
+    b.onclick = () => { voteListState.zakres = sc.key; renderVoteList(); };
+    return b;
+  }));
+  document.getElementById('votes-list-filter').addEventListener('input', e => {
+    voteListState.filter = e.target.value.toLowerCase();
+    renderVoteList();
+  });
+  renderVoteList();
+}
+
+function renderVoteList() {
+  const scope = VOTE_SCOPES.find(s => s.key === voteListState.zakres) ?? VOTE_SCOPES[0];
+  document.getElementById('votes-list-seg').querySelectorAll('button').forEach((b, i) =>
+    b.setAttribute('aria-pressed', String(VOTE_SCOPES[i].key === voteListState.zakres)));
+
+  const rows = scope.rows().filter(v => v.tytul.toLowerCase().includes(voteListState.filter));
+  const shown = sortableTable({
+    headId: 'votes-list-head', bodyId: 'votes-list-body', columns: VOTE_COLUMNS,
+    rows, state: voteListState, limit: 200, rerender: renderVoteList,
+  });
+
+  document.getElementById('votes-list-sub').textContent = voteListState.zakres === 'wbrew'
+    ? `Pokazano ${shown} z ${fmtInt(G.wbrew_linii_razem)} głosowań, w których poseł głosował inaczej niż większość własnego klubu.`
+    : `Ostatnie ${fmtInt(G.ostatnie.length)} głosowań kadencji. Pełna lista liczy tysiące pozycji — nie mieści się na jednej stronie, a te dwa zakresy niosą to samo, co warto zobaczyć.`;
+}
+
+/* ---------- pytania ---------- */
+const questionsSection = document.getElementById('questions-section');
+questionsSection.hidden = !q || q.pytan === 0;
+if (q && q.pytan > 0) {
+  document.getElementById('questions-sub').textContent =
+    `${fmtInt(q.pytan)} pytań, ${fmtInt(q.tematow)} unikalnych tematów, ${fmtInt(q.w_seriach)} w seriach szablonowych. `
+    + (q.udzial_po_terminie !== null
+        ? `Odpowiedzi po terminie: ${fmtPct(q.udzial_po_terminie, 0)}, bez odpowiedzi: ${fmtPct(q.udzial_bez_odpowiedzi, 0)}.`
+        : 'Terminowość odpowiedzi nie jest dla tej kadencji policzalna.');
+
+  document.getElementById('questions').replaceChildren(...P.najdluzej_czekaly.map(x => el('li', {},
+    el('span', { class: 'days', text: `${fmtInt(x.dni)} d` }),
+    el('span', {},
+      el('a', { href: x.url, target: '_blank', rel: 'noopener', text: x.tytul }),
+      el('span', { class: 'who', text: `${x.rodzaj} nr ${x.nr} · przekazano ${x.przekazano}${x.odpowiedziano ? ` → odpowiedź ${x.odpowiedziano}` : ' → wciąż bez odpowiedzi'}` }),
+    ),
+  )));
+}
+
+document.getElementById('footer').replaceChildren(
+  el('div', { text: `Dane: api.sejm.gov.pl. Konta w mediach społecznościowych: Wikidata — źródło społecznościowe, niekompletne i niegwarantowane.` }),
+  el('div', { class: 'thin', text: 'Wszystkie liczby na tej stronie pochodzą z tych samych reguł co rankingi zbiorcze — profil ich nie przelicza po swojemu.' }),
+);
+</script>

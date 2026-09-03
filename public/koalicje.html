@@ -229,6 +229,16 @@
   .legend { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
   .legend .swatches { display: flex; }
   .legend .swatches i { width: 20px; height: 12px; display: block; }
+
+  /* --- profil posla --- */
+  .eyebrow { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase;
+             color: var(--ink-3); margin-bottom: 8px; }
+  .masthead .links { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; align-items: center; }
+  .masthead .links a.src { font-size: 12.5px; font-family: var(--mono); color: var(--series-1);
+                           text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 3px 9px; }
+  .masthead .links a.src:hover { border-color: var(--series-1); background: var(--surface-2); }
+  td a.profile { color: var(--ink-1); text-decoration: none; border-bottom: 1px solid var(--line); }
+  td a.profile:hover { border-bottom-color: var(--series-1); }
 </style>
 
 <div class="wrap">
@@ -243,6 +253,7 @@
     <li><a href="dyscyplina.html" data-page="dyscyplina">Dyscyplina klubowa</a></li>
     <li><a href="koalicje.html" data-page="koalicje" aria-current="page">Kto z kim głosuje</a></li>
     <li><a href="vacatio.html" data-page="vacatio">Vacatio legis</a></li>
+    <li><a href="raporty.html" data-page="raporty">Raporty</a></li>
   </ul>
 </nav>
 
@@ -499,6 +510,24 @@ function sortableTable(cfg) {
   }));
 
   return rows.length;
+}
+
+/* ---------- odnosnik do profilu posla ---------- */
+/**
+ * Kolumna z nazwiskiem prowadzaca do profilu. Profile powstaja per kadencja,
+ * wiec adres niesie i kadencje, i identyfikator.
+ */
+function memberColumn(label = 'Poseł') {
+  return {
+    key: 'nazwa',
+    label,
+    type: 'text',
+    render: m => el('td', {}, el('a', {
+      class: 'profile',
+      href: `posel/${m.kadencja ?? state.term}-${m.id}.html`,
+      text: m.nazwa,
+    })),
+  };
 }
 
 /* ---------- odnosniki do zrodla ---------- */
