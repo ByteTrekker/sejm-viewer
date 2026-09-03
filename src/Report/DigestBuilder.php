@@ -367,7 +367,49 @@ final class DigestBuilder
         }
 
         $to = new \DateTimeImmutable((string) $latest);
-        $from = $to->modify('-30 days');
+
+        return $this->forPeriod($term, $to->modify('-30 days'), $to, 'Miesięczny');
+    }
+
+    /**
+     * Archiwum: po jednym raporcie na kazdy miesiac kadencji.
+     *
+     * Raport sprzed roku wyglada INACZEJ, niz wygladalby wtedy - czesc odpowiedzi
+     * przyszla pozniej i dzis widzimy je jako udzielone. To nie jest zapis tego,
+     * co bylo wiadomo w danym miesiacu, tylko dzisiejszy widok na tamten okres,
+     * i strona musi to mowic wprost.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function archive(int $term): array
+    {
+        $bounds = $this->db->fetchRow(
+            'SELECT MIN(a.sent_date) AS od, MAX(a.sent_date) AS do
+             FROM question q JOIN addressee a ON a.question_id = q.id WHERE q.term = :term',
+            ['term' => $term],
+        );
+
+        if ($bounds === null || $bounds['od'] === null) {
+            return [];
+        }
+
+        $cursor = (new \DateTimeImmutable((string) $bounds['od']))->modify('first day of this month');
+        $last = (new \DateTimeImmutable((string) $bounds['do']))->modify('first day of this month');
+
+        $out = [];
+        while ($cursor <= $last) {
+            $out[] = $this->forPeriod($term, $cursor, $cursor->modify('last day of this month'), $cursor->format('Y-m'));
+            $cursor = $cursor->modify('+1 month');
+        }
+
+        return array_reverse($out);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function forPeriod(int $term, \DateTimeImmutable $from, \DateTimeImmutable $to, string $rytm): array
+    {
 
         $silent = $this->db->fetchAll(
             <<<'SQL'
@@ -394,12 +436,14 @@ final class DigestBuilder
         $lider = $silent[0] ?? null;
 
         return [
-            'rytm' => 'Miesięczny',
+            'rytm' => $rytm,
             'okres' => sprintf('%s – %s', $from->format('Y-m-d'), $to->format('Y-m-d')),
             'wstep' => sprintf('%d pytań przekazanych adresatom w tym okresie.', $sent),
             'akapit' => $this->paragraph([
                 sprintf(
-                    'W ciągu ostatnich trzydziestu dni posłowie skierowali do rządu %s pytań.',
+                    'W okresie %s – %s posłowie skierowali do rządu %s pytań.',
+                    $from->format('Y-m-d'),
+                    $to->format('Y-m-d'),
                     $this->num($sent),
                 ),
                 $lider !== null

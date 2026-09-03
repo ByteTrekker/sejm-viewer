@@ -7,7 +7,8 @@
   <header class="masthead">
     <h1>Przykładowe raporty</h1>
     <p class="dek">
-      Cztery raporty w czterech rytmach, złożone z danych, które projekt już liczy.
+      Cztery raporty w czterech rytmach plus archiwum miesięczne za całą kadencję,
+      złożone z danych, które projekt już liczy.
       Każdy ma gotowy akapit — bo raport złożony z samych wypunktowań wygląda jak zrzut
       z bazy i nie widać po nim, czy nadaje się do opublikowania.
     </p>
@@ -25,6 +26,20 @@
   </header>
 
   <div id="digests"></div>
+
+  <section id="archive-section">
+    <h2>Archiwum miesięczne</h2>
+    <p class="caveat">
+      <b>To nie jest zapis tego, co było wiadomo w danym miesiącu.</b> Raport sprzed roku
+      wygląda inaczej, niż wyglądałby wtedy — część odpowiedzi przyszła później i dziś
+      widzimy je jako udzielone. To dzisiejsze spojrzenie na tamten okres, a nie migawka
+      z tamtego czasu.
+    </p>
+    <div class="controls">
+      <div class="seg" id="archive-seg" role="group" aria-label="Wybierz miesiąc"></div>
+    </div>
+    <div id="archive"></div>
+  </section>
 
   <section>
     <h2>Jaki rytm ma sens</h2>
@@ -54,20 +69,10 @@ const CADENCE = [
   { rytm: 'Rocznie', co: 'Porównania międzykadencyjne, vacatio legis rocznikami', dlaczego: 'inaczej porównuje się niepełne okresy' },
 ];
 
-function renderAll() {
-  hideTip();
-  renderStamp('stamp');
-
-  const digests = report().raporty ?? [];
-  const host = document.getElementById('digests');
-
-  if (digests.length === 0) {
-    host.replaceChildren(el('section', {}, el('p', { class: 'sub', text: 'Dla tej kadencji nie ma danych, z których dałoby się złożyć raport.' })));
-    return;
-  }
-
-  host.replaceChildren(...digests.map(d => el('section', {},
-    el('h2', { text: `${d.rytm} — kadencja ${ROMAN[state.term] ?? state.term}` }),
+/** Jeden raport jako karta - ten sam ksztalt dla biezacych i archiwalnych. */
+function digestCard(d, heading) {
+  return el('section', {},
+    el('h2', { text: heading }),
     el('p', { class: 'sub', text: `${d.okres}. ${d.wstep}` }),
     d.akapit ? el('div', { class: 'lead-card' },
       el('div', { class: 'eyebrow', text: 'Tak by to brzmiało' }),
@@ -84,7 +89,50 @@ function renderAll() {
           : el('p', { class: 'sub', text: 'Brak pozycji w tym okresie — i to też jest wynik.' }),
       )),
     ),
-  )));
+  );
+}
+
+const archiveState = { miesiac: null };
+
+function renderArchive() {
+  const archive = report().archiwum ?? [];
+  const section = document.getElementById('archive-section');
+  section.hidden = archive.length === 0;
+  if (archive.length === 0) return;
+
+  if (!archive.some(a => a.rytm === archiveState.miesiac)) {
+    archiveState.miesiac = archive[0].rytm;
+  }
+
+  const seg = document.getElementById('archive-seg');
+  seg.replaceChildren(...archive.map(a => {
+    const b = el('button', { type: 'button', text: a.rytm, 'aria-pressed': String(a.rytm === archiveState.miesiac) });
+    b.onclick = () => { archiveState.miesiac = a.rytm; renderArchive(); };
+    return b;
+  }));
+
+  const chosen = archive.find(a => a.rytm === archiveState.miesiac);
+  document.getElementById('archive').replaceChildren(
+    digestCard(chosen, `${chosen.rytm} — kadencja ${ROMAN[state.term] ?? state.term}`),
+  );
+}
+
+function renderAll() {
+  hideTip();
+  renderStamp('stamp');
+
+  const digests = report().raporty ?? [];
+  const host = document.getElementById('digests');
+
+  if (digests.length === 0) {
+    host.replaceChildren(el('section', {}, el('p', { class: 'sub', text: 'Dla tej kadencji nie ma danych, z których dałoby się złożyć raport.' })));
+    return;
+  }
+
+  host.replaceChildren(...digests.map(d =>
+    digestCard(d, `${d.rytm} — kadencja ${ROMAN[state.term] ?? state.term}`)));
+
+  renderArchive();
 }
 
 const CADENCE_COLUMNS = [

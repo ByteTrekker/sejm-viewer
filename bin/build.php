@@ -41,7 +41,7 @@ const PAGE_SLICES = [
     'nieobecnosci' => ['meta', 'nieobecnosci'],
     'dyscyplina' => ['meta', 'dyscyplina'],
     'koalicje' => ['meta', 'koalicje'],
-    'raporty' => ['meta', 'raporty'],
+    'raporty' => ['meta', 'raporty', 'archiwum'],
 ];
 
 // Skrypt budujacy, nie usluga: profile poslow trzymaja w pamieci glosowania calej
@@ -93,7 +93,9 @@ foreach ($terms as $term) {
     $report['nieobecnosci'] = (new AbsenceBuilder($db))->build($term);
     $report['dyscyplina'] = (new DisciplineBuilder($db))->build($term);
     $report['koalicje'] = (new CoalitionBuilder($db))->build($term);
-    $report['raporty'] = (new DigestBuilder($db))->build($term);
+    $digests = new DigestBuilder($db);
+    $report['raporty'] = $digests->build($term);
+    $report['archiwum'] = $digests->archive($term);
 
     $ranked = array_values(array_filter($report['ministerstwa'], static fn (array $m): bool => $m['w_rankingu']));
     $sum = static fn (string $key): int => array_sum(array_column($report['ministerstwa'], $key));
