@@ -6,9 +6,15 @@ SHELL := /usr/bin/env bash
 help: ## Lista celów
 	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
+# Monitor Polski niesie inne typy aktow niz Dziennik Ustaw: postanowienia
+# Prezydenta, obwieszczenia, uchwaly i zarzadzenia. Domyslny filtr (ustawa
+# i rozporzadzenie) nie zlapalby z niego nic.
+MP_TYPES = Postanowienie,Obwieszczenie,Uchwała,Komunikat,Zarządzenie,Ogłoszenie
+
 fetch: ## Pobierz komplet danych z API (kilkanaście minut)
 	php bin/fetch.php --term=7,8,9,10
 	php bin/fetch-acts.php --from=2015 --to=2026
+	php bin/fetch-acts.php --publisher=MP --from=2015 --to=2026 --types=$(MP_TYPES)
 	php bin/fetch-votings.php --term=7,8,9,10
 	php bin/fetch-attendance.php --term=7,8,9,10
 	php bin/fetch-social.php --term=7,8,9,10
@@ -18,6 +24,7 @@ refresh: ## Dociągnij tylko to, co nowe (kadencja X + bieżący rocznik Dz.U.)
 	php bin/fetch-votings.php --term=10
 	php bin/fetch-attendance.php --term=10
 	php bin/fetch-acts.php --from=$(shell date +%Y) --to=$(shell date +%Y)
+	php bin/fetch-acts.php --publisher=MP --from=$(shell date +%Y) --to=$(shell date +%Y) --types=$(MP_TYPES)
 
 build: ## Zbuduj wszystkie trzy dashboardy z bazy
 	php bin/build.php

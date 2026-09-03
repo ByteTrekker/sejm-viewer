@@ -33,11 +33,14 @@ $p->exec("INSERT INTO mp (id, term, name, club, district, active) VALUES (13, 10
 $q = $p->prepare("INSERT INTO question (id, kind, term, num, title, receipt_date, sent_date, authors, author_count)
                   VALUES (?, \"interpelacja\", ?, ?, ?, ?, ?, ?, ?)");
 $a = $p->prepare("INSERT INTO addressee (question_id, recipient_raw, recipient_key, sent_date) VALUES (?, ?, ?, ?)");
+// Podpis w formie, w jakiej pisza go kancelarie: funkcja, potem nazwisko.
+// Jeden podpis celowo bez nazwiska - bramka sprawdza, ze taki jest policzony,
+// a nie doklejony do kogokolwiek.
 $r = $p->prepare("INSERT INTO reply (question_id, reply_key, author, receipt_date, prolongation, only_attachment)
-                  VALUES (?, ?, \"Minister Testowy\", ?, 0, 0)");
+                  VALUES (?, ?, ?, ?, 0, 0)");
 
 $sent = "2024-01-10";
-$mk = function (int $n, string $suffix, ?string $replyDate, bool $hasReply, int $addressees = 1, array $authors = [11], ?string $fixedTitle = null)
+$mk = function (int $n, string $suffix, ?string $replyDate, bool $hasReply, int $addressees = 1, array $authors = [11], ?string $fixedTitle = null, string $signature = "Podsekretarz stanu Jan Testowy")
         use ($q, $a, $r, $sent): void {
     for ($i = 0; $i < $n; $i++) {
         $id = "interpelacja:10:" . $suffix . $i;
@@ -50,25 +53,27 @@ $mk = function (int $n, string $suffix, ?string $replyDate, bool $hasReply, int 
             $a->execute([$id, "minister drugi", "minister drugi", $sent]);
         }
         if ($hasReply) {
-            $r->execute([$id, "K" . $suffix . $i, $replyDate]);
+            $r->execute([$id, "K" . $suffix . $i, $signature, $replyDate]);
         }
     }
 };
 
+// Podpisy rozlozone celowo: 54 podsekretarza, 27 ministra i 3 bez nazwiska.
+// Rozklad jest jawny, zeby bramki mogly na nim stac liczbami, a nie tym, co akurat wyjdzie.
 $mk(40, "ontime",  "2024-01-20", true);   // 10 dni - w terminie
-$mk(20, "late",    "2024-02-20", true);   // 41 dni - po terminie
+$mk(20, "late",    "2024-02-20", true, 1, [11], null, "Minister Anna Testowa");   // 41 dni - po terminie
 $mk(10, "nodate",  null,         true);   // odpowiedz bez daty
 $mk(5,  "silent",  null,         false);  // brak odpowiedzi
-$mk(7,  "multi",   "2024-01-20", true, 2); // wielu adresatow
+$mk(7,  "multi",   "2024-01-20", true, 2, [11], null, "Minister Anna Testowa"); // wielu adresatow
 $mk(4,  "seria",   "2024-01-20", true, 1, [12], "Interpelacja w sprawie tej samej rzeczy"); // seria szablonowa
-$mk(3,  "duo",     "2024-01-20", true, 1, [11, 12]); // dwoch autorow - kazdy dostaje po jednym pytaniu
+$mk(3,  "duo",     "2024-01-20", true, 1, [11, 12], null, "Minister sprawiedliwości"); // podpis bez nazwiska
 
 // Kadencja niemierzalna: same odpowiedzi bez daty.
 for ($i = 0; $i < 50; $i++) {
     $id = "interpelacja:7:" . $i;
     $q->execute([$id, 7, $i + 1, "Interpelacja VII " . $i, "2013-01-05", "2013-01-10", "[]", 0]);
     $a->execute([$id, "minister testowy", "minister testowy", "2013-01-10"]);
-    $r->execute([$id, "V" . $i, null]);
+    $r->execute([$id, "V" . $i, "Podsekretarz stanu Jan Testowy", null]);
 }
 
 $act = $p->prepare("INSERT INTO act (eli, publisher, year, pos, type, title, announcement_date, promulgation, entry_into_force, in_force, status, display_address)
@@ -169,7 +174,7 @@ $check("kancelaria: mediana od wplywu do przekazania", $kanc["kancelaria"]["medi
 $check("kancelaria: zadne pytanie nie przekroczylo terminu", $kanc["kancelaria"]["ponad_termin"], 0);
 $podpisy = [];
 foreach ($kanc["podpisy"] as $row) { $podpisy[$row["klucz"]] = $row["n"]; }
-$check("podpis rozpoznany jako minister", $podpisy["minister"] ?? 0, 84);
+$check("podpis rozpoznany jako minister", $podpisy["minister"] ?? 0, 20 + 7 + 3);
 
 // --- poslowie i serie: osobna strona ---
 $p10 = $read("'"$out"'/poslowie.html")["raporty"]["10"];
@@ -233,6 +238,19 @@ $check("przeplywy nie niosa zmian szyldu", array_sum(array_map(
     $mand["przeplywy"],
 )), 0);
 
+// --- sklad rzadu ---
+// Podpis pod odpowiedzia jest polem tekstowym wypelnianym recznie, wiec bramka
+// pilnuje, ze rozklad na funkcje i nazwisko dziala, a to, czego nie rozlozy,
+// jest policzone, a nie doklejone do kogokolwiek.
+$rzad = $read("'"$out"'/rzad.html")["raporty"]["10"]["rzad"];
+$osoby = [];
+foreach ($rzad["osoby"] as $o) { $osoby[$o["nazwisko"]] = $o; }
+$check("podpis rozlozony na funkcje i nazwisko", isset($osoby["Jan Testowy"]), true);
+$check("funkcja odczytana z podpisu", $osoby["Jan Testowy"]["funkcja"] ?? null, "podsekretarz stanu");
+$check("podpisy tej samej osoby zsumowane", $osoby["Jan Testowy"]["podpisow"] ?? 0, 40 + 10 + 4);
+$check("podpisy bez nazwiska policzone osobno", $rzad["meta"]["podpisow_bez_nazwiska"], 3);
+$check("resort ma etykiete, a nie surowy klucz", str_starts_with((string) ($rzad["resorty"][0]["nazwa"] ?? ""), "Minister"), true);
+
 // --- kto z kim glosuje ---
 $koal = $read("'"$out"'/koalicje.html")["raporty"]["10"]["koalicje"];
 $para = null;
@@ -278,12 +296,12 @@ $check("wariant odsiany", $only["meta"]["wariant"], "merytoryczne");
 exit($fail);
 '
 
-for f in index.html interpelacje.html droga.html poslowie.html sklad.html mandaty.html nieobecnosci.html vacatio.html vacatio-merytoryczne.html; do
+for f in index.html interpelacje.html droga.html poslowie.html sklad.html mandaty.html rzad.html nieobecnosci.html vacatio.html vacatio-merytoryczne.html; do
     [ -s "$out/$f" ] || { echo "BŁĄD: nie powstał $f"; exit 1; }
     grep -q '__DATA__\|<!--@' "$out/$f" && { echo "BŁĄD: niewypełnione znaczniki w $f"; exit 1; }
     grep -q 'nav class="pages"' "$out/$f" || { echo "BŁĄD: brak nawigacji w $f"; exit 1; }
 done
-echo "OK   wygenerowano 9 stron z kompletem znaczników i nawigacją"
+echo "OK   wygenerowano 10 stron z kompletem znaczników i nawigacją"
 
 # Wersja angielska. Brak tlumaczenia NIE zostawia widocznego znacznika - wraca
 # polski tekst pod angielskim adresem, czego po samej stronie nie widac. Dlatego

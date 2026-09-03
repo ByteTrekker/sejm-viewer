@@ -254,7 +254,17 @@ const CATEGORY_LABELS = {
   'projekty poselskie i inne': '{{projekty poselskie i inne}}',
   'pozostałe': '{{pozostałe}}',
 };
+const CABINET_ACT_LABELS = {
+  'desygnowanie premiera': '{{desygnowanie premiera}}',
+  'powołanie premiera': '{{powołanie premiera}}',
+  'dymisja rządu': '{{dymisja rządu}}',
+  'zmiana w składzie': '{{zmiana w składzie}}',
+  'powołanie w skład': '{{powołanie w skład}}',
+  'odwołanie': '{{odwołanie}}',
+  'inne': '{{inne}}',
+};
 const kindLabel = v => KIND_LABELS[v] ?? v;
+const cabinetActLabel = v => CABINET_ACT_LABELS[v] ?? v;
 const categoryLabel = v => CATEGORY_LABELS[v] ?? v;
 
 /* ---------- odnosnik do profilu posla ---------- */

@@ -1,0 +1,95 @@
+<title>{{Profil podpisującego}}</title>
+<!--@style-->
+
+<div class="wrap">
+  <!--@nav-->
+
+  <header class="masthead">
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 id="name"></h1>
+    <div class="links" id="links"></div>
+    <div class="stamp" id="stamp"></div>
+  </header>
+
+  <section>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section>
+    <h2>{{Resorty, w imieniu których podpisywał}}</h2>
+    <p class="sub" id="offices-sub"></p>
+    <div class="card"><figure>
+      <div id="offices-chart"></div>
+      <figcaption>{{Liczba odpowiedzi podpisanych w imieniu każdego adresata. Podpis dla kilku resortów zwykle znaczy zmianę stanowiska albo resort dzielony między ministrów.}}</figcaption>
+    </figure></div>
+  </section>
+
+  <section id="roles-section">
+    <h2>{{Funkcje w podpisach}}</h2>
+    <p class="sub">
+      {{Kancelarie zapisują funkcję ręcznie, więc jedna osoba bywa opisana na kilka sposobów. Lista pokazuje wszystkie warianty, jakie wystąpiły — z nich widać też awans albo zmianę resortu.}}
+    </p>
+    <div class="card"><ul class="worst" id="roles"></ul></div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+/*@core*/
+
+const P = DATA.osoba;
+
+document.getElementById('eyebrow').textContent =
+  `{{Kadencja}} ${ROMAN[P.kadencja] ?? P.kadencja}${P.funkcja ? ' · ' + P.funkcja : ''}`;
+document.getElementById('name').textContent = P.nazwisko;
+
+document.getElementById('links').replaceChildren(
+  // Profil lezy w podkatalogu, wiec odnosnik musi z niego wyjsc. Nawigacja
+  // dostaje przedrostek od PageComposera, ale ten link jest pisany recznie.
+  el('a', { class: 'src', href: '../rzad.html', text: '{{← wszyscy podpisujący}}' }),
+  ...(P.posel_id !== null
+    ? [el('a', { class: 'src', href: `../posel/${P.kadencja}-${P.posel_id}.html`, text: '{{profil poselski ↗}}' })]
+    : []),
+);
+
+document.getElementById('stamp').replaceChildren(
+  el('span', { text: `{{Stan na}} ${DATA.wygenerowano}` }),
+  el('span', {}, '{{Źródło:}} ', el('a', { href: 'https://api.sejm.gov.pl', text: 'api.sejm.gov.pl' })),
+  el('span', { text: `{{Podpisy od}} ${P.od} {{do}} ${P.do}` }),
+);
+
+document.getElementById('kpis').replaceChildren(...[
+  ['{{Podpisów}}', fmtInt(P.podpisow), '{{odpowiedzi na interpelacje i zapytania}}'],
+  ['{{Resortów}}', fmtInt(P.resortow), P.resorty.length ? P.resorty[0].nazwa : ''],
+  ['{{Średnio dni}}', P.srednio_dni === null ? '—' : String(P.srednio_dni).replace('.', ','), '{{od przekazania pytania do odpowiedzi}}'],
+  ['{{Wariantów zapisu funkcji}}', fmtInt(P.funkcje.length), '{{tak opisywały go kancelarie}}'],
+].map(([label, value, note]) => el('div', { class: 'kpi' },
+  el('div', { class: 'label', text: label }),
+  el('div', { class: 'value', text: value }),
+  el('div', { class: 'note', text: note }),
+)));
+
+hbar('offices-chart', P.resorty.map(r => ({
+  label: r.nazwa,
+  value: r.n,
+  display: fmtInt(r.n),
+  tip: `<b>${r.nazwa}</b><div class="row">${fmtInt(r.n)} {{podpisów}}</div>`,
+})), { label: '{{Podpisy według resortu}}', labelWidth: 210, tick: v => fmtInt(Math.round(v)) });
+
+document.getElementById('offices-sub').textContent =
+  `${fmtInt(P.podpisow)} {{podpisów w}} ${fmtInt(P.resortow)} ${P.resortow === 1 ? '{{resorcie.}}' : '{{resortach.}}'}`;
+
+document.getElementById('roles-section').hidden = P.funkcje.length === 0;
+document.getElementById('roles').replaceChildren(...P.funkcje.map((f, i) => el('li', { class: 'cat' },
+  el('span', { class: 'count', text: `${i + 1}.` }),
+  el('span', {}, el('span', { text: f })),
+)));
+
+document.getElementById('footer').replaceChildren(
+  el('div', { text: '{{Dane: api.sejm.gov.pl. Podpis to pole author przy odpowiedzi — wypełniane ręcznie w kancelarii resortu.}}' }),
+  el('div', { class: 'thin', text: '{{Liczba podpisów nie mówi o randze: sekretarz stanu podpisuje więcej niż minister, bo do tego jest.}}' }),
+);
+</script>

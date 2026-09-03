@@ -1,0 +1,207 @@
+<title>{{Skład rządu}}</title>
+<!--@style-->
+
+<div class="wrap">
+  <!--@nav-->
+
+  <header class="masthead">
+    <h1>{{Kto odpowiada za resort}}</h1>
+    <p class="dek">
+      {{Kto w imieniu każdego ministerstwa podpisuje odpowiedzi dla Sejmu, jak często i po ilu dniach — z podpisów pod odpowiedziami na interpelacje. Szukaj po nazwisku, funkcji albo resorcie; każde nazwisko prowadzi do profilu.}}
+    </p>
+    <p class="caveat">
+      {{<b>To nie jest formalna lista Rady Ministrów.</b> Takiej listy nie ma w żadnym API. Postanowienia Prezydenta o powołaniu są w Monitorze Polskim, ale nazwiska stoją wyłącznie w PDF-ie, więc z metadanych wyjmiemy datę i odnośnik, nigdy składu. Ta strona pokazuje coś innego i sprawdzalnego: kto faktycznie odpowiada parlamentowi w imieniu resortu. Sekretarz stanu podpisujący tysiąc odpowiedzi nie jest ministrem — jest osobą, przez którą resort rozmawia z Sejmem.}}
+    </p>
+    <div class="controls">
+      <span class="switch-label">{{Kadencja}}</span>
+      <div class="seg" id="term-seg" role="group" aria-label="{{Wybierz kadencję}}"></div>
+    </div>
+    <div class="stamp" id="stamp"></div>
+  </header>
+
+  <section>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section>
+    <h2 id="people-title">{{Kto podpisuje}}</h2>
+    <p class="sub" id="people-sub"></p>
+    <div class="controls">
+      <input type="search" id="people-filter" placeholder="{{Nazwisko, funkcja albo resort…}}" aria-label="{{Szukaj osoby}}">
+    </div>
+    <div class="scroller">
+      <table id="people"><thead><tr id="people-head"></tr></thead><tbody id="people-body"></tbody></table>
+    </div>
+    <p class="sub" id="people-note" style="margin-top:10px"></p>
+  </section>
+
+  <section>
+    <h2>{{Resorty}}</h2>
+    <p class="sub" id="offices-sub"></p>
+    <div class="scroller">
+      <table id="offices"><thead><tr id="offices-head"></tr></thead><tbody id="offices-body"></tbody></table>
+    </div>
+  </section>
+
+  <section id="acts-section">
+    <h2>{{Zmiany w składzie Rady Ministrów}}</h2>
+    <p class="sub">
+      {{Postanowienia Prezydenta ogłoszone w Monitorze Polskim w czasie tej kadencji. Tytuł aktu nie niesie nazwisk — treść jest w PDF — więc każda pozycja prowadzi do dokumentu, zamiast udawać, że wiemy, kogo dotyczy.}}
+    </p>
+    <div class="card"><ul class="worst" id="acts"></ul></div>
+  </section>
+
+  <section id="statutes-section">
+    <h2>{{Statuty ministerstw}}</h2>
+    <p class="sub" id="statutes-sub"></p>
+    <div class="card"><ul class="worst" id="statutes"></ul></div>
+  </section>
+
+  <section>
+    <details class="method">
+      <summary>{{Jak liczymy}}</summary>
+      <ol>
+        <li>{{<b>Podpis</b> to pole <code>author</code> przy odpowiedzi w API Sejmu, wypełniane ręcznie w kancelariach resortów. Ta sama osoba występuje w kilkunastu zapisach, więc rozkładamy podpis na funkcję i nazwisko i łączymy warianty.}}</li>
+        <li>{{Pytania skierowane do <b>kilku adresatów naraz są wyłączone</b> — API nie wiąże odpowiedzi z konkretnym adresatem, więc przypisanie podpisu do resortu byłoby zgadywaniem. Tak samo robi ranking milczenia.}}</li>
+        <li>{{Do zestawienia wchodzą osoby z co najmniej}} <span id="minsign"></span> {{podpisami. Niżej to pojedyncze zastępstwa, a nie rola w resorcie.}}</li>
+        <li>{{<b>Średni czas</b> to liczba dni od przekazania pytania adresatowi do wpływu odpowiedzi, ważona liczbą podpisów. Mierzy tempo resortu w okresie, w którym ta osoba podpisywała, a nie jej osobistą sprawność.}}</li>
+        <li>{{Podpisy, z których nie da się wyjąć nazwiska (na przykład „Minister sprawiedliwości" bez imienia), są policzone i pokazane, a nie doklejone do kogokolwiek.}}</li>
+        <li>{{Resorty są scalane tą samą regułą co w rankingu milczenia, więc obie strony mówią o tym samym adresacie.}}</li>
+      </ol>
+    </details>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+/*@core*/
+
+/** Nazwisko prowadzi do profilu osoby; profile powstaja per kadencja. */
+function personColumn() {
+  return {
+    key: 'nazwisko', label: '{{Osoba}}', type: 'text',
+    render: p => el('td', {}, el('a', {
+      class: 'profile',
+      href: `rzad/${state.term}-${p.klucz}.html`,
+      text: p.nazwisko,
+    })),
+  };
+}
+
+const PEOPLE_COLUMNS = [
+  personColumn(),
+  { key: 'funkcja', label: '{{Funkcja}}', type: 'text' },
+  { key: 'podpisow', label: '{{Podpisów}}', type: 'int' },
+  { key: 'resortow', label: '{{Resortów}}', type: 'int' },
+  { key: 'srednio_dni', label: '{{Średnio dni}}', type: 'days' },
+  { key: 'od', label: '{{Pierwszy podpis}}', type: 'text' },
+  { key: 'do', label: '{{Ostatni podpis}}', type: 'text' },
+];
+const OFFICE_COLUMNS = [
+  { key: 'nazwa', label: '{{Resort}}', type: 'text' },
+  { key: 'podpisow', label: '{{Odpowiedzi}}', type: 'int' },
+  { key: 'osob', label: '{{Podpisujących}}', type: 'int' },
+  {
+    key: 'najczesciej', label: '{{Najczęściej podpisuje}}', type: 'text',
+    render: o => el('td', {}, o.najczesciej
+      ? el('a', { class: 'profile', href: `rzad/${state.term}-${o.najczesciej.klucz}.html`, text: o.najczesciej.nazwisko })
+      : el('span', { text: '—' })),
+  },
+];
+
+const peopleState = { sort: 'podpisow', dir: -1, filter: '' };
+document.getElementById('people-filter').addEventListener('input', e => {
+  peopleState.filter = e.target.value.toLowerCase();
+  renderPeople();
+});
+
+function renderPeople() {
+  const g = report().rzad;
+  const rows = g.osoby.filter(p => {
+    const hay = (p.nazwisko + ' ' + (p.funkcje || []).join(' ') + ' ' + p.resorty.map(r => r.nazwa).join(' ')).toLowerCase();
+    return hay.includes(peopleState.filter);
+  });
+
+  const shown = sortableTable({
+    headId: 'people-head', bodyId: 'people-body', columns: PEOPLE_COLUMNS,
+    rows, state: peopleState, limit: rows.length, rerender: renderPeople,
+    tip: p => `<b>${p.nazwisko}</b>
+      <div class="row">${p.funkcja ?? '{{funkcja nieodnotowana}}'}</div>
+      <div class="row">${fmtInt(p.podpisow)} {{podpisów w}} ${fmtInt(p.resortow)} {{resortach}}</div>
+      <div class="row">${p.resorty.slice(0, 3).map(r => `${r.nazwa} (${fmtInt(r.n)})`).join('<br>')}</div>`,
+  });
+
+  document.getElementById('people-note').textContent = peopleState.filter === ''
+    ? `{{Pokazano wszystkie}} ${fmtInt(shown)} {{osoby z co najmniej}} ${g.meta.min_podpisow} {{podpisami.}}`
+    : `{{Pokazano}} ${fmtInt(shown)} {{z}} ${fmtInt(g.osoby.length)} {{osób.}}`;
+}
+
+function renderAll() {
+  hideTip();
+  const g = report().rzad;
+  renderStamp('stamp');
+  document.getElementById('minsign').textContent = g.meta.min_podpisow;
+
+  const top = g.osoby[0];
+  const busiest = g.resorty[0];
+  const multi = g.osoby.filter(p => p.resortow > 1).length;
+
+  document.getElementById('kpis').replaceChildren(...[
+    ['{{Podpisujących}}', fmtInt(g.osoby.length), `{{co najmniej}} ${g.meta.min_podpisow} {{podpisy}}`],
+    ['{{Resortów}}', fmtInt(g.resorty.length), busiest ? `{{najwięcej:}} ${busiest.nazwa}` : ''],
+    ['{{Najczęściej podpisuje}}', top ? top.nazwisko : '—', top ? `${fmtInt(top.podpisow)} {{odpowiedzi}}` : ''],
+    ['{{Podpisuje dla kilku resortów}}', fmtInt(multi), '{{ta sama osoba w więcej niż jednym}}'],
+  ].map(([label, value, note]) => el('div', { class: 'kpi' },
+    el('div', { class: 'label', text: label }),
+    el('div', { class: 'value', text: value }),
+    el('div', { class: 'note', text: note }),
+  )));
+
+  document.getElementById('people-title').textContent = `{{Kto podpisuje — kadencja}} ${ROMAN[state.term] ?? state.term}`;
+  document.getElementById('people-sub').textContent = g.meta.podpisow_bez_nazwiska > 0
+    ? `{{Kliknij nagłówek kolumny, aby posortować.}} ${fmtInt(g.meta.podpisow_bez_nazwiska)} {{podpisów nie zawiera nazwiska i nie weszło do zestawienia.}}`
+    : '{{Kliknij nagłówek kolumny, aby posortować. Każdy podpis w tej kadencji dało się rozłożyć na funkcję i nazwisko.}}';
+  renderPeople();
+
+  document.getElementById('offices-sub').textContent =
+    `${fmtInt(g.resorty.length)} {{adresatów, którzy odpowiedzieli choć raz. Kolumna „podpisujących" mówi, przez ile rąk przechodzi kontakt resortu z Sejmem.}}`;
+  sortableTable({ headId: 'offices-head', bodyId: 'offices-body', columns: OFFICE_COLUMNS,
+    rows: g.resorty, state: { sort: 'podpisow', dir: -1 }, limit: 60, rerender: () => {} });
+
+  document.getElementById('acts-section').hidden = g.akty.length === 0;
+  document.getElementById('acts').replaceChildren(...g.akty.map(a => el('li', {},
+    el('span', { class: 'days', text: a.data }),
+    el('span', {},
+      el('span', { text: cabinetActLabel(a.rodzaj) }),
+      el('span', { class: 'who', text: a.adres }),
+      el('div', { class: 'links' },
+        el('a', { class: 'src', href: a.url, target: '_blank', rel: 'noopener', text: '{{treść postanowienia (PDF) ↗}}' })),
+    ),
+  )));
+
+  const statutes = g.statuty;
+  document.getElementById('statutes-section').hidden = statutes.length === 0;
+  document.getElementById('statutes-sub').textContent =
+    `${fmtInt(statutes.length)} {{zarządzeń i obwieszczeń o statutach ministerstw w tej kadencji.}} ${fmtInt(statutes.filter(s => s.nowy).length)} {{z nich nadaje statut od nowa — to zwykle znak, że resort powstał albo został przebudowany.}}`;
+  document.getElementById('statutes').replaceChildren(...statutes.slice(0, 30).map(s => el('li', {},
+    el('span', { class: s.nowy ? 'days fast' : 'days', text: s.nowy ? '{{nowy}}' : '{{zmiana}}' }),
+    el('span', {},
+      el('span', { text: s.ministerstwo }),
+      el('span', { class: 'who', text: `${s.data} · ${s.adres}` }),
+      el('div', { class: 'links' },
+        el('a', { class: 'src', href: s.url, target: '_blank', rel: 'noopener', text: '{{tekst aktu (PDF) ↗}}' })),
+    ),
+  )));
+
+  document.getElementById('footer').replaceChildren(
+    el('div', { text: `{{Dane: api.sejm.gov.pl — podpisy z odpowiedzi na interpelacje, akty z Monitora Polskiego przez API ELI.}}` }),
+    el('div', { class: 'thin', text: '{{Strona nie twierdzi, kto jest ministrem. Mówi, kto podpisał odpowiedź — a to jest w dokumencie.}}' }),
+  );
+}
+
+mountTermSwitch('term-seg', renderAll);
+renderAll();
+</script>
