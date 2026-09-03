@@ -1,0 +1,206 @@
+<title>{{Skład Sejmu}}</title>
+<!--@style-->
+
+<div class="wrap">
+  <!--@nav-->
+
+  <header class="masthead">
+    <h1>{{Skład Sejmu}}</h1>
+    <p class="dek">
+      {{Kompletna lista posłów kadencji — także tych, którzy nie zadali ani jednego pytania i nie pojawiają się w żadnym rankingu. Punktem wyjścia jest mandat, nie dorobek. Szukaj po nazwisku, klubie albo okręgu; każde nazwisko prowadzi do profilu.}}
+    </p>
+    <div class="controls">
+      <span class="switch-label">{{Kadencja}}</span>
+      <div class="seg" id="term-seg" role="group" aria-label="{{Wybierz kadencję}}"></div>
+    </div>
+    <div class="stamp" id="stamp"></div>
+  </header>
+
+  <section>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <div id="notice" hidden></div>
+
+  <section>
+    <h2 id="roster-title">{{Posłowie}}</h2>
+    <p class="sub" id="roster-sub"></p>
+    <div class="controls">
+      <input type="search" id="roster-filter" placeholder="{{Nazwisko, klub albo okręg…}}" aria-label="{{Szukaj posła}}">
+    </div>
+    <div class="controls">
+      <div class="seg" id="club-seg" role="group" aria-label="{{Filtruj klubem}}"></div>
+    </div>
+    <div class="scroller">
+      <table id="roster"><thead><tr id="roster-head"></tr></thead><tbody id="roster-body"></tbody></table>
+    </div>
+    <p class="sub" id="roster-note" style="margin-top:10px"></p>
+  </section>
+
+  <section>
+    <h2>{{Kluby i koła}}</h2>
+    <p class="sub" id="clubs-sub"></p>
+    <div class="card"><figure>
+      <div id="clubs-chart"></div>
+      <figcaption id="clubs-caption"></figcaption>
+    </figure></div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+/*@core*/
+
+/**
+ * Nazwisko z profilem, a przy wygaslym mandacie znacznik obok. Tip tego nie
+ * zalatwia: na liscie 499 nazwisk czytelnik musi widziec, ktore z nich juz nie
+ * zasiadaja, bez najezdzania myszka na kazde.
+ */
+function rosterNameColumn() {
+  const base = memberColumn();
+  return {
+    ...base,
+    render: m => {
+      const td = base.render(m);
+      if (m.aktywny === false) {
+        td.append(el('span', { class: 'tag', text: '{{mandat wygasł}}' }));
+      }
+      return td;
+    },
+  };
+}
+
+const ROSTER_COLUMNS = [
+  rosterNameColumn(),
+  { key: 'klub', label: '{{Klub}}', type: 'text' },
+  { key: 'okreg', label: '{{Okręg}}', type: 'text' },
+  { key: 'pytan', label: '{{Pytań}}', type: 'int' },
+  { key: 'udzial_nieobecnosci', label: '{{Nieobecności łącznie}}', type: 'pct', digits: 1 },
+  { key: 'udzial_nieusprawiedliwionych', label: '{{Nieusprawiedliwione}}', type: 'pct', digits: 1 },
+  { key: 'udzial_wbrew', label: '{{Wbrew linii}}', type: 'pct', digits: 2 },
+];
+const rosterState = { sort: 'nazwa', dir: 1, filter: '', klub: null };
+
+document.getElementById('roster-filter').addEventListener('input', e => {
+  rosterState.filter = e.target.value.toLowerCase();
+  renderRoster();
+});
+
+function pool() {
+  const s = report().sklad;
+  return s.poslowie
+    .filter(m => rosterState.klub === null || m.klub === rosterState.klub)
+    .filter(m => (m.nazwa + ' ' + (m.klub ?? '') + ' ' + (m.okreg ?? '')).toLowerCase().includes(rosterState.filter));
+}
+
+function renderRoster() {
+  const s = report().sklad;
+  const rows = pool();
+
+  // Bez limitu: to jest lista skladu, a nie czolowka rankingu. Staly limit 500
+  // ucial kadencje VII na 500 z 517 nazwisk i stopka twierdzila, ze to komplet.
+  const shown = sortableTable({
+    headId: 'roster-head', bodyId: 'roster-body', columns: ROSTER_COLUMNS,
+    rows, state: rosterState, limit: rows.length, rerender: renderRoster,
+    tip: m => `<b>${m.nazwa}</b>
+      <div class="row">${m.klub ?? '{{brak klubu}}'}${m.okreg ? ' · ' + m.okreg : ''}</div>
+      <div class="row">${fmtInt(m.pytan)} {{pytań,}} ${fmtInt(m.tematow)} {{unikalnych tematów}}</div>
+      <div class="row">${m.glosowan === null ? '{{brak danych o głosowaniach}}' : fmtInt(m.glosowan) + ' {{głosowań na liście}}'}</div>
+      ${m.klubow > 1 ? '<div class="row">{{zmienił klub w trakcie kadencji}}</div>' : ''}
+      ${m.aktywny === false ? '<div class="row">{{mandat wygasł}}</div>' : ''}`,
+  });
+
+  document.getElementById('roster-note').textContent = rosterState.klub === null && rosterState.filter === ''
+    ? `{{Pokazano wszystkich}} ${fmtInt(shown)} {{posłów kadencji.}}`
+    : `{{Pokazano}} ${fmtInt(shown)} {{z}} ${fmtInt(s.poslowie.length)} {{posłów.}}`;
+}
+
+function renderClubSeg() {
+  const s = report().sklad;
+  const seg = document.getElementById('club-seg');
+  const options = [{ nazwa: null, n: s.poslowie.length }, ...s.kluby];
+
+  seg.replaceChildren(...options.map(o => {
+    const b = el('button', {
+      type: 'button',
+      text: (o.nazwa ?? '{{Wszyscy}}') + ' · ' + fmtInt(o.n),
+      'aria-pressed': String(o.nazwa === rosterState.klub),
+    });
+    b.onclick = () => { rosterState.klub = o.nazwa; renderClubSeg(); renderRoster(); };
+    return b;
+  }));
+}
+
+function renderAll() {
+  hideTip();
+  const s = report().sklad;
+  const m = s.meta;
+  renderStamp('stamp');
+
+  const kpis = m.zamknieta
+    ? [
+        ['{{Posłów w kadencji}}', fmtInt(m.wszystkich), '{{łącznie z tymi, którzy weszli w trakcie}}'],
+        ['{{Klubów i kół}}', fmtInt(m.klubow), '{{stan na koniec kadencji}}'],
+      ]
+    : [
+        ['{{W składzie izby}}', fmtInt(m.w_skladzie), '{{posłowie ze sprawowanym mandatem}}'],
+        ['{{Przeszło przez izbę}}', fmtInt(m.wszystkich), `${fmtInt(m.wygaslych)} {{mandatów wygasło}}`],
+        ['{{Klubów i kół}}', fmtInt(m.klubow), '{{włącznie z niezrzeszonymi}}'],
+      ];
+  if (m.zmienilo_klub !== null) {
+    kpis.push(['{{Zmieniło klub}}', fmtInt(m.zmienilo_klub), '{{z głosów oddanych pod więcej niż jednym szyldem}}']);
+  }
+
+  document.getElementById('kpis').replaceChildren(...kpis.map(([label, value, note]) => el('div', { class: 'kpi' },
+    el('div', { class: 'label', text: label }),
+    el('div', { class: 'value', text: value }),
+    el('div', { class: 'note', text: note }),
+  )));
+
+  // Flaga "aktywny" ma sens tylko w kadencji trwajacej: po jej koncu API oznacza
+  // jako nieaktywnych wszystkich, wiec kolumny statusu tam nie ma.
+  const notice = document.getElementById('notice');
+  notice.hidden = !m.zamknieta;
+  if (m.zamknieta) {
+    notice.className = 'notice';
+    notice.replaceChildren(
+      el('h3', { text: '{{Kadencja zamknięta}}' }),
+      el('p', { text: '{{Po zakończeniu kadencji API oznacza wszystkich posłów jako nieaktywnych, więc nie da się z niego odczytać, komu mandat wygasł przed czasem. Lista pokazuje wszystkich, którzy w tej kadencji zasiadali.}}' }),
+    );
+  }
+
+  document.getElementById('roster-title').textContent = `{{Posłowie — kadencja}} ${ROMAN[state.term] ?? state.term}`;
+  document.getElementById('roster-sub').textContent = m.zamknieta
+    ? '{{Kliknij nagłówek kolumny, aby posortować. Puste pole oznacza, że dla tej kadencji nie pobrano głosowań.}}'
+    : '{{Kliknij nagłówek kolumny, aby posortować. Nazwisko prowadzi do profilu z frekwencją, głosowaniami i pytaniami.}}';
+
+  rosterState.klub = null;
+  renderClubSeg();
+  renderRoster();
+
+  hbar('clubs-chart', s.kluby.map(c => ({
+    label: c.nazwa,
+    value: c.n,
+    display: fmtInt(c.n),
+    tip: `<b>${c.nazwa}</b>
+      <div class="row">${fmtInt(c.n)} {{posłów}}</div>
+      <div class="row">${fmtPct(c.n / s.poslowie.length, 1)} {{składu}}</div>`,
+  })), { label: '{{Liczebność klubów}}', labelWidth: 132, tick: v => fmtInt(Math.round(v)) });
+
+  document.getElementById('clubs-sub').textContent =
+    `${fmtInt(s.kluby.length)} {{klubów i kół.}} {{Liczone są wszystkie osoby zapisane w rejestrze na dany szyld, także te, których mandat już wygasł — dlatego suma bywa większa niż}} ${fmtInt(460)}.`;
+  document.getElementById('clubs-caption').textContent =
+    '{{Rozkład mandatów w chwili obecnej pokazuje osobna strona — ta liczy przynależność zapisaną w rejestrze posłów.}}';
+
+  document.getElementById('footer').replaceChildren(
+    el('div', { text: `{{Dane: api.sejm.gov.pl, pobrane}} ${(DATA.pobrano || '').slice(0, 10)}.` }),
+    el('div', { class: 'thin', text: '{{Liczby przy nazwiskach pochodzą z tych samych reguł co rankingi zbiorcze — lista ich nie przelicza po swojemu.}}' }),
+  );
+}
+
+mountTermSwitch('term-seg', renderAll);
+renderAll();
+</script>

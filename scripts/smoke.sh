@@ -210,6 +210,16 @@ foreach ($dysc["poslowie"] as $m) { if ($m["id"] === 100) { $odszczepieniec = $m
 $check("odszczepieniec wbrew linii w kazdym glosowaniu", (float) $odszczepieniec["udzial_wbrew"], 1.0);
 $check("transfery wykrywaja zmiane klubu", $dysc["transfery"]["poslow"], 0);
 
+// --- sklad izby ---
+// Lista skladu nie liczy niczego sama: nazwiska bierze z tabeli mp, a liczby
+// z gotowych raportow. Dlatego bramka sprawdza dwie rzeczy - komplet nazwisk
+// i to, ze transfery zgadzaja sie z raportem dyscypliny co do jednego posla.
+$sklad = $read("'"$out"'/sklad.html")["raporty"]["10"]["sklad"];
+$check("sklad niesie wszystkich poslow z bazy", count($sklad["poslowie"]), 3 + 12 + 12);
+$check("transfery to ta sama liczba co w dyscyplinie", $sklad["meta"]["zmienilo_klub"], $dysc["transfery"]["poslow"]);
+$withClub = array_filter($sklad["poslowie"], static fn (array $m): bool => $m["klub"] !== null);
+$check("suma klubow rowna liczbie poslow z klubem", array_sum(array_column($sklad["kluby"], "n")), count($withClub));
+
 // --- kto z kim glosuje ---
 $koal = $read("'"$out"'/koalicje.html")["raporty"]["10"]["koalicje"];
 $para = null;
@@ -255,17 +265,17 @@ $check("wariant odsiany", $only["meta"]["wariant"], "merytoryczne");
 exit($fail);
 '
 
-for f in index.html interpelacje.html droga.html poslowie.html nieobecnosci.html vacatio.html vacatio-merytoryczne.html; do
+for f in index.html interpelacje.html droga.html poslowie.html sklad.html nieobecnosci.html vacatio.html vacatio-merytoryczne.html; do
     [ -s "$out/$f" ] || { echo "BŁĄD: nie powstał $f"; exit 1; }
     grep -q '__DATA__\|<!--@' "$out/$f" && { echo "BŁĄD: niewypełnione znaczniki w $f"; exit 1; }
     grep -q 'nav class="pages"' "$out/$f" || { echo "BŁĄD: brak nawigacji w $f"; exit 1; }
 done
-echo "OK   wygenerowano 7 stron z kompletem znaczników i nawigacją"
+echo "OK   wygenerowano 8 stron z kompletem znaczników i nawigacją"
 
 # Wersja angielska. Brak tlumaczenia NIE zostawia widocznego znacznika - wraca
 # polski tekst pod angielskim adresem, czego po samej stronie nie widac. Dlatego
 # bramka czyta to, co build zglosil, a nie szuka klamer w wyniku.
-for f in index.html interpelacje.html droga.html poslowie.html nieobecnosci.html; do
+for f in index.html interpelacje.html droga.html poslowie.html sklad.html nieobecnosci.html; do
     [ -s "$out/en/$f" ] || { echo "BŁĄD: nie powstała angielska wersja $f"; exit 1; }
     grep -q '{{' "$out/en/$f" && { echo "BŁĄD: nieusunięty znacznik w en/$f"; exit 1; }
     grep -q '{{' "$out/$f" && { echo "BŁĄD: nieusunięty znacznik w $f"; exit 1; }

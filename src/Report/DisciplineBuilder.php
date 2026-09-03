@@ -251,11 +251,18 @@ final class DisciplineBuilder
 
         usort($movers, static fn (array $a, array $b): int => [$b['zmian'], $a['nazwa']] <=> [$a['zmian'], $b['nazwa']]);
 
+        // Lista jest przycieta do czolowki, ale liczba klubow per posel nie moze byc:
+        // sklad izby zaznacza przy nazwisku, ze posel zmienil barwy, i musi to wiedziec
+        // o kazdym, a nie tylko o czterdziestu. Bez tego dwie strony podawalyby dwie
+        // rozne liczby transferow - 144 na jednej i 131 na drugiej.
+        $spellsPerMember = array_map(static fn (array $spells): int => count($spells), $byMember);
+
         return [
             'poslow' => count($movers),
             'wszystkich' => count($byMember),
             'udzial' => $byMember === [] ? 0.0 : round(count($movers) / count($byMember), 4),
             'lista' => array_slice($movers, 0, 40),
+            'klubow_per_posel' => $spellsPerMember,
         ];
     }
 }
