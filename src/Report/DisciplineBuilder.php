@@ -30,6 +30,13 @@ final class DisciplineBuilder
     private const MIN_SAMPLE = 100;
 
     /**
+     * Klub, ktory istnial przez kilka posiedzen, nie moze byc "najbardziej
+     * zdyscyplinowany" na podstawie kilkudziesieciu glosow. Prog dotyczy liczby
+     * glosowan, w ktorych klub w ogole mial ustalona linie.
+     */
+    private const MIN_CLUB_VOTINGS = 500;
+
+    /**
      * Niezrzeszeni nie sa klubem i nie maja linii - liczenie im dyscypliny to blad
      * kategorii, ktory w pierwszym przebiegu dal im 25% "buntow". Kolo tez odpada:
      * przy kilku osobach linia jest przypadkiem, nie stanowiskiem.
@@ -61,6 +68,7 @@ final class DisciplineBuilder
             'glosowan' => $votings,
             'min_probka' => self::MIN_SAMPLE,
             'min_klub' => self::MIN_CLUB_VOTES,
+            'min_glosowan_klubu' => self::MIN_CLUB_VOTINGS,
             'udzial_ogolem' => $withLine > 0 ? round($against / $withLine, 5) : 0.0,
             'poslowie' => $members,
             'kluby' => $clubs,
@@ -173,6 +181,7 @@ final class DisciplineBuilder
             $votes = (int) $row['glosow'];
 
             $out[] = [
+                'w_rankingu' => $votings >= self::MIN_CLUB_VOTINGS,
                 'klucz' => (string) $row['club'],
                 'glosowan' => $votings,
                 'jednomyslnych' => (int) $row['jednomyslnych'],
@@ -183,7 +192,10 @@ final class DisciplineBuilder
             ];
         }
 
-        usort($out, static fn (array $a, array $b): int => $b['udzial_wbrew'] <=> $a['udzial_wbrew']);
+        // Kluby ponizej progu zostaja w zestawieniu, ale spadaja na koniec i nie moga
+        // trafic do naglowka raportu jako "najbardziej zdyscyplinowane".
+        usort($out, static fn (array $a, array $b): int
+            => [$b['w_rankingu'], $b['udzial_wbrew']] <=> [$a['w_rankingu'], $a['udzial_wbrew']]);
 
         return $out;
     }

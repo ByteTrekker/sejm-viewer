@@ -8,7 +8,7 @@
     <h1>Ranking milczenia ministerstw</h1>
     <p class="dek">
       Regulamin Sejmu daje adresatowi <b>21 dni</b> na pisemną odpowiedź na interpelację
-      lub zapytanie poselskie (art. 192 ust. 1 i art. 195 ust. 1). Ten ranking liczy,
+      lub zapytanie poselskie (<span id="ref-int"></span> i <span id="ref-zap"></span>). Ten ranking liczy,
       kto ten termin trzyma, a kto milczy — na pełnych danych z API Sejmu.
     </p>
     <div class="controls">
@@ -423,8 +423,12 @@ function renderAll() {
     renderAnswered();
   }
   renderWorst();
+  document.getElementById('ref-int').replaceChildren(legalRef('termin_interpelacje'));
+  document.getElementById('ref-zap').replaceChildren(legalRef('termin_zapytania'));
+
   document.getElementById('footer').replaceChildren(
     el('div', { text: `Dane: api.sejm.gov.pl, pobrane ${(DATA.pobrano || '').slice(0, 10)}.` }),
+    legalFooter(),
     el('div', { text: `Wyłączone z analizy: ${fmtInt(report().meta.wylaczone.wielu_adresatow)} pytań do wielu adresatów naraz, ${fmtInt(report().meta.wylaczone.brak_daty_przekazania)} bez daty przekazania.` }),
   );
   drawCompare();

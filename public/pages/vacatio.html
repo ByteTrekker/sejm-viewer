@@ -8,7 +8,7 @@
     <h1>Ile czasu dostajesz na nowe prawo</h1>
     <p class="dek">
       Ustawa o ogłaszaniu aktów normatywnych daje adresatowi <b>14 dni</b> na przygotowanie się
-      do nowego przepisu (art. 4 ust. 1). Ten dashboard liczy, które resorty ten standard trzymają,
+      do nowego przepisu (<span id="ref-vac"></span>). Ten dashboard liczy, które resorty ten standard trzymają,
       a które wprowadzają rozporządzenia z dnia na dzień — na pełnych danych z Dziennika Ustaw.
     </p>
     <div class="stamp" id="stamp"></div>
@@ -59,7 +59,7 @@
       <summary>Jak liczymy (i czego ten ranking nie mówi)</summary>
       <ol>
         <li><b>Vacatio legis</b> = data wejścia w życie minus data ogłoszenia w Dzienniku Ustaw. Obie pochodzą z pól <code>entryIntoForce</code> i <code>promulgation</code> w API ELI.</li>
-        <li><b>Skrócenie terminu jest legalne.</b> Art. 4 ust. 2 dopuszcza je „w uzasadnionych przypadkach", a wejście w życie w dniu ogłoszenia — gdy wymaga tego ważny interes państwa. Ten ranking mierzy <b>skalę odstępstwa od standardu</b>, a nie łamanie prawa. Przy odsetkach rzędu 90% teza brzmi: wyjątek stał się regułą.</li>
+        <li><b>Skrócenie terminu jest legalne.</b> <span id="ref-exc"></span> dopuszcza je „w uzasadnionych przypadkach", a wejście w życie w dniu ogłoszenia — gdy wymaga tego ważny interes państwa. Ten ranking mierzy <b>skalę odstępstwa od standardu</b>, a nie łamanie prawa. Przy odsetkach rzędu 90% teza brzmi: wyjątek stał się regułą.</li>
         <li>Próg liczymy <b>zachowawczo</b>: 14 dni różnicy uznajemy już za spełnienie standardu, choć konwencja redakcyjna („po upływie 14 dni") daje zwykle 15. Zaniżenie progu może tylko osłabić zarzut, nigdy go nie zawyżyć.</li>
         <li>API podaje <b>jedną</b> datę wejścia w życie. Akty, których przepisy wchodzą etapami, są uproszczone do tej jednej daty.</li>
         <li>Krótkie vacatio bywa <b>merytorycznie uzasadnione</b> — coroczne stawki, akty techniczne, wykonanie wyroku TK. Ranking nie odróżnia uzasadnionych od nieuzasadnionych i nie udaje, że potrafi.</li>
@@ -131,6 +131,8 @@ document.getElementById('stamp').append(
   el('span', { text: `Standard ustawowy: ${STD} dni` }),
 );
 document.getElementById('minsample').textContent = meta.min_probka;
+document.getElementById('ref-vac')?.replaceChildren(legalRef('vacatio_standard'));
+document.getElementById('ref-exc')?.replaceChildren(legalRef('vacatio_wyjatek', 'Art. 4 ust. 2'));
 
 /* ---------- KPI ---------- */
 const totals = DATA.organy.reduce((a, r) => ({
@@ -376,6 +378,7 @@ document.getElementById('footer').append(
     : 'Wersja pełna — zawiera także akty czysto administracyjne (obszary Natura 2000, pełnomocnicy rządu, wybory przedterminowe). Wersja odsiana jest pod „Bez technicznych”.' }),
   el('div', { text: `Pominięto ${fmtInt(meta.bez_daty_wejscia)} aktów bez daty wejścia w życie w API.` }),
   el('div', { class: 'thin', text: 'Skrócenie vacatio legis jest dopuszczalne (art. 4 ust. 2 ustawy o ogłaszaniu aktów normatywnych). Ranking mierzy skalę odstępstwa od standardu, nie łamanie prawa.' }),
+  legalFooter(),
 );
 
 drawHistogram();

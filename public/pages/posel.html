@@ -74,6 +74,7 @@ document.getElementById('name').textContent = P.nazwa;
 
 document.getElementById('accounts').replaceChildren(
   el('span', { class: 'tag', text: P.klub }),
+  el('a', { class: 'src', href: P.url_sejm, target: '_blank', rel: 'noopener', text: 'sejm.gov.pl ↗' }),
   ...P.konta.map(a => el('a', { class: 'src', href: a.url, target: '_blank', rel: 'noopener',
     text: (a.platforma === 'x' ? '𝕏 @' : a.platforma === 'www' ? 'strona ' : a.platforma + ' ') + (a.platforma === 'www' ? '↗' : a.konto) })),
 );
@@ -162,7 +163,9 @@ const VOTE_COLUMNS = [
     render: v => el('td', {}, el('span', { class: 'tag', text: VOTE_LABELS[v.glos] ?? v.glos })) },
   { key: 'tytul', label: 'Głosowanie', type: 'text',
     render: v => el('td', {},
-      el('span', { text: v.tytul }),
+      v.url
+        ? el('a', { class: 'profile', href: v.url, target: '_blank', rel: 'noopener', text: v.tytul })
+        : el('span', { text: v.tytul }),
       v.wbrew ? el('span', { class: 'who', text: `klub ${v.klub} głosował: ${VOTE_LABELS[v.linia] ?? v.linia}` }) : el('span')) },
   { key: 'nr', label: 'Nr', type: 'int' },
 ];
@@ -228,5 +231,6 @@ if (q && q.pytan > 0) {
 document.getElementById('footer').replaceChildren(
   el('div', { text: `Dane: api.sejm.gov.pl. Konta w mediach społecznościowych: Wikidata — źródło społecznościowe, niekompletne i niegwarantowane.` }),
   el('div', { class: 'thin', text: 'Wszystkie liczby na tej stronie pochodzą z tych samych reguł co rankingi zbiorcze — profil ich nie przelicza po swojemu.' }),
+  legalFooter(),
 );
 </script>

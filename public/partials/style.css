@@ -237,3 +237,8 @@
   .masthead .links a.src:hover { border-color: var(--series-1); background: var(--surface-2); }
   td a.profile { color: var(--ink-1); text-decoration: none; border-bottom: 1px solid var(--line); }
   td a.profile:hover { border-bottom-color: var(--series-1); }
+
+  /* --- gotowy akapit raportu --- */
+  .lead-card { background: var(--surface-1); border: 1px solid var(--line); border-left: 3px solid var(--series-1);
+               border-radius: 0 10px 10px 0; padding: 16px 20px; margin-bottom: 14px; }
+  .lead-card p { margin: 0; font-size: 16.5px; line-height: 1.6; color: var(--ink-1); max-width: 68ch; }

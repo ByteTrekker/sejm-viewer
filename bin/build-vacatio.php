@@ -14,6 +14,7 @@ require __DIR__ . '/bootstrap.php';
 
 use Milczenie\Console\Options;
 use Milczenie\Domain\IssuerNormalizer;
+use Milczenie\Domain\LegalSource;
 use Milczenie\Domain\TechnicalActClassifier;
 use Milczenie\Report\VacatioBuilder;
 use Milczenie\Storage\Database;
@@ -49,6 +50,7 @@ $report = (new VacatioBuilder(
 
 // Obie wersje (pelna i bez aktow technicznych) powstaja z jednego szablonu
 // i roznia sie wylacznie zbiorem danych.
+$report['podstawy'] = LegalSource::all();
 $html = (new PageComposer($outDir))->render('vacatio.html', 'vacatio', $report);
 file_put_contents(sprintf('%s/%s.html', $outDir, $name), $html);
 

@@ -123,6 +123,7 @@ function renderAll() {
   document.getElementById('footer').replaceChildren(
     el('div', { text: `Dane: api.sejm.gov.pl, pobrane ${(DATA.pobrano || '').slice(0, 10)}.` }),
     el('div', { class: 'thin', text: 'Opóźnienie liczone raz na pytanie: pytanie skierowane do kilku resortów jest przekazywane jednym pismem i raz trafia do statystyki.' }),
+    legalFooter(),
   );
 }
 

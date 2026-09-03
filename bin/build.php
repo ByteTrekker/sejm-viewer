@@ -21,6 +21,7 @@ declare(strict_types=1);
 require __DIR__ . '/bootstrap.php';
 
 use Milczenie\Console\Options;
+use Milczenie\Domain\LegalSource;
 use Milczenie\Domain\RecipientNormalizer;
 use Milczenie\Report\AbsenceBuilder;
 use Milczenie\Report\CoalitionBuilder;
@@ -41,7 +42,7 @@ const PAGE_SLICES = [
     'nieobecnosci' => ['meta', 'nieobecnosci'],
     'dyscyplina' => ['meta', 'dyscyplina'],
     'koalicje' => ['meta', 'koalicje'],
-    'raporty' => ['meta', 'raporty'],
+    'raporty' => ['meta', 'raporty', 'archiwum'],
 ];
 
 // Skrypt budujacy, nie usluga: profile poslow trzymaja w pamieci glosowania calej
@@ -93,7 +94,9 @@ foreach ($terms as $term) {
     $report['nieobecnosci'] = (new AbsenceBuilder($db))->build($term);
     $report['dyscyplina'] = (new DisciplineBuilder($db))->build($term);
     $report['koalicje'] = (new CoalitionBuilder($db))->build($term);
-    $report['raporty'] = (new DigestBuilder($db))->build($term);
+    $digests = new DigestBuilder($db);
+    $report['raporty'] = $digests->build($term);
+    $report['archiwum'] = $digests->archive($term);
 
     $ranked = array_values(array_filter($report['ministerstwa'], static fn (array $m): bool => $m['w_rankingu']));
     $sum = static fn (string $key): int => array_sum(array_column($report['ministerstwa'], $key));
@@ -172,6 +175,7 @@ foreach (PAGE_SLICES as $page => $keys) {
     $default = isset($slices[$defaultTerm]) ? $defaultTerm : max(array_keys($slices));
 
     $html = $composer->render($page . '.html', $page, [
+        'podstawy' => LegalSource::all(),
         'kadencje' => $kadencje,
         'domyslna_kadencja' => $default,
         'pobrano' => $fetchedAt,
@@ -203,6 +207,7 @@ $vacatio = $db->fetchRow(
 $counts = static fn (string $sql): int => (int) ($db->fetchRow($sql)['n'] ?? 0);
 
 $index = [
+    'podstawy' => LegalSource::all(),
     'wygenerowano' => $today->format('Y-m-d'),
     'pobrano' => $fetchedAt,
     'skroty' => [
@@ -242,6 +247,7 @@ $profiles = 0;
 foreach ($reports as $term => $report) {
     foreach ($profileBuilder->buildAll($term, $report) as $id => $profile) {
         $page = $composer->render('posel.html', 'poslowie', [
+            'podstawy' => LegalSource::all(),
             'wygenerowano' => $today->format('Y-m-d'),
             'pobrano' => $fetchedAt,
             'profil' => $profile,
