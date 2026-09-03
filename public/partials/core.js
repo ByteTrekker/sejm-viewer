@@ -4,8 +4,12 @@
 
 const ROMAN = { 7: 'VII', 8: 'VIII', 9: 'IX', 10: 'X' };
 
-const fmtInt = n => new Intl.NumberFormat('pl-PL').format(n);
-const fmtPct = (x, d = 1) => (100 * x).toLocaleString('pl-PL', { minimumFractionDigits: d, maximumFractionDigits: d }) + '%';
+// Znacznik, nie stala jezykowa: strona angielska dostaje tu 'en-GB', wiec liczby
+// formatuje przegladarka, a nie osobna galaz kodu. Bez tego wersja angielska
+// pokazywala "10 148 regulations (59,2%)" - polskie separatory w tekscie angielskim.
+const LOCALE = '{{pl-PL}}';
+const fmtInt = n => new Intl.NumberFormat(LOCALE).format(n);
+const fmtPct = (x, d = 1) => (100 * x).toLocaleString(LOCALE, { minimumFractionDigits: d, maximumFractionDigits: d }) + '%';
 
 const el = (tag, attrs = {}, ...kids) => {
   const n = document.createElement(tag);
@@ -66,10 +70,10 @@ function mountTermSwitch(hostId, onChange, disabled = () => false) {
       type: 'button',
       'aria-pressed': String(k.numer === state.term),
       disabled: off ? '' : null,
-      title: off ? 'Dla tej kadencji nie da się policzyć tej miary' : null,
+      title: off ? '{{Dla tej kadencji nie da się policzyć tej miary}}' : null,
     },
       el('span', { text: ROMAN[k.numer] ?? String(k.numer) }),
-      el('span', { class: 'yr', text: `${k.od.slice(0, 4)}–${k.zamknieta ? k.do.slice(0, 4) : 'dziś'}` }),
+      el('span', { class: 'yr', text: `${k.od.slice(0, 4)}–${k.zamknieta ? k.do.slice(0, 4) : '{{dziś}}'}` }),
     );
     if (!off) {
       b.onclick = () => {
@@ -99,12 +103,12 @@ function renderStamp(hostId, extra = []) {
   const meta = report()?.meta ?? {};
   const parts = [];
   if (k) {
-    parts.push(el('span', { text: `Kadencja ${ROMAN[state.term] ?? state.term} · ${k.od} – ${k.zamknieta ? k.do : 'trwa'}` }));
-    parts.push(el('span', { text: `Data odcięcia: ${meta.wygenerowano ?? '—'}${k.zamknieta ? ' (koniec kadencji)' : ''}` }));
+    parts.push(el('span', { text: `{{Kadencja}} ${ROMAN[state.term] ?? state.term} · ${k.od} – ${k.zamknieta ? k.do : '{{trwa}}'}` }));
+    parts.push(el('span', { text: `{{Data odcięcia:}} ${meta.wygenerowano ?? '—'}${k.zamknieta ? ' {{(koniec kadencji)}}' : ''}` }));
   } else if (meta.wygenerowano) {
-    parts.push(el('span', { text: `Stan na ${meta.wygenerowano}` }));
+    parts.push(el('span', { text: `{{Stan na}} ${meta.wygenerowano}` }));
   }
-  parts.push(el('span', {}, 'Źródło: ', el('a', { href: 'https://api.sejm.gov.pl', text: meta.zrodlo ?? 'api.sejm.gov.pl' })));
+  parts.push(el('span', {}, '{{Źródło:}} ', el('a', { href: 'https://api.sejm.gov.pl', text: meta.zrodlo ?? 'api.sejm.gov.pl' })));
   host.replaceChildren(...parts, ...extra.map(t => el('span', { text: t })));
 }
 
@@ -112,7 +116,7 @@ function renderStamp(hostId, extra = []) {
 function hbar(hostId, rows, opts) {
   const host = document.getElementById(hostId);
   if (!host) return;
-  if (!rows.length) { host.replaceChildren(el('p', { class: 'sub', text: 'Brak danych.' })); return; }
+  if (!rows.length) { host.replaceChildren(el('p', { class: 'sub', text: '{{Brak danych.}}' })); return; }
 
   const rowH = opts.rowH || 30, P = { t: 8, r: 62, b: 26, l: opts.labelWidth || 140 }, W = 900;
   const H = P.t + P.b + rows.length * rowH;
@@ -232,12 +236,33 @@ function legalFooter() {
   return row;
 }
 
+/* ---------- etykiety wartosci nadawanych przez nas, nie przez API ---------- */
+/**
+ * Rodzaj pytania i kategoria glosowania sa naszymi nazwami wlasnymi, nie
+ * cytatem ze zrodla, wiec podlegaja tlumaczeniu. Nazwy poslow, resortow
+ * i tytuly aktow zostaja w oryginale — to nazwy wlasne.
+ */
+const KIND_LABELS = { 'interpelacja': '{{interpelacja}}', 'zapytanie': '{{zapytanie}}' };
+const CATEGORY_LABELS = {
+  'wnioski formalne': '{{wnioski formalne}}',
+  'wybory i odwołania': '{{wybory i odwołania}}',
+  'budżet': '{{budżet}}',
+  'uchwały Senatu': '{{uchwały Senatu}}',
+  'ratyfikacje': '{{ratyfikacje}}',
+  'wotum': '{{wotum}}',
+  'projekty rządowe': '{{projekty rządowe}}',
+  'projekty poselskie i inne': '{{projekty poselskie i inne}}',
+  'pozostałe': '{{pozostałe}}',
+};
+const kindLabel = v => KIND_LABELS[v] ?? v;
+const categoryLabel = v => CATEGORY_LABELS[v] ?? v;
+
 /* ---------- odnosnik do profilu posla ---------- */
 /**
  * Kolumna z nazwiskiem prowadzaca do profilu. Profile powstaja per kadencja,
  * wiec adres niesie i kadencje, i identyfikator.
  */
-function memberColumn(label = 'Poseł') {
+function memberColumn(label = '{{Poseł}}') {
   return {
     key: 'nazwa',
     label,
@@ -253,16 +278,16 @@ function memberColumn(label = 'Poseł') {
 /* ---------- odnosniki do zrodla ---------- */
 function sourceLinks(q) {
   const row = el('div', { class: 'links' },
-    el('a', { class: 'src', href: q.url, target: '_blank', rel: 'noopener', text: 'treść pytania ↗' }),
+    el('a', { class: 'src', href: q.url, target: '_blank', rel: 'noopener', text: '{{treść pytania ↗}}' }),
   );
   if (q.url_odpowiedzi) {
     row.append(el('a', {
       class: 'src', href: q.url_odpowiedzi, target: '_blank', rel: 'noopener',
-      text: q.tylko_skan ? 'odpowiedź (PDF) ↗' : 'treść odpowiedzi ↗',
+      text: q.tylko_skan ? '{{odpowiedź (PDF) ↗}}' : '{{treść odpowiedzi ↗}}',
     }));
   } else if (q.odpowiedziano) {
-    row.append(el('span', { class: 'tag', text: 'brak odnośnika do odpowiedzi w API' }));
+    row.append(el('span', { class: 'tag', text: '{{brak odnośnika do odpowiedzi w API}}' }));
   }
-  if (q.prolongata) row.append(el('span', { class: 'tag', text: 'prolongata' }));
+  if (q.prolongata) row.append(el('span', { class: 'tag', text: '{{prolongata}}' }));
   return row;
 }

@@ -20,7 +20,7 @@ use Milczenie\Report\VacatioBuilder;
 use Milczenie\Storage\Database;
 use Milczenie\Web\PageComposer;
 
-$options = Options::fromGetopt(['from::', 'to::', 'db::', 'out::', 'exclude-technical', 'name::']);
+$options = Options::fromGetopt(['from::', 'to::', 'db::', 'out::', 'exclude-technical', 'name::', 'lang::']);
 
 // Wariant "merytoryczny" odsiewa akty, ktore nie nakladaja obowiazkow na obywateli
 // (obszary Natura 2000, pelnomocnicy rzadu, wybory przedterminowe). Powstaje jako
@@ -51,8 +51,28 @@ $report = (new VacatioBuilder(
 // Obie wersje (pelna i bez aktow technicznych) powstaja z jednego szablonu
 // i roznia sie wylacznie zbiorem danych.
 $report['podstawy'] = LegalSource::all();
-$html = (new PageComposer($outDir))->render('vacatio.html', 'vacatio', $report);
-file_put_contents(sprintf('%s/%s.html', $outDir, $name), $html);
+
+// Wersja polska idzie do public/, kazda inna do podkatalogu jezyka. Dane zostaja
+// te same - roznica jest wylacznie w warstwie tekstu, wiec raport liczy sie raz.
+$composer = new PageComposer($outDir);
+foreach ($options->commaList('lang', ['pl', 'en']) as $lang) {
+    $dir = $lang === 'pl' ? $outDir : $outDir . '/' . $lang;
+    if (!is_dir($dir)) {
+        mkdir($dir, 0o755, true);
+    }
+
+    file_put_contents(
+        sprintf('%s/%s.html', $dir, $name),
+        $composer->render('vacatio.html', 'vacatio', $report, '', $lang, $name . '.html'),
+    );
+}
+
+foreach ($composer->missingTranslations() as $lang => $strings) {
+    fwrite(STDERR, sprintf('BRAK TLUMACZEN [%s]: %d%s', $lang, count($strings), PHP_EOL));
+    foreach (array_slice($strings, 0, 25) as $string) {
+        fwrite(STDERR, '   ' . $string . PHP_EOL);
+    }
+}
 
 $ranked = array_values(array_filter($report['organy'], static fn (array $r): bool => $r['w_rankingu']));
 

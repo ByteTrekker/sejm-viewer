@@ -1,32 +1,26 @@
-<title>Nieobecności w głosowaniach</title>
+<title>{{Nieobecności w głosowaniach}}</title>
 <!--@style-->
 
 <div class="wrap">
   <!--@nav-->
 
   <header class="masthead">
-    <h1>Nieobecności w głosowaniach</h1>
+    <h1>{{Nieobecności w głosowaniach}}</h1>
     <p class="dek">
-      Nieobecność liczymy dwojako: <b>łącznie</b> — ile głosowań poseł opuścił — oraz
-      <b>nieusprawiedliwione</b>, czyli te dni, których Kancelaria Sejmu nie uznała
-      za usprawiedliwione. Ta druga liczba jest właściwą miarą i po niej domyślnie sortujemy.
+      {{Nieobecność liczymy dwojako: <b>łącznie</b> — ile głosowań poseł opuścił — oraz <b>nieusprawiedliwione</b>, czyli te dni, których Kancelaria Sejmu nie uznała za usprawiedliwione. Ta druga liczba jest właściwą miarą i po niej domyślnie sortujemy.}}
     </p>
     <p class="caveat">
-      <b>Usprawiedliwienie to status formalny, nie ocena zasadności</b> — i dotyczy całego dnia
-      posiedzenia, nie pojedynczego głosowania. API podaje, czy dzień był usprawiedliwiony,
-      ale <b>nie podaje powodu</b>: delegacja zagraniczna, zwolnienie lekarskie i urlop
-      rodzicielski są w danych nierozróżnialne. Wysoki odsetek nieusprawiedliwionych nie
-      przesądza o niczym poza tym, że Kancelaria nie odnotowała usprawiedliwienia.
+      {{<b>Usprawiedliwienie to status formalny, nie ocena zasadności</b> — i dotyczy całego dnia posiedzenia, nie pojedynczego głosowania. API podaje, czy dzień był usprawiedliwiony, ale <b>nie podaje powodu</b>: delegacja zagraniczna, zwolnienie lekarskie i urlop rodzicielski są w danych nierozróżnialne. Wysoki odsetek nieusprawiedliwionych nie przesądza o niczym poza tym, że Kancelaria nie odnotowała usprawiedliwienia.}}
     </p>
     <div class="controls">
-      <span class="switch-label">Kadencja</span>
-      <div class="seg" id="term-seg" role="group" aria-label="Wybierz kadencję"></div>
+      <span class="switch-label">{{Kadencja}}</span>
+      <div class="seg" id="term-seg" role="group" aria-label="{{Wybierz kadencję}}"></div>
     </div>
     <div class="stamp" id="stamp"></div>
   </header>
 
   <section id="compare-section">
-    <h2>Kadencje obok siebie</h2>
+    <h2>{{Kadencje obok siebie}}</h2>
     <div class="card"><figure>
       <div id="absence-compare"></div>
       <figcaption id="absence-compare-caption"></figcaption>
@@ -34,22 +28,21 @@
   </section>
 
   <section>
-    <h2 id="clubs-title">Kluby</h2>
+    <h2 id="clubs-title">{{Kluby}}</h2>
     <p class="sub" id="absence-sub"></p>
     <div class="card"><figure>
       <div id="absence-clubs"></div>
-      <figcaption>Odsetek <b>nieusprawiedliwionych</b> nieobecności. Uwzględniono kluby z co najmniej 1 000 oddanych głosów.</figcaption>
+      <figcaption>{{Odsetek <b>nieusprawiedliwionych</b> nieobecności. Uwzględniono kluby z co najmniej 1 000 oddanych głosów.}}</figcaption>
     </figure></div>
   </section>
 
   <section>
-    <h2>Posłowie</h2>
+    <h2>{{Posłowie}}</h2>
     <p class="sub">
-      Kolumna „głosowań łącznie” pokazuje mianownik: poseł, który objął lub stracił mandat
-      w trakcie kadencji, ma go odpowiednio mniejszy. Kliknij nagłówek kolumny, aby posortować.
+      {{Kolumna „głosowań łącznie” pokazuje mianownik: poseł, który objął lub stracił mandat w trakcie kadencji, ma go odpowiednio mniejszy. Kliknij nagłówek kolumny, aby posortować.}}
     </p>
     <div class="controls">
-      <input type="search" id="absence-filter" placeholder="Filtruj posła lub klub…" aria-label="Filtruj posła">
+      <input type="search" id="absence-filter" placeholder="{{Filtruj posła lub klub…}}" aria-label="{{Filtruj posła}}">
     </div>
     <div class="scroller">
       <table id="absences"><thead><tr id="absences-head"></tr></thead><tbody id="absences-body"></tbody></table>
@@ -68,12 +61,12 @@ state.term = firstAvailableTerm(k => k.nieobecnosci_udzial !== null && k.nieobec
 
 const ABSENCE_COLUMNS = [
   memberColumn(),
-  { key: 'klub', label: 'Klub', type: 'text' },
-  { key: 'udzial_nieusprawiedliwionych', label: 'Nieusprawiedliwione', type: 'pct', digits: 1 },
-  { key: 'udzial_nieobecnosci', label: 'Nieobecności łącznie', type: 'pct', digits: 1 },
-  { key: 'nieusprawiedliwione', label: 'Opuszczonych bez usprawiedliwienia', type: 'int' },
-  { key: 'nieobecnosci', label: 'Opuszczonych łącznie', type: 'int' },
-  { key: 'glosowan', label: 'Głosowań łącznie', type: 'int' },
+  { key: 'klub', label: '{{Klub}}', type: 'text' },
+  { key: 'udzial_nieusprawiedliwionych', label: '{{Nieusprawiedliwione}}', type: 'pct', digits: 1 },
+  { key: 'udzial_nieobecnosci', label: '{{Nieobecności łącznie}}', type: 'pct', digits: 1 },
+  { key: 'nieusprawiedliwione', label: '{{Opuszczonych bez usprawiedliwienia}}', type: 'int' },
+  { key: 'nieobecnosci', label: '{{Opuszczonych łącznie}}', type: 'int' },
+  { key: 'glosowan', label: '{{Głosowań łącznie}}', type: 'int' },
 ];
 const absenceState = { sort: 'udzial_nieusprawiedliwionych', dir: -1, filter: '' };
 
@@ -90,39 +83,37 @@ function renderTable() {
       .filter(m => (m.nazwa + ' ' + (m.klub ?? '')).toLowerCase().includes(absenceState.filter)),
     state: absenceState, limit: 60, rerender: renderTable,
     tip: m => `<b>${m.nazwa}</b>
-      <div class="row">${m.klub ?? 'brak klubu'}${m.okreg ? ' · ' + m.okreg : ''}</div>
-      <div class="row">opuścił ${fmtInt(m.nieobecnosci)} z ${fmtInt(m.glosowan)} głosowań</div>
-      <div class="row">bez usprawiedliwienia: ${fmtInt(m.nieusprawiedliwione)}${m.udzial_uspr_wsrod_nieobecnosci !== null ? ` (usprawiedliwiono ${fmtPct(m.udzial_uspr_wsrod_nieobecnosci, 0)} nieobecności)` : ''}</div>`,
+      <div class="row">${m.klub ?? '{{brak klubu}}'}${m.okreg ? ' · ' + m.okreg : ''}</div>
+      <div class="row">{{opuścił}} ${fmtInt(m.nieobecnosci)} {{z}} ${fmtInt(m.glosowan)} {{głosowań}}</div>
+      <div class="row">{{bez usprawiedliwienia:}} ${fmtInt(m.nieusprawiedliwione)}${m.udzial_uspr_wsrod_nieobecnosci !== null ? ` ({{usprawiedliwiono}} ${fmtPct(m.udzial_uspr_wsrod_nieobecnosci, 0)} {{nieobecności}})` : ''}</div>`,
   });
 }
 
 function renderAll() {
   hideTip();
   const a = report().nieobecnosci;
-  renderStamp('stamp', [`${fmtInt(a.glosowan)} głosowań imiennych`]);
+  renderStamp('stamp', [`${fmtInt(a.glosowan)} {{głosowań imiennych}}`]);
 
   document.getElementById('absence-sub').textContent =
-    `Kadencja ${ROMAN[state.term] ?? state.term}: ${fmtInt(a.glosowan)} głosowań, ${fmtInt(a.poslow)} posłów. `
-    + `Nieobecności łącznie ${fmtPct(a.udzial_ogolem, 1)}, w tym nieusprawiedliwione ${fmtPct(a.udzial_nieusprawiedliwionych, 1)}. `
-    + `W tabeli posłowie z co najmniej ${a.min_probka} głosowaniami.`;
-  document.getElementById('clubs-title').textContent = `Kluby — kadencja ${ROMAN[state.term] ?? state.term}`;
+    `{{Kadencja}} ${ROMAN[state.term] ?? state.term}: ${fmtInt(a.glosowan)} {{głosowań,}} ${fmtInt(a.poslow)} {{posłów.}} `
+    + `{{Nieobecności łącznie}} ${fmtPct(a.udzial_ogolem, 1)}{{, w tym nieusprawiedliwione}} ${fmtPct(a.udzial_nieusprawiedliwionych, 1)}. `
+    + `{{W tabeli posłowie z co najmniej}} ${a.min_probka} {{głosowaniami.}}`;
+  document.getElementById('clubs-title').textContent = `{{Kluby — kadencja}} ${ROMAN[state.term] ?? state.term}`;
 
   const withVotes = DATA.kadencje.filter(k => k.nieobecnosci_udzial !== null && k.nieobecnosci_udzial !== undefined);
   document.getElementById('compare-section').hidden = withVotes.length < 2;
   if (withVotes.length >= 2) {
     hbar('absence-compare', withVotes.map(k => ({
-      label: `Kadencja ${ROMAN[k.numer] ?? k.numer}`,
+      label: `{{Kadencja}} ${ROMAN[k.numer] ?? k.numer}`,
       value: k.nieobecnosci_udzial,
       display: fmtPct(k.nieobecnosci_udzial, 1),
-      tip: `<b>Kadencja ${ROMAN[k.numer] ?? k.numer}</b>
-        <div class="row">${fmtPct(k.nieobecnosci_udzial, 1)} nieobecności</div>
-        <div class="row">${fmtInt(k.nieobecnosci_glosowan)} głosowań imiennych</div>`,
-    })), { label: 'Nieobecności w kolejnych kadencjach', labelWidth: 142, tick: v => Math.round(v * 100) + '%' });
+      tip: `<b>{{Kadencja}} ${ROMAN[k.numer] ?? k.numer}</b>
+        <div class="row">${fmtPct(k.nieobecnosci_udzial, 1)} {{nieobecności}}</div>
+        <div class="row">${fmtInt(k.nieobecnosci_glosowan)} {{głosowań imiennych}}</div>`,
+    })), { label: '{{Nieobecności w kolejnych kadencjach}}', labelWidth: 142, tick: v => Math.round(v * 100) + '%' });
 
     document.getElementById('absence-compare-caption').textContent =
-      'Ta sama miara i te same reguły, ale nie ten sam ustrój głosowania: w kadencji IX '
-      + 'wprowadzono głosowanie zdalne w czasie pandemii, co obniża odsetek nieobecności '
-      + 'mechanicznie. Porównanie między kadencjami nie jest równoważne.';
+      '{{Ta sama miara i te same reguły, ale nie ten sam ustrój głosowania: w kadencji IX wprowadzono głosowanie zdalne w czasie pandemii, co obniża odsetek nieobecności mechanicznie. Porównanie między kadencjami nie jest równoważne.}}';
   }
 
   hbar('absence-clubs', a.kluby.filter(c => c.glosowan >= 1000).map(c => ({
@@ -130,19 +121,19 @@ function renderAll() {
     value: c.udzial_nieusprawiedliwionych,
     display: fmtPct(c.udzial_nieusprawiedliwionych, 1),
     tip: `<b>${c.klucz}</b>
-      <div class="row">${fmtInt(c.poslow)} posłów</div>
-      <div class="row">nieusprawiedliwione: ${fmtInt(c.nieusprawiedliwione)} (${fmtPct(c.udzial_nieusprawiedliwionych, 1)})</div>
-      <div class="row">łącznie opuszczone: ${fmtInt(c.nieobecnosci)} (${fmtPct(c.udzial_nieobecnosci, 1)})</div>`,
-  })), { label: 'Nieusprawiedliwione nieobecności według klubu', labelWidth: 152, tick: v => Math.round(v * 100) + '%' });
+      <div class="row">${fmtInt(c.poslow)} {{posłów}}</div>
+      <div class="row">{{nieusprawiedliwione:}} ${fmtInt(c.nieusprawiedliwione)} (${fmtPct(c.udzial_nieusprawiedliwionych, 1)})</div>
+      <div class="row">{{łącznie opuszczone:}} ${fmtInt(c.nieobecnosci)} (${fmtPct(c.udzial_nieobecnosci, 1)})</div>`,
+  })), { label: '{{Nieusprawiedliwione nieobecności według klubu}}', labelWidth: 152, tick: v => Math.round(v * 100) + '%' });
 
   renderTable();
 
   document.getElementById('footer').replaceChildren(
-    el('div', { text: `Dane: api.sejm.gov.pl, głosowania pobrane ${(a.pobrano || '').slice(0, 10)}.` }),
-    el('div', { class: 'thin', text: 'Mianownik jest per poseł: liczą się wyłącznie te głosowania, w których poseł w ogóle występuje na liście. Posłowie obejmujący mandat w trakcie kadencji nie są karani za głosowania sprzed ślubowania.' }),
+    el('div', { text: `{{Dane: api.sejm.gov.pl, głosowania pobrane}} ${(a.pobrano || '').slice(0, 10)}.` }),
+    el('div', { class: 'thin', text: '{{Mianownik jest per poseł: liczą się wyłącznie te głosowania, w których poseł w ogóle występuje na liście. Posłowie obejmujący mandat w trakcie kadencji nie są karani za głosowania sprzed ślubowania.}}' }),
     el('div', { class: 'thin', text: a.bez_danych_o_usprawiedliwieniu > 0
-      ? `${fmtInt(a.bez_danych_o_usprawiedliwieniu)} nieobecności nie ma odpowiadającego dnia w statystykach frekwencji — traktujemy je jako nieusprawiedliwione i podajemy tę liczbę zamiast ją ukrywać.`
-      : 'Każda nieobecność ma odpowiadający dzień w statystykach frekwencji.' }),
+      ? `${fmtInt(a.bez_danych_o_usprawiedliwieniu)} {{nieobecności nie ma odpowiadającego dnia w statystykach frekwencji — traktujemy je jako nieusprawiedliwione i podajemy tę liczbę zamiast ją ukrywać.}}`
+      : '{{Każda nieobecność ma odpowiadający dzień w statystykach frekwencji.}}' }),
   );
 }
 

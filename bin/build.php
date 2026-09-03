@@ -49,7 +49,17 @@ const PAGE_SLICES = [
 // kadencji naraz, a domyslne 128 MB na to nie wystarcza.
 ini_set('memory_limit', '512M');
 
-$options = Options::fromGetopt(['term::', 'db::', 'out::', 'snapshot::', 'profile-votes::']);
+$options = Options::fromGetopt(['term::', 'db::', 'out::', 'snapshot::', 'profile-votes::', 'lang::']);
+
+/**
+ * Wersje jezykowe. Polska lezy w katalogu glownym, obce w podkatalogach - dzieki temu
+ * adres polskiej wersji sie nie zmienia, a przelacznik jezyka jest jednym poziomem
+ * w gore albo w dol.
+ *
+ * Dane zostaja po polsku: nazwiska, nazwy resortow i tytuly ustaw to nazwy wlasne,
+ * a tytul aktu z Dziennika Ustaw nie ma wersji angielskiej.
+ */
+$languages = $options->commaList('lang', ['pl', 'en']);
 
 $profileVotes = $options->nullableString('profile-votes');
 $recentVotes = $profileVotes === 'all' ? null : (int) ($profileVotes ?? ProfileBuilder::DEFAULT_RECENT_VOTES);
@@ -151,6 +161,16 @@ $fetchedAt = $db->getMeta('fetched_at');
 $composer = new PageComposer($outDir);
 $written = [];
 
+$langDir = static function (string $lang) use ($outDir): string {
+    $dir = $lang === 'pl' ? $outDir : $outDir . '/' . $lang;
+
+    if (!is_dir($dir) && !mkdir($dir, 0o775, true) && !is_dir($dir)) {
+        throw new RuntimeException('Nie mozna utworzyc katalogu ' . $dir);
+    }
+
+    return $dir;
+};
+
 foreach (PAGE_SLICES as $page => $keys) {
     $slices = [];
     foreach ($reports as $term => $report) {
@@ -174,16 +194,19 @@ foreach (PAGE_SLICES as $page => $keys) {
 
     $default = isset($slices[$defaultTerm]) ? $defaultTerm : max(array_keys($slices));
 
-    $html = $composer->render($page . '.html', $page, [
+    $payload = [
         'podstawy' => LegalSource::all(),
         'kadencje' => $kadencje,
         'domyslna_kadencja' => $default,
         'pobrano' => $fetchedAt,
         'raporty' => $slices,
-    ]);
+    ];
 
-    file_put_contents($outDir . '/' . $page . '.html', $html);
-    $written[$page] = strlen($html);
+    foreach ($languages as $lang) {
+        $html = $composer->render($page . '.html', $page, $payload, '', $lang);
+        file_put_contents($langDir($lang) . '/' . $page . '.html', $html);
+        $written[$lang][$page] = strlen($html);
+    }
 }
 
 // --- strona startowa: liczby prowadzace do kazdej z funkcji ---
@@ -246,14 +269,32 @@ $profiles = 0;
 
 foreach ($reports as $term => $report) {
     foreach ($profileBuilder->buildAll($term, $report) as $id => $profile) {
-        $page = $composer->render('posel.html', 'poslowie', [
+        $profilePayload = [
             'podstawy' => LegalSource::all(),
             'wygenerowano' => $today->format('Y-m-d'),
             'pobrano' => $fetchedAt,
             'profil' => $profile,
-        ], '../');
+        ];
 
-        file_put_contents(sprintf('%s/%d-%d.html', $profileDir, $term, $id), $page);
+        foreach ($languages as $lang) {
+            $dir = $langDir($lang) . '/posel';
+            if (!is_dir($dir) && !mkdir($dir, 0o775, true) && !is_dir($dir)) {
+                throw new RuntimeException('Nie mozna utworzyc katalogu ' . $dir);
+            }
+
+            file_put_contents(
+                sprintf('%s/%d-%d.html', $dir, $term, $id),
+                $composer->render(
+                    'posel.html',
+                    'poslowie',
+                    $profilePayload,
+                    '../',
+                    $lang,
+                    sprintf('posel/%d-%d.html', $term, $id),
+                ),
+            );
+        }
+
         $profiles++;
     }
 }
@@ -265,11 +306,24 @@ fwrite(STDERR, sprintf(
     PHP_EOL,
 ));
 
-$html = $composer->render('index.html', 'index', $index);
-file_put_contents($outDir . '/index.html', $html);
-$written['index'] = strlen($html);
+foreach ($languages as $lang) {
+    $html = $composer->render('index.html', 'index', $index, '', $lang);
+    file_put_contents($langDir($lang) . '/index.html', $html);
+    $written[$lang]['index'] = strlen($html);
+}
 
-fwrite(STDERR, PHP_EOL . 'Strony:' . PHP_EOL);
-foreach ($written as $page => $bytes) {
-    fwrite(STDERR, sprintf('  %-16s %6s KB%s', $page . '.html', number_format($bytes / 1024, 0), PHP_EOL));
+foreach ($written as $lang => $pages) {
+    fwrite(STDERR, PHP_EOL . sprintf('Strony [%s]:', $lang) . PHP_EOL);
+    foreach ($pages as $page => $bytes) {
+        fwrite(STDERR, sprintf('  %-16s %6s KB%s', $page . '.html', number_format($bytes / 1024, 0), PHP_EOL));
+    }
+}
+
+// Brak tlumaczenia nie moze przejsc niezauwazony - inaczej obca wersja po cichu
+// wraca do polskiego i nikt tego nie widzi.
+foreach ($composer->missingTranslations() as $lang => $strings) {
+    fwrite(STDERR, PHP_EOL . sprintf('BRAK TLUMACZEN [%s]: %d', $lang, count($strings)) . PHP_EOL);
+    foreach (array_slice($strings, 0, 25) as $string) {
+        fwrite(STDERR, '  · ' . mb_substr($string, 0, 96) . PHP_EOL);
+    }
 }

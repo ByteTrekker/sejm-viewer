@@ -1,30 +1,25 @@
-<title>Vacatio legis — ranking pośpiechu resortów</title>
+<title>{{Vacatio legis — ranking pośpiechu resortów}}</title>
 <!--@style-->
 
 <div class="wrap">
   <!--@nav-->
 
   <header class="masthead">
-    <h1>Ile czasu dostajesz na nowe prawo</h1>
+    <h1>{{Ile czasu dostajesz na nowe prawo}}</h1>
     <p class="dek">
-      Ustawa o ogłaszaniu aktów normatywnych daje adresatowi <b>14 dni</b> na przygotowanie się
-      do nowego przepisu (<span id="ref-vac"></span>). Ten dashboard liczy, które resorty ten standard trzymają,
-      a które wprowadzają rozporządzenia z dnia na dzień — na pełnych danych z Dziennika Ustaw.
+      {{Ustawa o ogłaszaniu aktów normatywnych daje adresatowi <b>14 dni</b> na przygotowanie się do nowego przepisu}} (<span id="ref-vac"></span>). {{Ten dashboard liczy, które resorty ten standard trzymają, a które wprowadzają rozporządzenia z dnia na dzień — na pełnych danych z Dziennika Ustaw.}}
     </p>
     <div class="stamp" id="stamp"></div>
     <div class="controls" style="margin-top:14px">
-      <span class="switch-label">Zbiór aktów</span>
-      <div class="seg" id="variant-seg" role="group" aria-label="Wybierz zbiór aktów"></div>
+      <span class="switch-label">{{Zbiór aktów}}</span>
+      <div class="seg" id="variant-seg" role="group" aria-label="{{Wybierz zbiór aktów}}"></div>
     </div>
   </header>
 
   <section id="excluded-section" hidden>
-    <h2>Co odsialiśmy i dlaczego</h2>
+    <h2>{{Co odsialiśmy i dlaczego}}</h2>
     <p class="sub">
-      Ta wersja pomija rozporządzenia, które nie nakładają obowiązków na obywateli ani firmy —
-      dla nich krótkie vacatio legis nikogo nie zaskakuje. Reguły są wąskie i jawne, żeby dało się je zakwestionować:
-      <b>nowelizacje zostają</b> (45% zbioru — nowelizacja bywa bardzo merytoryczna), tak samo jak stawki,
-      wzory wniosków i ograniczenia epidemiczne.
+      {{Ta wersja pomija rozporządzenia, które nie nakładają obowiązków na obywateli ani firmy — dla nich krótkie vacatio legis nikogo nie zaskakuje. Reguły są wąskie i jawne, żeby dało się je zakwestionować: <b>nowelizacje zostają</b> (45% zbioru — nowelizacja bywa bardzo merytoryczna), tak samo jak stawki, wzory wniosków i ograniczenia epidemiczne.}}
     </p>
     <div class="card"><ul class="worst" id="excluded-list"></ul></div>
   </section>
@@ -34,8 +29,8 @@
   </section>
 
   <section>
-    <h2>Rozkład vacatio legis</h2>
-    <p class="sub">Ile dni mija między ogłoszeniem rozporządzenia w Dzienniku Ustaw a jego wejściem w życie. Pionowa linia to standard ustawowy.</p>
+    <h2>{{Rozkład vacatio legis}}</h2>
+    <p class="sub">{{Ile dni mija między ogłoszeniem rozporządzenia w Dzienniku Ustaw a jego wejściem w życie. Pionowa linia to standard ustawowy.}}</p>
     <div class="card"><figure>
       <div id="hist"></div>
       <figcaption id="hist-caption"></figcaption>
@@ -43,47 +38,46 @@
   </section>
 
   <section>
-    <h2 id="ranking-title">Ranking organów wydających</h2>
+    <h2 id="ranking-title">{{Ranking organów wydających}}</h2>
     <p class="sub">
-      Wyłącznie rozporządzenia — ustawy mają w ELI organ wydający „SEJM" i nie da się ich przypisać
-      do organu. W rankingu organy z co najmniej <span id="minsample"></span> rozporządzeniami.
+      {{Wyłącznie rozporządzenia — ustawy mają w ELI organ wydający „SEJM” i nie da się ich przypisać do organu. W rankingu organy z co najmniej}} <span id="minsample"></span> {{rozporządzeniami.}}
     </p>
     <div class="controls">
-      <div class="seg" id="metric-seg" role="group" aria-label="Miara"></div>
-      <input type="search" id="filter" placeholder="Filtruj organ…" aria-label="Filtruj organ">
+      <div class="seg" id="metric-seg" role="group" aria-label="{{Miara}}"></div>
+      <input type="search" id="filter" placeholder="{{Filtruj organ…}}" aria-label="{{Filtruj organ}}">
     </div>
     <div class="scroller">
       <table id="ranking"><thead><tr id="ranking-head"></tr></thead><tbody id="ranking-body"></tbody></table>
     </div>
     <details class="method">
-      <summary>Jak liczymy (i czego ten ranking nie mówi)</summary>
+      <summary>{{Jak liczymy (i czego ten ranking nie mówi)}}</summary>
       <ol>
-        <li><b>Vacatio legis</b> = data wejścia w życie minus data ogłoszenia w Dzienniku Ustaw. Obie pochodzą z pól <code>entryIntoForce</code> i <code>promulgation</code> w API ELI.</li>
-        <li><b>Skrócenie terminu jest legalne.</b> <span id="ref-exc"></span> dopuszcza je „w uzasadnionych przypadkach", a wejście w życie w dniu ogłoszenia — gdy wymaga tego ważny interes państwa. Ten ranking mierzy <b>skalę odstępstwa od standardu</b>, a nie łamanie prawa. Przy odsetkach rzędu 90% teza brzmi: wyjątek stał się regułą.</li>
-        <li>Próg liczymy <b>zachowawczo</b>: 14 dni różnicy uznajemy już za spełnienie standardu, choć konwencja redakcyjna („po upływie 14 dni") daje zwykle 15. Zaniżenie progu może tylko osłabić zarzut, nigdy go nie zawyżyć.</li>
-        <li>API podaje <b>jedną</b> datę wejścia w życie. Akty, których przepisy wchodzą etapami, są uproszczone do tej jednej daty.</li>
-        <li>Krótkie vacatio bywa <b>merytorycznie uzasadnione</b> — coroczne stawki, akty techniczne, wykonanie wyroku TK. Ranking nie odróżnia uzasadnionych od nieuzasadnionych i nie udaje, że potrafi.</li>
-        <li>Obwieszczenia (najliczniejszy typ w Dz.U.) są pominięte — to teksty jednolite, nie nowe obowiązki.</li>
+        <li>{{<b>Vacatio legis</b> = data wejścia w życie minus data ogłoszenia w Dzienniku Ustaw. Obie pochodzą z pól <code>entryIntoForce</code> i <code>promulgation</code> w API ELI.}}</li>
+        <li>{{<b>Skrócenie terminu jest legalne.</b>}} <span id="ref-exc"></span> {{dopuszcza je „w uzasadnionych przypadkach”, a wejście w życie w dniu ogłoszenia — gdy wymaga tego ważny interes państwa. Ten ranking mierzy <b>skalę odstępstwa od standardu</b>, a nie łamanie prawa. Przy odsetkach rzędu 90% teza brzmi: wyjątek stał się regułą.}}</li>
+        <li>{{Próg liczymy <b>zachowawczo</b>: 14 dni różnicy uznajemy już za spełnienie standardu, choć konwencja redakcyjna („po upływie 14 dni”) daje zwykle 15. Zaniżenie progu może tylko osłabić zarzut, nigdy go nie zawyżyć.}}</li>
+        <li>{{API podaje <b>jedną</b> datę wejścia w życie. Akty, których przepisy wchodzą etapami, są uproszczone do tej jednej daty.}}</li>
+        <li>{{Krótkie vacatio bywa <b>merytorycznie uzasadnione</b> — coroczne stawki, akty techniczne, wykonanie wyroku TK. Ranking nie odróżnia uzasadnionych od nieuzasadnionych i nie udaje, że potrafi.}}</li>
+        <li>{{Obwieszczenia (najliczniejszy typ w Dz.U.) są pominięte — to teksty jednolite, nie nowe obowiązki.}}</li>
       </ol>
     </details>
   </section>
 
   <section>
-    <h2>Jak to się zmienia w czasie</h2>
-    <p class="sub">Odsetek aktów wchodzących w życie szybciej niż w ustawowe 14 dni. Osobno rozporządzenia (resortowe) i ustawy (Sejm) — ta sama skala, dwa wykresy, bo to dwie różne populacje.</p>
+    <h2>{{Jak to się zmienia w czasie}}</h2>
+    <p class="sub">{{Odsetek aktów wchodzących w życie szybciej niż w ustawowe 14 dni. Osobno rozporządzenia (resortowe) i ustawy (Sejm) — ta sama skala, dwa wykresy, bo to dwie różne populacje.}}</p>
     <div class="card"><figure>
       <div id="trend-rozp"></div>
-      <figcaption>Rozporządzenia</figcaption>
+      <figcaption>{{Rozporządzenia}}</figcaption>
     </figure></div>
     <div class="card" style="margin-top:12px"><figure>
       <div id="trend-ustawy"></div>
-      <figcaption>Ustawy</figcaption>
+      <figcaption>{{Ustawy}}</figcaption>
     </figure></div>
   </section>
 
   <section>
-    <h2>Wchodzą w życie z dnia na dzień</h2>
-    <p class="sub">Rozporządzenia, które zaczęły obowiązywać w dniu ogłoszenia albo nazajutrz — adresat miał zero czasu na przygotowanie. Każda pozycja linkuje do tekstu aktu.</p>
+    <h2>{{Wchodzą w życie z dnia na dzień}}</h2>
+    <p class="sub">{{Rozporządzenia, które zaczęły obowiązywać w dniu ogłoszenia albo nazajutrz — adresat miał zero czasu na przygotowanie. Każda pozycja linkuje do tekstu aktu.}}</p>
     <div class="card"><ul class="worst" id="fastest"></ul></div>
   </section>
 
@@ -101,8 +95,8 @@ const ranked = DATA.organy.filter(r => r.w_rankingu);
 
 /* ---------- przelacznik wariantu ---------- */
 const VARIANTS = [
-  { key: 'wszystkie', label: 'Wszystkie akty', href: 'vacatio.html' },
-  { key: 'merytoryczne', label: 'Bez technicznych', href: 'vacatio-merytoryczne.html' },
+  { key: 'wszystkie', label: '{{Wszystkie akty}}', href: 'vacatio.html' },
+  { key: 'merytoryczne', label: '{{Bez technicznych}}', href: 'vacatio-merytoryczne.html' },
 ];
 document.getElementById('variant-seg').append(...VARIANTS.map(v => el('a', {
   href: v.href, text: v.label, 'aria-current': v.key === meta.wariant ? 'page' : null,
@@ -118,17 +112,17 @@ if (meta.wariant === 'merytoryczne') {
     el('span', { text: name }),
   )), el('li', { class: 'cat' },
     el('span', { class: 'count', text: fmtInt(meta.wykluczone_razem) }),
-    el('span', {}, el('b', { text: 'razem odsianych' })),
+    el('span', {}, el('b', { text: '{{razem odsianych}}' })),
   ));
 }
 
 /* ---------- naglowek ---------- */
 document.getElementById('stamp').append(
-  el('span', { text: `Dziennik Ustaw ${meta.od_roku}–${meta.do_roku}` }),
-  el('span', { text: meta.wariant === 'merytoryczne' ? 'Bez aktów technicznych' : 'Wszystkie akty' }),
-  el('span', { text: `Stan na ${meta.wygenerowano}` }),
-  el('span', {}, 'Źródło: ', el('a', { href: 'https://api.sejm.gov.pl/eli', text: meta.zrodlo })),
-  el('span', { text: `Standard ustawowy: ${STD} dni` }),
+  el('span', { text: `{{Dziennik Ustaw}} ${meta.od_roku}–${meta.do_roku}` }),
+  el('span', { text: meta.wariant === 'merytoryczne' ? '{{Bez aktów technicznych}}' : '{{Wszystkie akty}}' }),
+  el('span', { text: `{{Stan na}} ${meta.wygenerowano}` }),
+  el('span', {}, '{{Źródło:}} ', el('a', { href: 'https://api.sejm.gov.pl/eli', text: meta.zrodlo })),
+  el('span', { text: `{{Standard ustawowy:}} ${STD} {{dni}}` }),
 );
 document.getElementById('minsample').textContent = meta.min_probka;
 document.getElementById('ref-vac')?.replaceChildren(legalRef('vacatio_standard'));
@@ -144,10 +138,10 @@ const totals = DATA.organy.reduce((a, r) => ({
 const worst = ranked.length ? ranked.reduce((a, b) => (b.wskaznik_pospiechu > a.wskaznik_pospiechu ? b : a)) : null;
 
 [
-  ['Rozporządzeń w analizie', fmtInt(totals.aktow), `Dziennik Ustaw ${meta.od_roku}–${meta.do_roku}`],
-  ['Poniżej 14 dni', fmtPct(totals.ponizej / totals.aktow), `${fmtInt(totals.ponizej)} aktów`],
-  ['Z dnia na dzień', fmtInt(totals.natychmiast), 'weszły w życie w dniu ogłoszenia lub nazajutrz'],
-  ['Najwyższy pośpiech', worst ? worst.wskaznik_pospiechu.toLocaleString('pl-PL') : '—', worst ? worst.nazwa : ''],
+  ['{{Rozporządzeń w analizie}}', fmtInt(totals.aktow), `{{Dziennik Ustaw}} ${meta.od_roku}–${meta.do_roku}`],
+  ['{{Poniżej 14 dni}}', fmtPct(totals.ponizej / totals.aktow), `${fmtInt(totals.ponizej)} {{aktów}}`],
+  ['{{Z dnia na dzień}}', fmtInt(totals.natychmiast), '{{weszły w życie w dniu ogłoszenia lub nazajutrz}}'],
+  ['{{Najwyższy pośpiech}}', worst ? worst.wskaznik_pospiechu.toLocaleString(LOCALE) : '—', worst ? worst.nazwa : ''],
 ].forEach(([label, value, note]) => {
   document.getElementById('kpis').append(el('div', { class: 'kpi' },
     el('div', { class: 'label', text: label }),
@@ -166,7 +160,7 @@ function drawHistogram() {
   const X = i => P.l + i * bw;
   const Y = v => P.t + ih - (ih * v) / maxY;
 
-  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Rozkład vacatio legis rozporządzeń' });
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': '{{Rozkład vacatio legis rozporządzeń}}' });
   const grid = svgEl('g', { class: 'grid' });
   const axis = svgEl('g', { class: 'axis' });
 
@@ -188,9 +182,9 @@ function drawHistogram() {
       axis.append(t);
     }
     const hit = svgEl('rect', { x: X(i), y: P.t, width: bw, height: ih, fill: 'transparent' });
-    hit.addEventListener('mousemove', e => showTip(e, `<b>${b.label} dni</b>
-      <div class="row">${fmtInt(b.n)} rozporządzeń</div>
-      <div class="row">${fmtPct(b.n / totals.aktow, 1)} wszystkich</div>`));
+    hit.addEventListener('mousemove', e => showTip(e, `<b>${b.label} {{dni}}</b>
+      <div class="row">${fmtInt(b.n)} {{rozporządzeń}}</div>
+      <div class="row">${fmtPct(b.n / totals.aktow, 1)} {{wszystkich}}</div>`));
     hit.addEventListener('mouseleave', hideTip);
     svg.append(hit);
   });
@@ -201,37 +195,37 @@ function drawHistogram() {
     const x = X(stdIndex);
     svg.append(svgEl('line', { class: 'refline', x1: x, x2: x, y1: P.t - 6, y2: P.t + ih }));
     const lab = svgEl('text', { class: 'reflabel', x: x + 6, y: P.t + 6 });
-    lab.textContent = `standard ustawowy — ${STD} dni`;
+    lab.textContent = `{{standard ustawowy —}} ${STD} {{dni}}`;
     svg.append(lab);
   }
 
   const xlab = svgEl('text', { class: 'reflabel', x: P.l + iw / 2, y: H - 6, 'text-anchor': 'middle' });
-  xlab.textContent = 'dni między ogłoszeniem a wejściem w życie';
+  xlab.textContent = '{{dni między ogłoszeniem a wejściem w życie}}';
   svg.append(axis, xlab);
   document.getElementById('hist').replaceChildren(svg);
 
   const below = bins.filter(b => b.to < STD).reduce((a, b) => a + b.n, 0);
   document.getElementById('hist-caption').textContent =
-    `Na lewo od linii ${fmtInt(below)} rozporządzeń (${fmtPct(below / totals.aktow, 1)}) — weszły w życie szybciej, niż przewiduje ustawowy standard.`;
+    `{{Na lewo od linii}} ${fmtInt(below)} {{rozporządzeń}} (${fmtPct(below / totals.aktow, 1)}) {{— weszły w życie szybciej, niż przewiduje ustawowy standard.}}`;
 }
 
 /* ---------- ranking ---------- */
 const COLUMNS = [
-  { key: 'nazwa', label: 'Organ wydający', type: 'text' },
-  { key: 'wskaznik_pospiechu', label: 'Wskaźnik pośpiechu', type: 'bar', max: 100 },
-  { key: 'udzial_ponizej', label: 'Poniżej 14 dni', type: 'pct' },
-  { key: 'udzial_natychmiast', label: 'Z dnia na dzień', type: 'pct' },
-  { key: 'udzial_wstecz', label: 'Moc wsteczna', type: 'pct' },
-  { key: 'mediana_dni', label: 'Mediana dni', type: 'days' },
-  { key: 'p90_dni', label: '90. centyl', type: 'days' },
-  { key: 'udzial_dlugie', label: '30+ dni', type: 'pct' },
-  { key: 'aktow', label: 'Aktów', type: 'int' },
+  { key: 'nazwa', label: '{{Organ wydający}}', type: 'text' },
+  { key: 'wskaznik_pospiechu', label: '{{Wskaźnik pośpiechu}}', type: 'bar', max: 100 },
+  { key: 'udzial_ponizej', label: '{{Poniżej 14 dni}}', type: 'pct' },
+  { key: 'udzial_natychmiast', label: '{{Z dnia na dzień}}', type: 'pct' },
+  { key: 'udzial_wstecz', label: '{{Moc wsteczna}}', type: 'pct' },
+  { key: 'mediana_dni', label: '{{Mediana dni}}', type: 'days' },
+  { key: 'p90_dni', label: '{{90. centyl}}', type: 'days' },
+  { key: 'udzial_dlugie', label: '{{30+ dni}}', type: 'pct' },
+  { key: 'aktow', label: '{{Aktów}}', type: 'int' },
 ];
 const METRICS = [
-  { key: 'wskaznik_pospiechu', label: 'Wskaźnik pośpiechu', max: 100 },
-  { key: 'udzial_ponizej', label: 'Poniżej 14 dni', max: 1 },
-  { key: 'udzial_natychmiast', label: 'Z dnia na dzień', max: 1 },
-  { key: 'mediana_dni', label: 'Mediana dni', max: null },
+  { key: 'wskaznik_pospiechu', label: '{{Wskaźnik pośpiechu}}', max: 100 },
+  { key: 'udzial_ponizej', label: '{{Poniżej 14 dni}}', max: 1 },
+  { key: 'udzial_natychmiast', label: '{{Z dnia na dzień}}', max: 1 },
+  { key: 'mediana_dni', label: '{{Mediana dni}}', max: null },
 ];
 const rankState = { metric: METRICS[0], sort: 'wskaznik_pospiechu', dir: -1, filter: '' };
 
@@ -278,14 +272,14 @@ function renderTable() {
         const v = r[c.key] ?? 0;
         const fill = el('div', { class: 'barfill' });
         fill.style.width = Math.max(2, (100 * v) / scale) + '%';
-        const text = c.type === 'pct' ? fmtPct(v, 0) : (c.type === 'days' ? v + ' d' : v.toLocaleString('pl-PL'));
+        const text = c.type === 'pct' ? fmtPct(v, 0) : (c.type === 'days' ? v + ' d' : v.toLocaleString(LOCALE));
         tr.append(el('td', {}, el('div', { class: 'barcell' },
           el('div', { class: 'bartrack' }, fill), el('span', { class: 'barval', text }))));
         return;
       }
       const v = r[c.key];
       if (c.key === 'wskaznik_pospiechu') {
-        tr.append(el('td', {}, el('span', { class: 'pill ' + scoreClass(v), text: v.toLocaleString('pl-PL') })));
+        tr.append(el('td', {}, el('span', { class: 'pill ' + scoreClass(v), text: v.toLocaleString(LOCALE) })));
         return;
       }
       let text = '—';
@@ -299,10 +293,10 @@ function renderTable() {
     });
 
     bindTip(tr, () => `<b>${r.nazwa}</b>
-      <div class="row">${fmtInt(r.aktow)} rozporządzeń</div>
-      <div class="row">poniżej ${STD} dni: ${fmtInt(r.ponizej_standardu)} · z dnia na dzień: ${fmtInt(r.natychmiast)}</div>
-      <div class="row">z mocą wsteczną: ${fmtInt(r.wstecz)} · 30+ dni: ${fmtInt(r.dlugie)}</div>
-      <div class="row">10. centyl: ${r.p10_dni ?? '—'} d · mediana: ${r.mediana_dni ?? '—'} d · 90. centyl: ${r.p90_dni ?? '—'} d</div>`);
+      <div class="row">${fmtInt(r.aktow)} {{rozporządzeń}}</div>
+      <div class="row">{{poniżej}} ${STD} {{dni:}} ${fmtInt(r.ponizej_standardu)} · {{z dnia na dzień:}} ${fmtInt(r.natychmiast)}</div>
+      <div class="row">{{z mocą wsteczną:}} ${fmtInt(r.wstecz)} · {{30+ dni:}} ${fmtInt(r.dlugie)}</div>
+      <div class="row">{{10. centyl:}} ${r.p10_dni ?? '—'} {{d}} · {{mediana:}} ${r.mediana_dni ?? '—'} {{d}} · {{90. centyl:}} ${r.p90_dni ?? '—'} {{d}}</div>`);
     body.append(tr);
   });
 }
@@ -310,14 +304,14 @@ function renderTable() {
 /* ---------- trendy ---------- */
 function drawTrend(hostId, points, label) {
   const host = document.getElementById(hostId);
-  if (points.length < 2) { host.replaceChildren(el('p', { class: 'sub', text: 'Za mało danych.' })); return; }
+  if (points.length < 2) { host.replaceChildren(el('p', { class: 'sub', text: '{{Za mało danych.}}' })); return; }
 
   const W = 900, H = 220, P = { t: 16, r: 56, b: 32, l: 48 };
   const iw = W - P.l - P.r, ih = H - P.t - P.b;
   const X = i => P.l + (iw * i) / Math.max(1, points.length - 1);
   const Y = v => P.t + ih - ih * v;
 
-  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `${label}: odsetek poniżej standardu w kolejnych latach` });
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `${label}{{: odsetek poniżej standardu w kolejnych latach}}` });
   const grid = svgEl('g', { class: 'grid' });
   const axis = svgEl('g', { class: 'axis' });
   for (let v = 0; v <= 1.0001; v += 0.25) {
@@ -347,10 +341,10 @@ function drawTrend(hostId, points, label) {
     svg.append(svgEl('circle', { cx: X(i), cy: Y(p.udzial_ponizej), r: 2.5, fill: 'var(--series-1)' }));
     const hit = svgEl('circle', { cx: X(i), cy: Y(p.udzial_ponizej), r: 10, fill: 'transparent', style: 'cursor:crosshair' });
     hit.addEventListener('mousemove', e => showTip(e, `<b>${p.rok} — ${label}</b>
-      <div class="row">poniżej ${STD} dni: ${fmtPct(p.udzial_ponizej, 1)}</div>
-      <div class="row">z dnia na dzień: ${fmtPct(p.udzial_natychmiast, 1)}</div>
-      <div class="row">mediana: ${p.mediana_dni ?? '—'} dni</div>
-      <div class="row">aktów: ${fmtInt(p.aktow)}</div>`));
+      <div class="row">{{poniżej}} ${STD} {{dni:}} ${fmtPct(p.udzial_ponizej, 1)}</div>
+      <div class="row">{{z dnia na dzień:}} ${fmtPct(p.udzial_natychmiast, 1)}</div>
+      <div class="row">{{mediana:}} ${p.mediana_dni ?? '—'} {{dni}}</div>
+      <div class="row">{{aktów:}} ${fmtInt(p.aktow)}</div>`));
     hit.addEventListener('mouseleave', hideTip);
     svg.append(hit);
   });
@@ -359,12 +353,12 @@ function drawTrend(hostId, points, label) {
 
 /* ---------- lista ---------- */
 document.getElementById('fastest').replaceChildren(...DATA.najkrotsze.slice(0, 25).map(a => el('li', {},
-  el('span', { class: 'days fast', text: a.dni === 0 ? 'tego dnia' : '1 dzień' }),
+  el('span', { class: 'days fast', text: a.dni === 0 ? '{{tego dnia}}' : '{{1 dzień}}' }),
   el('span', {},
     el('a', { href: a.url, target: '_blank', rel: 'noopener', text: a.tytul }),
-    el('span', { class: 'who', text: `${a.organ} · ${a.adres} · ogłoszono ${a.ogloszono} → obowiązuje od ${a.wchodzi}` }),
+    el('span', { class: 'who', text: `${a.organ} · ${a.adres} · {{ogłoszono}} ${a.ogloszono} → {{obowiązuje od}} ${a.wchodzi}` }),
     el('div', { class: 'links' },
-      el('a', { class: 'src', href: a.url_tekst, target: '_blank', rel: 'noopener', text: 'tekst aktu (PDF) ↗' }),
+      el('a', { class: 'src', href: a.url_tekst, target: '_blank', rel: 'noopener', text: '{{tekst aktu (PDF) ↗}}' }),
       el('a', { class: 'src', href: a.url, target: '_blank', rel: 'noopener', text: 'ISAP ↗' }),
     ),
   ),
@@ -372,17 +366,17 @@ document.getElementById('fastest').replaceChildren(...DATA.najkrotsze.slice(0, 2
 
 /* ---------- stopka ---------- */
 document.getElementById('footer').append(
-  el('div', { text: `Dane: api.sejm.gov.pl/eli, pobrane ${(meta.pobrano || '').slice(0, 10)}. Dziennik Ustaw ${meta.od_roku}–${meta.do_roku}, typy: ustawa i rozporządzenie.` }),
+  el('div', { text: `{{Dane: api.sejm.gov.pl/eli, pobrane}} ${(meta.pobrano || '').slice(0, 10)}. {{Dziennik Ustaw}} ${meta.od_roku}–${meta.do_roku}{{, typy: ustawa i rozporządzenie.}}` }),
   el('div', { text: meta.wariant === 'merytoryczne'
-    ? `Wersja bez aktów technicznych: odsiano ${fmtInt(meta.wykluczone_razem)} aktów w ${Object.keys(meta.wykluczone_techniczne || {}).length} kategoriach. Wersja pełna jest dostępna pod „Wszystkie akty”.`
-    : 'Wersja pełna — zawiera także akty czysto administracyjne (obszary Natura 2000, pełnomocnicy rządu, wybory przedterminowe). Wersja odsiana jest pod „Bez technicznych”.' }),
-  el('div', { text: `Pominięto ${fmtInt(meta.bez_daty_wejscia)} aktów bez daty wejścia w życie w API.` }),
-  el('div', { class: 'thin', text: 'Skrócenie vacatio legis jest dopuszczalne (art. 4 ust. 2 ustawy o ogłaszaniu aktów normatywnych). Ranking mierzy skalę odstępstwa od standardu, nie łamanie prawa.' }),
+    ? `{{Wersja bez aktów technicznych: odsiano}} ${fmtInt(meta.wykluczone_razem)} {{aktów w}} ${Object.keys(meta.wykluczone_techniczne || {}).length} {{kategoriach. Wersja pełna jest dostępna pod „Wszystkie akty”.}}`
+    : '{{Wersja pełna — zawiera także akty czysto administracyjne (obszary Natura 2000, pełnomocnicy rządu, wybory przedterminowe). Wersja odsiana jest pod „Bez technicznych”.}}' }),
+  el('div', { text: `{{Pominięto}} ${fmtInt(meta.bez_daty_wejscia)} {{aktów bez daty wejścia w życie w API.}}` }),
+  el('div', { class: 'thin', text: '{{Skrócenie vacatio legis jest dopuszczalne (art. 4 ust. 2 ustawy o ogłaszaniu aktów normatywnych). Ranking mierzy skalę odstępstwa od standardu, nie łamanie prawa.}}' }),
   legalFooter(),
 );
 
 drawHistogram();
 renderTable();
-drawTrend('trend-rozp', DATA.lata, 'rozporządzenia');
-drawTrend('trend-ustawy', DATA.ustawy_lata, 'ustawy');
+drawTrend('trend-rozp', DATA.lata, '{{rozporządzenia}}');
+drawTrend('trend-ustawy', DATA.ustawy_lata, '{{ustawy}}');
 </script>

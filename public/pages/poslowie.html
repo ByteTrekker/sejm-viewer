@@ -1,19 +1,17 @@
-<title>Posłowie i serie pytań</title>
+<title>{{Posłowie i serie pytań}}</title>
 <!--@style-->
 
 <div class="wrap">
   <!--@nav-->
 
   <header class="masthead">
-    <h1>Kto pyta, a kto milczy</h1>
+    <h1>{{Kto pyta, a kto milczy}}</h1>
     <p class="dek">
-      Sama liczba pytań jest miarą mylącą: kilkunastu posłów wysyła setki pytań różniących się
-      jedną nazwą własną. Dlatego każdy poseł ma dwie liczby — pytania i <b>unikalne tematy</b> —
-      a serie szablonowe są raportowane osobno.
+      {{Sama liczba pytań jest miarą mylącą: kilkunastu posłów wysyła setki pytań różniących się jedną nazwą własną. Dlatego każdy poseł ma dwie liczby — pytania i <b>unikalne tematy</b> — a serie szablonowe są raportowane osobno.}}
     </p>
     <div class="controls">
-      <span class="switch-label">Kadencja</span>
-      <div class="seg" id="term-seg" role="group" aria-label="Wybierz kadencję"></div>
+      <span class="switch-label">{{Kadencja}}</span>
+      <div class="seg" id="term-seg" role="group" aria-label="{{Wybierz kadencję}}"></div>
     </div>
     <div class="stamp" id="stamp"></div>
   </header>
@@ -23,11 +21,11 @@
   </section>
 
   <section id="members-section">
-    <h2 id="members-title">Posłowie</h2>
-    <p class="sub">Kliknij nagłówek kolumny, aby posortować. Odsetki liczone tylko dla posłów z co najmniej 10 rozstrzygniętymi pytaniami.</p>
+    <h2 id="members-title">{{Posłowie}}</h2>
+    <p class="sub">{{Kliknij nagłówek kolumny, aby posortować. Odsetki liczone tylko dla posłów z co najmniej 10 rozstrzygniętymi pytaniami.}}</p>
     <div class="controls">
-      <div class="seg" id="member-metric-seg" role="group" aria-label="Miara"></div>
-      <input type="search" id="member-filter" placeholder="Filtruj posła lub klub…" aria-label="Filtruj posła">
+      <div class="seg" id="member-metric-seg" role="group" aria-label="{{Miara}}"></div>
+      <input type="search" id="member-filter" placeholder="{{Filtruj posła lub klub…}}" aria-label="{{Filtruj posła}}">
     </div>
     <div class="scroller">
       <table id="members"><thead><tr id="members-head"></tr></thead><tbody id="members-body"></tbody></table>
@@ -38,7 +36,7 @@
   <div id="notice" hidden></div>
 
   <section id="series-section">
-    <h2>Serie szablonowe</h2>
+    <h2>{{Serie szablonowe}}</h2>
     <p class="sub" id="series-sub"></p>
     <div class="card"><ul class="worst" id="series-list"></ul></div>
   </section>
@@ -53,18 +51,18 @@ const DATA = /*__DATA__*/null;
 
 const MEMBER_COLUMNS = [
   memberColumn(),
-  { key: 'klub', label: 'Klub', type: 'text' },
-  { key: 'tematow', label: 'Tematów', type: 'int' },
-  { key: 'pytan', label: 'Pytań', type: 'int' },
-  { key: 'w_seriach', label: 'W seriach', type: 'int' },
-  { key: 'udzial_po_terminie', label: 'Po terminie', type: 'pct' },
-  { key: 'udzial_bez_odpowiedzi', label: 'Bez odpowiedzi', type: 'pct' },
+  { key: 'klub', label: '{{Klub}}', type: 'text' },
+  { key: 'tematow', label: '{{Tematów}}', type: 'int' },
+  { key: 'pytan', label: '{{Pytań}}', type: 'int' },
+  { key: 'w_seriach', label: '{{W seriach}}', type: 'int' },
+  { key: 'udzial_po_terminie', label: '{{Po terminie}}', type: 'pct' },
+  { key: 'udzial_bez_odpowiedzi', label: '{{Bez odpowiedzi}}', type: 'pct' },
 ];
 const MEMBER_METRICS = [
-  { key: 'tematow', label: 'Unikalnych tematów' },
-  { key: 'pytan', label: 'Pytań ogółem' },
-  { key: 'udzial_po_terminie', label: 'Ich pytania po terminie' },
-  { key: 'udzial_bez_odpowiedzi', label: 'Ich pytania bez odpowiedzi' },
+  { key: 'tematow', label: '{{Unikalnych tematów}}' },
+  { key: 'pytan', label: '{{Pytań ogółem}}' },
+  { key: 'udzial_po_terminie', label: '{{Ich pytania po terminie}}' },
+  { key: 'udzial_bez_odpowiedzi', label: '{{Ich pytania bez odpowiedzi}}' },
 ];
 const memberState = { metric: MEMBER_METRICS[0], sort: 'tematow', dir: -1, filter: '' };
 
@@ -94,15 +92,15 @@ function renderMembers() {
     headId: 'members-head', bodyId: 'members-body', columns: MEMBER_COLUMNS,
     rows: pool, state: memberState, limit: 60, rerender: renderMembers,
     tip: m => `<b>${m.nazwa}</b>
-      <div class="row">${m.klub ?? 'brak klubu'}${m.okreg ? ' · ' + m.okreg : ''}</div>
-      <div class="row">${fmtInt(m.pytan)} pytań, w tym ${fmtInt(m.w_seriach)} w seriach szablonowych</div>
-      <div class="row">rozstrzygniętych: ${fmtInt(m.rozstrzygniete)} · po terminie: ${fmtInt(m.niedotrzymane)}</div>`,
+      <div class="row">${m.klub ?? '{{brak klubu}}'}${m.okreg ? ' · ' + m.okreg : ''}</div>
+      <div class="row">${fmtInt(m.pytan)} {{pytań, w tym}} ${fmtInt(m.w_seriach)} {{w seriach szablonowych}}</div>
+      <div class="row">{{rozstrzygniętych:}} ${fmtInt(m.rozstrzygniete)} · {{po terminie:}} ${fmtInt(m.niedotrzymane)}</div>`,
   });
 
   const asked = all.filter(m => m.pytan > 0).length;
   document.getElementById('members-note').textContent =
-    `Pokazano ${shown} z ${asked} posłów, którzy zadali co najmniej jedno pytanie.`;
-  document.getElementById('members-title').textContent = `Posłowie — kadencja ${ROMAN[state.term] ?? state.term}`;
+    `{{Pokazano}} ${shown} {{z}} ${asked} {{posłów, którzy zadali co najmniej jedno pytanie.}}`;
+  document.getElementById('members-title').textContent = `{{Posłowie — kadencja}} ${ROMAN[state.term] ?? state.term}`;
 }
 
 function renderAll() {
@@ -116,10 +114,10 @@ function renderAll() {
   const top = all.slice().sort((a, b) => b.tematow - a.tematow)[0];
 
   document.getElementById('kpis').replaceChildren(...[
-    ['Posłów w kadencji', fmtInt(all.length), `${info.od.slice(0, 4)}–${info.zamknieta ? info.do.slice(0, 4) : 'dziś'}`],
-    ['Bez ani jednego pytania', fmtInt(silent), `${fmtPct(silent / Math.max(all.length, 1), 0)} składu`],
-    ['Rekordzista', top ? fmtInt(top.tematow) : '—', top ? `${top.nazwa} — unikalnych tematów` : ''],
-    ['Pytań w seriach', fmtInt(s.pytan_w_seriach), `${fmtPct(s.udzial, 1)} wszystkich pytań kadencji`],
+    ['{{Posłów w kadencji}}', fmtInt(all.length), `${info.od.slice(0, 4)}–${info.zamknieta ? info.do.slice(0, 4) : '{{dziś}}'}`],
+    ['{{Bez ani jednego pytania}}', fmtInt(silent), `${fmtPct(silent / Math.max(all.length, 1), 0)} {{składu}}`],
+    ['{{Rekordzista}}', top ? fmtInt(top.tematow) : '—', top ? `${top.nazwa} {{— unikalnych tematów}}` : ''],
+    ['{{Pytań w seriach}}', fmtInt(s.pytan_w_seriach), `${fmtPct(s.udzial, 1)} {{wszystkich pytań kadencji}}`],
   ].map(([label, value, note]) => el('div', { class: 'kpi' },
     el('div', { class: 'label', text: label }),
     el('div', { class: 'value', text: value }),
@@ -133,29 +131,29 @@ function renderAll() {
   if (!info.mierzalna) {
     notice.className = 'notice';
     notice.replaceChildren(
-      el('h3', { text: `Kadencja ${ROMAN[info.numer] ?? info.numer}: tylko aktywność, bez terminowości` }),
-      el('p', {}, 'API nie podaje dla tej kadencji dat odpowiedzi (wartownik ', el('code', { text: '0000-12-30' }),
-        '), więc kolumny „po terminie” i „bez odpowiedzi” pozostają puste. Liczba pytań i tematów jest w pełni wiarygodna.'),
+      el('h3', { text: `{{Kadencja}} ${ROMAN[info.numer] ?? info.numer}{{: tylko aktywność, bez terminowości}}` }),
+      el('p', {}, '{{API nie podaje dla tej kadencji dat odpowiedzi (wartownik}} ', el('code', { text: '0000-12-30' }),
+        '{{), więc kolumny „po terminie” i „bez odpowiedzi” pozostają puste. Liczba pytań i tematów jest w pełni wiarygodna.}}'),
     );
   }
 
   renderMembers();
 
   document.getElementById('series-sub').textContent =
-    `W kadencji ${ROMAN[state.term] ?? state.term} ${fmtInt(s.serii)} tytułów powtarza się więcej niż raz, obejmując `
-    + `${fmtInt(s.pytan_w_seriach)} pytań (${fmtPct(s.udzial, 1)} wszystkich). Największa seria liczy ${s.najwieksza} pytań.`;
+    `{{W kadencji}} ${ROMAN[state.term] ?? state.term} ${fmtInt(s.serii)} {{tytułów powtarza się więcej niż raz, obejmując}} `
+    + `${fmtInt(s.pytan_w_seriach)} {{pytań}} (${fmtPct(s.udzial, 1)} {{wszystkich). Największa seria liczy}} ${s.najwieksza} {{pytań.}}`;
 
   document.getElementById('series-list').replaceChildren(...s.lista.map(x => el('li', { class: 'cat' },
     el('span', { class: 'count', text: `${x.n}×` }),
     el('span', {},
       el('span', { text: x.tytul }),
-      el('span', { class: 'who', text: `numery ${x.od_nr}–${x.do_nr}` }),
+      el('span', { class: 'who', text: `{{numery}} ${x.od_nr}–${x.do_nr}` }),
     ),
   )));
 
   document.getElementById('footer').replaceChildren(
-    el('div', { text: `Dane: api.sejm.gov.pl, pobrane ${(DATA.pobrano || '').slice(0, 10)}.` }),
-    el('div', { class: 'thin', text: 'Pytanie kilku autorów liczy się każdemu z nich. Pytania do wielu adresatów naraz są wyłączone, tak samo jak w rankingu adresatów.' }),
+    el('div', { text: `{{Dane: api.sejm.gov.pl, pobrane}} ${(DATA.pobrano || '').slice(0, 10)}.` }),
+    el('div', { class: 'thin', text: '{{Pytanie kilku autorów liczy się każdemu z nich. Pytania do wielu adresatów naraz są wyłączone, tak samo jak w rankingu adresatów.}}' }),
   );
 }
 
