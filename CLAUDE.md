@@ -20,7 +20,8 @@ kliknąć do źródła, jest w tym projekcie bezużyteczna.
 ## Komendy
 
 ```bash
-make fetch        # trzy ETL-e: interpelacje, Dziennik Ustaw, głosowania (~30 min)
+make fetch        # pełne pobranie wszystkiego (~5 h, raz)
+make refresh      # tylko to, co nowe (sekundy) — do cyklicznego odświeżania
 make build        # trzy dashboardy z bazy
 make check        # pełna bramka: styl, PHPStan, testy, pokrycie, mutacje, dymny, audyt
 make help         # reszta celów

@@ -53,14 +53,16 @@ final class SejmApiClient
     /**
      * Zwraca kolejne strony wynikow, zeby nie trzymac 44 tys. rekordow w pamieci naraz.
      *
+     * @param array<string, string> $query dodatkowe parametry, np. ['since' => '2026-08-01']
      * @return \Generator<int, list<array<string, mixed>>>
      */
-    public function paginate(int $term, string $endpoint): \Generator
+    public function paginate(int $term, string $endpoint, array $query = []): \Generator
     {
         $offset = 0;
+        $extra = $query === [] ? '' : '&' . http_build_query($query);
 
         do {
-            $path = sprintf('/sejm/term%d/%s?limit=%d&offset=%d', $term, $endpoint, self::PAGE_SIZE, $offset);
+            $path = sprintf('/sejm/term%d/%s?limit=%d&offset=%d%s', $term, $endpoint, self::PAGE_SIZE, $offset, $extra);
             /** @var list<array<string, mixed>> $page */
             $page = $this->getJson($path);
 
@@ -215,9 +217,13 @@ final class SejmApiClient
         curl_multi_close($multi);
     }
 
-    public function countItems(int $term, string $endpoint): int
+    /**
+     * @param array<string, string> $query
+     */
+    public function countItems(int $term, string $endpoint, array $query = []): int
     {
-        $ch = $this->handle(sprintf('/sejm/term%d/%s?limit=1', $term, $endpoint));
+        $extra = $query === [] ? '' : '&' . http_build_query($query);
+        $ch = $this->handle(sprintf('/sejm/term%d/%s?limit=1%s', $term, $endpoint, $extra));
         curl_setopt($ch, CURLOPT_NOBODY, false);
         curl_setopt($ch, CURLOPT_HEADER, true);
 

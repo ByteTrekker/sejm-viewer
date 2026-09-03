@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 SHELL := /usr/bin/env bash
 
-.PHONY: help fetch build check lint style style-fix stan test coverage mutation audit commits smoke clean
+.PHONY: help fetch refresh build check lint style style-fix stan test coverage mutation audit commits smoke clean
 
 help: ## Lista celów
 	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -12,6 +12,12 @@ fetch: ## Pobierz komplet danych z API (kilkanaście minut)
 	php bin/fetch-votings.php --term=7,8,9,10
 	php bin/fetch-attendance.php --term=7,8,9,10
 	php bin/fetch-social.php --term=7,8,9,10
+
+refresh: ## Dociągnij tylko to, co nowe (kadencja X + bieżący rocznik Dz.U.)
+	php bin/fetch.php --term=10 --since=auto --skip-mp
+	php bin/fetch-votings.php --term=10
+	php bin/fetch-attendance.php --term=10
+	php bin/fetch-acts.php --from=$(shell date +%Y) --to=$(shell date +%Y)
 
 build: ## Zbuduj wszystkie trzy dashboardy z bazy
 	php bin/build.php
