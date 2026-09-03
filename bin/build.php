@@ -31,6 +31,7 @@ use Milczenie\Report\MemberBuilder;
 use Milczenie\Report\ProcessBuilder;
 use Milczenie\Report\ProfileBuilder;
 use Milczenie\Report\RankingBuilder;
+use Milczenie\Report\RosterBuilder;
 use Milczenie\Storage\Database;
 use Milczenie\Web\PageComposer;
 
@@ -43,6 +44,7 @@ const PAGE_SLICES = [
     'dyscyplina' => ['meta', 'dyscyplina'],
     'koalicje' => ['meta', 'koalicje'],
     'raporty' => ['meta', 'raporty', 'archiwum'],
+    'sklad' => ['meta', 'sklad'],
 ];
 
 // Skrypt budujacy, nie usluga: profile poslow trzymaja w pamieci glosowania calej
@@ -104,6 +106,9 @@ foreach ($terms as $term) {
     $report['nieobecnosci'] = (new AbsenceBuilder($db))->build($term);
     $report['dyscyplina'] = (new DisciplineBuilder($db))->build($term);
     $report['koalicje'] = (new CoalitionBuilder($db))->build($term);
+    // Po pozostalych budowniczych: sklad izby skleja ich wyniki, zamiast liczyc
+    // te same wskazniki po raz drugi wlasnymi zapytaniami.
+    $report['sklad'] = (new RosterBuilder($db))->build($term, $report, $closed);
     $digests = new DigestBuilder($db);
     $report['raporty'] = $digests->build($term);
     $report['archiwum'] = $digests->archive($term);
