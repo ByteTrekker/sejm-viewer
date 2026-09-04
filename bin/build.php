@@ -56,7 +56,7 @@ const PAGE_SLICES = [
 // kadencji naraz, a domyslne 128 MB na to nie wystarcza.
 ini_set('memory_limit', '512M');
 
-$options = Options::fromGetopt(['term::', 'db::', 'out::', 'snapshot::', 'profile-votes::', 'lang::']);
+$options = Options::fromGetopt(['term::', 'db::', 'out::', 'snapshot::', 'profile-votes::', 'lang::', 'style-overlay::', 'templates::']);
 
 /**
  * Wersje jezykowe. Polska lezy w katalogu glownym, obce w podkatalogach - dzieki temu
@@ -73,6 +73,15 @@ $recentVotes = $profileVotes === 'all' ? null : (int) ($profileVotes ?? ProfileB
 
 $dbPath = $options->string('db', __DIR__ . '/../var/sejm.sqlite');
 $outDir = rtrim($options->string('out', __DIR__ . '/../public'), '/');
+
+if (!is_dir($outDir) && !mkdir($outDir, 0o775, true) && !is_dir($outDir)) {
+    throw new RuntimeException('Nie mozna utworzyc katalogu ' . $outDir);
+}
+
+// Wariant interfejsu to nakladka na bazowy arkusz. Katalog wyjsciowy jest inny,
+// wiec strony wariantu daja sie przeklikac obok wersji podstawowej.
+$styleOverlay = $options->nullableString('style-overlay');
+$templateDir = rtrim($options->string('templates', __DIR__ . '/../public'), '/');
 $snapshotOption = $options->nullableString('snapshot');
 $forcedSnapshot = $snapshotOption === null ? null : new DateTimeImmutable($snapshotOption);
 
@@ -176,7 +185,7 @@ $measurableTerms = array_column(array_filter($kadencje, static fn (array $k): bo
 $defaultTerm = $measurableTerms === [] ? max($terms) : max($measurableTerms);
 $fetchedAt = $db->getMeta('fetched_at');
 
-$composer = new PageComposer($outDir);
+$composer = new PageComposer($templateDir, $styleOverlay);
 $written = [];
 
 $langDir = static function (string $lang) use ($outDir): string {

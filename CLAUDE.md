@@ -113,6 +113,18 @@ przypis: liczba bez tego kontekstu krzywdzi konkretne osoby.
 * **Style, rdzeń JS i nawigacja żyją w `public/partials/`**, nigdy w szablonie
   strony. Zanim to powstało, dwa szablony niosły 173 z 183 linii identycznego
   stylu i każda poprawka wymagała dwóch edycji.
+* **Warianty interfejsu to nakładki na bazowy arkusz**, nie jego kopie.
+  `public/partials/warianty/<nazwa>.css` doklejany jest po `style.css`, więc w pliku
+  wariantu widać wyłącznie to, co dany kierunek naprawdę zmienia. `make warianty`
+  buduje każdy jako pełny, przeklikiwalny serwis w `public/warianty/<nazwa>/`
+  wraz ze stroną porównawczą — kierunek wizualny wybiera się na prawdziwych
+  danych, bo dopiero na nich widać, czy układ znosi tabelę 499 wierszy.
+  **Każdy wariant ma opisane założenie i koszt**; kierunek bez podanego kosztu
+  jest zwykle kierunkiem nieprzemyślanym do końca.
+* **Katalog źródeł jest inny niż katalog wyjściowy.** `PageComposer` czyta
+  `pages/` i `partials/` z katalogu podanego jako `--templates`, a zapisuje tam,
+  gdzie wskazuje `--out`. Wcześniej był to jeden katalog, więc budowanie gdzie
+  indziej wymagało kopiowania szablonów.
 * **Dane wstrzykiwane inline** do wygenerowanego HTML-a. Strona ma działać
   z `file://`, bez serwera i bez CDN-a.
 * Wygenerowane pliki (`public/*.html` poza szablonami, `public/*.json`,

@@ -41,8 +41,23 @@ final class PageComposer
      */
     private array $missing = [];
 
-    public function __construct(private readonly string $publicDir)
-    {
+    /**
+     * @param string|null $styleOverlay sciezka wzgledem public/ do arkusza dokladanego
+     *                                  PO bazowym - warianty interfejsu sa nakladka,
+     *                                  a nie kopia calego stylu, wiec widac w nich
+     *                                  wylacznie to, co dany kierunek naprawde zmienia
+     */
+    /**
+     * @param string $sourceDir katalog ZE ZRODLAMI (pages/, partials/) - nie katalog
+     *                          wyjsciowy. Do niedawna byl jednym i tym samym, wiec
+     *                          budowanie do innego katalogu wymagalo skopiowania tam
+     *                          szablonow; warianty interfejsu buduja sie w osobnych
+     *                          katalogach i zadnych kopii nie potrzebuja.
+     */
+    public function __construct(
+        private readonly string $sourceDir,
+        private readonly string|null $styleOverlay = null,
+    ) {
     }
 
     /**
@@ -76,7 +91,13 @@ final class PageComposer
 
         $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 
-        $html = str_replace('<!--@style-->', "<style>\n" . $this->read('partials/style.css') . '</style>', $html);
+        $style = $this->read('partials/style.css');
+
+        if ($this->styleOverlay !== null) {
+            $style .= "\n/* --- wariant interfejsu --- */\n" . $this->read($this->styleOverlay);
+        }
+
+        $html = str_replace('<!--@style-->', "<style>\n" . $style . '</style>', $html);
         $html = str_replace('<!--@nav-->', $this->nav($page, $prefix, $lang, $self ?? $page . '.html'), $html);
         $html = str_replace('/*@core*/', $this->read('partials/core.js'), $html);
         $html = str_replace('/*__DATA__*/null', $json, $html);
@@ -210,7 +231,7 @@ final class PageComposer
 
     private function read(string $relative): string
     {
-        $path = $this->publicDir . '/' . $relative;
+        $path = $this->sourceDir . '/' . $relative;
         $content = file_get_contents($path);
 
         if ($content === false) {
