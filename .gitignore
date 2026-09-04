@@ -17,8 +17,6 @@
 /public/mandaty.html
 /public/rzad.html
 /public/rzad/
-# Warianty interfejsu: pelne kopie serwisu, generowane przez `make warianty`.
-/public/warianty/
 /public/posel/
 # Wersje jezykowe powstaja tak samo - katalog na jezyk, komplet stron w kazdym.
 /public/en/

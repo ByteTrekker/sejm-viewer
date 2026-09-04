@@ -31,9 +31,6 @@ build: ## Zbuduj wszystkie trzy dashboardy z bazy
 	php bin/build-vacatio.php
 	php bin/build-vacatio.php --exclude-technical
 
-warianty: ## Zbuduj warianty interfejsu obok siebie (public/warianty/index.html)
-	php bin/build-variants.php
-
 lint: ## Składnia PHP (bez zależności)
 	./scripts/php-lint.sh
 
