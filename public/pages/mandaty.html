@@ -1,0 +1,281 @@
+<title>{{Rozkład mandatów}}</title>
+<!--@style-->
+
+<div class="wrap">
+  <!--@nav-->
+
+  <header class="masthead">
+    <h1>{{Rozkład mandatów}}</h1>
+    <p class="dek">
+      {{Ile miejsc ma który klub i jak te liczby przesuwały się w trakcie kadencji. Skład liczymy z głosowań, a nie z rejestru posłów — przy każdym głosie zapisany jest klub, więc ostatni głos posła mówi, pod jakim szyldem kończył. Ta sama metoda działa dla kadencji zamkniętych, dla których rejestr podaje już tylko stan dzisiejszy.}}
+    </p>
+    <div class="controls">
+      <span class="switch-label">{{Kadencja}}</span>
+      <div class="seg" id="term-seg" role="group" aria-label="{{Wybierz kadencję}}"></div>
+    </div>
+    <div class="stamp" id="stamp"></div>
+  </header>
+
+  <section>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section>
+    <h2 id="hemi-title">{{Izba}}</h2>
+    <p class="sub">
+      {{Jedno koło to jeden mandat. Kluby ułożone od największego do najmniejszego, <b>nie</b> według osi politycznej — API nie podaje miejsc na sali, a lewo i prawo bylibyśmy zmuszeni przypisać sami.}}
+    </p>
+    <div class="card"><figure>
+      <div id="hemicycle"></div>
+      <figcaption id="hemi-caption"></figcaption>
+    </figure></div>
+  </section>
+
+  <section>
+    <h2>{{Linia większości}}</h2>
+    <p class="sub" id="majority-sub"></p>
+    <div class="card"><figure>
+      <div id="majority-bar"></div>
+      <figcaption id="majority-caption"></figcaption>
+    </figure></div>
+    <div class="scroller" style="margin-top:12px">
+      <table id="clubs"><thead><tr id="clubs-head"></tr></thead><tbody id="clubs-body"></tbody></table>
+    </div>
+  </section>
+
+  <section id="flows-section">
+    <h2>{{Kto komu ubył, komu przybył}}</h2>
+    <p class="sub" id="flows-sub"></p>
+    <div class="card"><figure>
+      <div id="balance-chart"></div>
+      <figcaption>{{Saldo transferów: ilu posłów do klubu przyszło minus ilu odeszło. Nie licząc mandatów, które wygasły i zostały obsadzone — to nie jest przenosiny posła.}}</figcaption>
+    </figure></div>
+    <div class="scroller" style="margin-top:12px">
+      <table id="flows"><thead><tr id="flows-head"></tr></thead><tbody id="flows-body"></tbody></table>
+    </div>
+  </section>
+
+  <section id="renames-section">
+    <h2>{{Zmiany szyldu, nie transfery}}</h2>
+    <p class="sub">
+      {{API zapisuje przy głosie nazwę klubu, a nie jego tożsamość, więc przemianowanie wygląda w danych dokładnie tak samo jak masowe przenosiny. Te przypadki są wyłączone z liczby transferów i wypisane osobno.}}
+    </p>
+    <div class="card"><ul class="worst" id="renames"></ul></div>
+  </section>
+
+  <section>
+    <details class="method">
+      <summary>{{Jak liczymy}}</summary>
+      <ol>
+        <li>{{<b>Skład na koniec okresu</b> to klub zapisany przy ostatnim głosie posła, jeżeli głosował w ciągu ostatnich}} <span id="window"></span> {{dni. Sam ostatni dzień posiedzenia nie wystarcza — kto był wtedy nieobecny, zniknąłby ze składu.}}</li>
+        <li>{{Metoda daje}} <span id="seats"></span> {{mandatów zamiast}} <span id="const-seats"></span>{{. Różnica bierze się z mandatów, które w tym oknie zmieniły ręce: poprzednik i następca głosowali obaj. Podajemy liczbę wyliczoną, a nie konstytucyjną.}}</li>
+        <li>{{<b>Linia większości to konwencja, nie próg ustawowy.</b>}} <span id="ref-majority"></span> {{wymaga zwykłej większości głosów oddanych przy obecności co najmniej połowy ustawowej liczby posłów — liczy się więc sala w chwili głosowania, a nie liczba mandatów. 231 mandatów większość zapewnia, ale jej nie definiuje.}}</li>
+        <li>{{<b>Przemianowanie klubu nie jest transferem.</b> Za zmianę szyldu uznajemy ruch, który jednego dnia przenosi co najmniej 90% wszystkich głosujących pod starą nazwą i trafia pod nazwę, której wcześniej nie było. Wejście czterdziestu posłów PiS do RozwojPlus to 19% klubu, więc zostaje transferem.}}</li>
+        <li>{{Posłowie niezrzeszeni są tu zwykłą pozycją, bo mandat mają taki sam. W rankingach dyscypliny są wyłączeni, bo tam liczy się linia klubu, której niezrzeszeni nie mają.}}</li>
+      </ol>
+    </details>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+/*@core*/
+
+state.term = firstAvailableTerm(k => k.mandaty_mandatow !== null && k.mandaty_mandatow !== undefined);
+
+// Jeden odcien, od najciemniejszego dla najwiekszego klubu. Prawdziwe barwy partii
+// bylyby czytelniejsze, ale trzeba by je wpisac recznie i utrzymywac przy kazdej
+// zmianie nazwy klubu - a projekt nie trzyma zadnych danych poza tym, co z API.
+const SEAT_RAMP = ['#0d366b', '#184f95', '#256abf', '#2a78d6', '#3987e5', '#5598e7',
+                   '#6da7ec', '#86b6ef', '#9ec5f4', '#b7d3f6', '#cde2fb', '#dbeafd', '#e7f1fe'];
+const seatColor = i => SEAT_RAMP[Math.min(i, SEAT_RAMP.length - 1)];
+const seatInk = i => (i <= 3 ? '#ffffff' : '#0d2137');
+// Najjasniejsze odcienie znikaja na jasnym tle, wiec male kluby dostaja obrys
+// atramentem zamiast tlem. Bez tego trzyosobowe kolo bylo niewidoczne.
+const seatStroke = i => (i <= 7 ? 'var(--surface-1)' : 'var(--ink-3)');
+
+/**
+ * Miejsca w hemicyklu: kilka lukow, w kazdym tyle foteli, ile miesci sie proporcjonalnie
+ * do dlugosci luku. Punkty ida potem po kacie, zeby kluby tworzyly spojne wycinki.
+ */
+function seatPositions(total, rows, rInner, rOuter) {
+  const weights = [];
+  for (let r = 0; r < rows; r++) weights.push(rInner + (rOuter - rInner) * (r / (rows - 1)));
+  const sum = weights.reduce((a, b) => a + b, 0);
+
+  const counts = weights.map(w => Math.max(1, Math.round((total * w) / sum)));
+  let drift = total - counts.reduce((a, b) => a + b, 0);
+  for (let r = rows - 1; drift !== 0; r = (r - 1 + rows) % rows) {
+    counts[r] += drift > 0 ? 1 : -1;
+    drift += drift > 0 ? -1 : 1;
+  }
+
+  const points = [];
+  counts.forEach((n, r) => {
+    const radius = weights[r];
+    for (let i = 0; i < n; i++) {
+      const t = n === 1 ? 0.5 : i / (n - 1);
+      points.push({ angle: Math.PI * t, radius });
+    }
+  });
+
+  return points.sort((a, b) => a.angle - b.angle || a.radius - b.radius);
+}
+
+function drawHemicycle() {
+  const m = report().mandaty;
+  const host = document.getElementById('hemicycle');
+  const total = m.meta.mandatow;
+
+  const W = 900, H = 500, cx = W / 2, cy = H - 34;
+  const points = seatPositions(total, 9, 150, 420);
+
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img',
+    'aria-label': '{{Rozkład mandatów w izbie}}' });
+
+  let seat = 0;
+  m.kluby.forEach((c, ci) => {
+    for (let i = 0; i < c.n && seat < points.length; i++, seat++) {
+      const p = points[seat];
+      const dot = svgEl('circle', {
+        cx: cx - p.radius * Math.cos(p.angle),
+        cy: cy - p.radius * Math.sin(p.angle),
+        r: 7.5, fill: seatColor(ci), stroke: seatStroke(ci), 'stroke-width': 1.5,
+      });
+      bindTip(dot, () => `<b>${c.klub}</b>
+        <div class="row">${fmtInt(c.n)} {{mandatów}} · ${fmtPct(c.udzial, 1)} {{izby}}</div>`);
+      svg.append(dot);
+    }
+  });
+
+  // Linia polowy skladu przecina hemicykl dokladnie tam, gdzie konczy sie mandat 231.
+  const line = svgEl('line', { x1: cx, x2: cx, y1: cy - 440, y2: cy - 130, class: 'refline' });
+  const lab = svgEl('text', { class: 'reflabel', x: cx + 8, y: cy - 444, 'text-anchor': 'middle' });
+  lab.textContent = `{{połowa składu}} — ${m.meta.wiekszosc - 1}`;
+  svg.append(line, lab);
+
+  host.replaceChildren(svg);
+  document.getElementById('hemi-caption').textContent =
+    `${fmtInt(total)} {{mandatów, stan na}} ${m.meta.data}. {{Kolejność wycinków wynika z liczebności klubów.}}`;
+}
+
+function drawMajority() {
+  const m = report().mandaty;
+  const total = m.meta.mandatow;
+  const W = 900, H = 96, P = 8;
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': '{{Mandaty klubów wobec linii większości}}' });
+
+  let x = P;
+  m.kluby.forEach((c, ci) => {
+    const w = ((W - 2 * P) * c.n) / total;
+    const rect = svgEl('rect', { x, y: 22, width: Math.max(1, w - 1), height: 40, rx: 3,
+      fill: seatColor(ci), stroke: seatStroke(ci), 'stroke-width': ci > 7 ? 1 : 0 });
+    bindTip(rect, () => `<b>${c.klub}</b><div class="row">${fmtInt(c.n)} {{mandatów}}</div>`);
+    svg.append(rect);
+    if (w > 46) {
+      const t = svgEl('text', { x: x + w / 2, y: 47, 'text-anchor': 'middle', class: 'val', fill: seatInk(ci) });
+      t.textContent = c.n;
+      svg.append(t);
+    }
+    x += w;
+  });
+
+  const mx = P + ((W - 2 * P) * m.meta.wiekszosc) / total;
+  const line = svgEl('line', { x1: mx, x2: mx, y1: 12, y2: 74, class: 'refline' });
+  const lab = svgEl('text', { class: 'reflabel', x: mx, y: 88, 'text-anchor': 'middle' });
+  lab.textContent = `{{większość}} — ${m.meta.wiekszosc}`;
+  svg.append(line, lab);
+
+  document.getElementById('majority-bar').replaceChildren(svg);
+}
+
+const CLUB_COLUMNS = [
+  { key: 'klub', label: '{{Klub}}', type: 'text' },
+  { key: 'n', label: '{{Mandaty}}', type: 'int' },
+  { key: 'udzial', label: '{{Udział w izbie}}', type: 'pct', digits: 1 },
+];
+const FLOW_COLUMNS = [
+  { key: 'z', label: '{{Z klubu}}', type: 'text' },
+  { key: 'do', label: '{{Do klubu}}', type: 'text' },
+  { key: 'n', label: '{{Posłów}}', type: 'int' },
+];
+
+function renderAll() {
+  hideTip();
+  const m = report().mandaty;
+  const big = m.kluby[0];
+  const majorityHolders = m.kluby.filter(c => c.n >= m.meta.wiekszosc);
+
+  renderStamp('stamp', [`${fmtInt(m.meta.mandatow)} {{mandatów}}`]);
+  document.getElementById('window').textContent = m.meta.okno_dni;
+  document.getElementById('seats').textContent = fmtInt(m.meta.mandatow);
+  document.getElementById('const-seats').textContent = fmtInt(m.meta.konstytucyjnie);
+  document.getElementById('ref-majority')?.replaceChildren(legalRef('wiekszosc_glosow', '{{Art. 120 Konstytucji}}'));
+
+  document.getElementById('kpis').replaceChildren(...[
+    ['{{Mandatów w izbie}}', fmtInt(m.meta.mandatow), m.meta.zamknieta ? '{{stan na koniec kadencji}}' : '{{stan na ostatnie głosowanie}}'],
+    ['{{Największy klub}}', big ? big.klub : '—', big ? `${fmtInt(big.n)} {{mandatów}} · ${fmtPct(big.udzial, 1)}` : ''],
+    ['{{Linia większości}}', fmtInt(m.meta.wiekszosc), majorityHolders.length ? `{{samodzielnie:}} ${majorityHolders[0].klub}` : '{{żaden klub sam jej nie ma}}'],
+    ['{{Transferów w kadencji}}', fmtInt(m.meta.transferow), '{{bez zmian szyldu}}'],
+  ].map(([label, value, note]) => el('div', { class: 'kpi' },
+    el('div', { class: 'label', text: label }),
+    el('div', { class: 'value', text: value }),
+    el('div', { class: 'note', text: note }),
+  )));
+
+  document.getElementById('hemi-title').textContent = `{{Izba — kadencja}} ${ROMAN[state.term] ?? state.term}`;
+  drawHemicycle();
+  drawMajority();
+
+  const missing = m.meta.wiekszosc - (big ? big.n : 0);
+  document.getElementById('majority-sub').textContent = majorityHolders.length
+    ? `${majorityHolders[0].klub} {{ma większość samodzielnie.}}`
+    : `{{Żaden klub nie ma większości sam. Największemu brakuje}} ${fmtInt(missing)} {{mandatów.}}`;
+  document.getElementById('majority-caption').textContent =
+    '{{Linia jest umowna — o przyjęciu ustawy decyduje większość głosów oddanych, a nie liczba mandatów.}}';
+
+  sortableTable({ headId: 'clubs-head', bodyId: 'clubs-body', columns: CLUB_COLUMNS,
+    rows: m.kluby, state: { sort: 'n', dir: -1 }, limit: 30, rerender: () => {} });
+
+  const flows = m.przeplywy;
+  document.getElementById('flows-section').hidden = flows.length === 0;
+  if (flows.length) {
+    document.getElementById('flows-sub').textContent =
+      `${fmtInt(flows.length)} {{kierunków przepływu,}} ${fmtInt(flows.reduce((a, f) => a + f.n, 0))} {{przejść posłów. Ta sama osoba może wystąpić kilka razy, jeżeli zmieniała klub więcej niż raz.}}`;
+
+    hbar('balance-chart', m.saldo.map(s => ({
+      label: s.klub,
+      value: s.saldo,
+      display: (s.saldo > 0 ? '+' : '') + fmtInt(s.saldo),
+      tip: `<b>${s.klub}</b>
+        <div class="row">{{przyszło:}} ${fmtInt(s.przyszlo)}</div>
+        <div class="row">{{odeszło:}} ${fmtInt(s.odeszlo)}</div>`,
+    })), { label: '{{Saldo transferów}}', labelWidth: 132, tick: v => fmtInt(Math.round(v)) });
+
+    sortableTable({ headId: 'flows-head', bodyId: 'flows-body', columns: FLOW_COLUMNS,
+      rows: flows, state: { sort: 'n', dir: -1 }, limit: 40, rerender: () => {} });
+  }
+
+  const renames = m.zmiany_szyldu;
+  document.getElementById('renames-section').hidden = renames.length === 0;
+  document.getElementById('renames').replaceChildren(...renames.map(r => el('li', { class: 'cat' },
+    el('span', { class: 'count', text: fmtInt(r.n) }),
+    el('span', {},
+      el('span', { text: `${r.z} → ${r.do}` }),
+      el('span', { class: 'who', text: `${r.data} · {{cały klub jednego dnia}}` }),
+    ),
+  )));
+
+  document.getElementById('footer').replaceChildren(
+    el('div', { text: `{{Dane: api.sejm.gov.pl, głosowania imienne kadencji}} ${ROMAN[state.term] ?? state.term}.` }),
+    el('div', { class: 'thin', text: '{{Skład liczony z klubu zapisanego przy głosie, więc poseł nieobecny przez cały okres okna nie wchodzi do rozkładu.}}' }),
+    legalFooter(),
+  );
+}
+
+mountTermSwitch('term-seg', renderAll, k => k.mandaty_mandatow === null || k.mandaty_mandatow === undefined);
+renderAll();
+</script>

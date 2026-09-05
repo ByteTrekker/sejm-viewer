@@ -3,7 +3,12 @@ name: CI
 on:
   push:
     branches: [main]
+  # "edited" jest tu konieczne, nie ozdobne: bramka sprawdza TYTUŁ pull requesta,
+  # a ponowne uruchomienie przebiegu odtwarza stare zdarzenie razem ze starym
+  # tytułem. Bez tego poprawionego tytułu nie da się zweryfikować niczym poza
+  # pchnięciem kolejnego commita.
   pull_request:
+    types: [opened, synchronize, reopened, edited]
 
 # Nowy push do tej samej gałęzi anuluje poprzedni przebieg — nie płacimy
 # za weryfikację nieaktualnego kodu.

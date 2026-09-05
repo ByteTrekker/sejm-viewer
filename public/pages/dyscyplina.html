@@ -159,7 +159,10 @@ function renderAll() {
   const t = d.transfery;
   document.getElementById('transfers-sub').textContent =
     `${fmtInt(t.poslow)} {{z}} ${fmtInt(t.wszystkich)} {{posłów}} (${fmtPct(t.udzial, 0)}) {{głosowało w kadencji}} `
-    + `${ROMAN[state.term] ?? state.term} {{pod więcej niż jednym szyldem. Daty pochodzą z pierwszego i ostatniego głosu oddanego w danym klubie.}}`;
+    + `${ROMAN[state.term] ?? state.term} {{pod więcej niż jednym szyldem. Daty pochodzą z pierwszego i ostatniego głosu oddanego w danym klubie.}}`
+    + (t.zmiany_szyldu.length
+        ? ` {{Nie licząc}} ${fmtInt(t.zmiany_szyldu.length)} {{przemianowań klubu, w których cały skład zmienił nazwę jednego dnia — te wypisuje strona rozkładu mandatów.}}`
+        : '');
 
   document.getElementById('transfers').replaceChildren(...t.lista.map(m => el('li', { class: 'cat' },
     el('span', { class: 'count', text: `${m.zmian}×` }),

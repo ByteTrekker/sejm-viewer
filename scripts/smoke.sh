@@ -220,6 +220,19 @@ $check("transfery to ta sama liczba co w dyscyplinie", $sklad["meta"]["zmienilo_
 $withClub = array_filter($sklad["poslowie"], static fn (array $m): bool => $m["klub"] !== null);
 $check("suma klubow rowna liczbie poslow z klubem", array_sum(array_column($sklad["kluby"], "n")), count($withClub));
 
+// --- rozklad mandatow ---
+// Sklad izby liczony z glosowan musi sie zgadzac z rejestrem tam, gdzie rejestr
+// jest wiarygodny, a salda transferow musza sie zerowac - kazde odejscie jest
+// czyimś przyjsciem.
+$mand = $read("'"$out"'/mandaty.html")["raporty"]["10"]["mandaty"];
+$check("mandaty sumuja sie do liczby podanej w meta", array_sum(array_column($mand["kluby"], "n")), $mand["meta"]["mandatow"]);
+$check("salda transferow sumuja sie do zera", array_sum(array_column($mand["saldo"], "saldo")), 0);
+$check("linia wiekszosci to polowa skladu plus jeden", $mand["meta"]["wiekszosc"], 231);
+$check("przeplywy nie niosa zmian szyldu", array_sum(array_map(
+    static fn (array $f): int => $f["zmiana_szyldu"] ? 1 : 0,
+    $mand["przeplywy"],
+)), 0);
+
 // --- kto z kim glosuje ---
 $koal = $read("'"$out"'/koalicje.html")["raporty"]["10"]["koalicje"];
 $para = null;
@@ -265,12 +278,12 @@ $check("wariant odsiany", $only["meta"]["wariant"], "merytoryczne");
 exit($fail);
 '
 
-for f in index.html interpelacje.html droga.html poslowie.html sklad.html nieobecnosci.html vacatio.html vacatio-merytoryczne.html; do
+for f in index.html interpelacje.html droga.html poslowie.html sklad.html mandaty.html nieobecnosci.html vacatio.html vacatio-merytoryczne.html; do
     [ -s "$out/$f" ] || { echo "BŁĄD: nie powstał $f"; exit 1; }
     grep -q '__DATA__\|<!--@' "$out/$f" && { echo "BŁĄD: niewypełnione znaczniki w $f"; exit 1; }
     grep -q 'nav class="pages"' "$out/$f" || { echo "BŁĄD: brak nawigacji w $f"; exit 1; }
 done
-echo "OK   wygenerowano 8 stron z kompletem znaczników i nawigacją"
+echo "OK   wygenerowano 9 stron z kompletem znaczników i nawigacją"
 
 # Wersja angielska. Brak tlumaczenia NIE zostawia widocznego znacznika - wraca
 # polski tekst pod angielskim adresem, czego po samej stronie nie widac. Dlatego
