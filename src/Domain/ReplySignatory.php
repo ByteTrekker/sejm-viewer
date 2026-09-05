@@ -25,6 +25,9 @@ final class ReplySignatory
      * Wystarczaja rdzenie: porownujemy po sprowadzeniu do malych liter, wiec
      * "PODSEKRETARZ" i "Podsekretarz" trafiaja w ten sam wpis.
      */
+    /** Myslnik jako osobny token oddziela funkcje od nazwiska. */
+    private const DASH = '-';
+
     private const OFFICE_WORDS = [
         'minister', 'ministra', 'ministrowie', 'ministerstwie', 'ministerstwa',
         'podsekretarz', 'sekretarz', 'stanu', 'stan',
@@ -41,56 +44,78 @@ final class ReplySignatory
      */
     public function parse(string $author): array
     {
-        // Polkreslnik, poltrafiony myslnik i pauza wygladaja tak samo, a znacza
-        // to samo. Bez tego "Henryka Moscicka–Dendys" z pauza rozpadala sie na
-        // dwa tokeny i podpis wypadal jako nierozpoznany.
-        $author = strtr($author, ['–' => '-', '—' => '-', '‑' => '-', '−' => '-']);
-        $author = trim(preg_replace('/\s+/u', ' ', $author) ?? '');
-
-        if ($author === '') {
-            return self::nothing();
-        }
+        $tokens = $this->tokenize($author);
 
         // Myslnik rozdziela funkcje od nazwiska, ale bywa go wiecej niz jeden:
         // "minister - czlonek Rady Ministrow - Maciej Berek". Liczy sie OSTATNI,
-        // bo nazwisko stoi na koncu.
-        $dash = mb_strrpos($author, ' - ');
-        if ($dash !== false) {
-            $name = trim(mb_substr($author, $dash + 3));
-            $role = trim(mb_substr($author, 0, $dash));
+        // bo nazwisko stoi na koncu. Tniemy po tokenach, nie po znakach: przy
+        // liczeniu przesuniec w tekscie wynik nie zmienial sie od przesuniecia
+        // o jeden, bo i tak przycinalismy spacje - kod udawal precyzje, ktorej
+        // nie mial.
+        $dash = array_keys($tokens, self::DASH, true);
+
+        if ($dash !== []) {
+            $last = $dash[count($dash) - 1];
+            $name = array_slice($tokens, $last + 1);
+            $role = array_slice($tokens, 0, $last);
 
             if ($this->looksLikeName($name)) {
                 return $this->result($role, $name);
             }
         }
 
-        $tokens = $this->tokenize($author);
-        $name = $this->trailingName($tokens);
+        $found = $this->trailingName($tokens);
 
-        if ($name === null) {
+        if ($found === null) {
             return self::nothing();
         }
 
-        $role = trim(str_replace($name, '', implode(' ', $tokens)));
-        $role = trim(preg_replace('/\s+/u', ' ', $role) ?? '');
+        // Funkcja to wszystko poza nazwiskiem - wycinamy je po POZYCJI, ktora
+        // zwraca wyszukiwanie, a nie szukajac tekstu w tekscie: to samo slowo
+        // wystepujace wczesniej (np. w "Kancelarii Prezesa") tez by wtedy znikalo.
+        [$at, $name] = $found;
+        $role = array_merge(array_slice($tokens, 0, $at), array_slice($tokens, $at + count($name)));
 
         return $this->result($role, $name);
     }
 
     /**
-     * Rozbija sklejone tokeny w rodzaju "stanuTomasz".
+     * Dzieli podpis na tokeny, po drodze prostujac to, co wpisano recznie.
      *
-     * Zrodlem jest pole wpisywane recznie, wiec brak spacji zdarza sie regularnie.
-     * Ciecie na granicy mala->wielka litera jest bezpieczne, bo polskie nazwisko
-     * nie ma wielkiej litery w srodku wyrazu poza mysnikiem, ktorego nie ruszamy.
+     * Myslnik jako osobny token, bo to on rozdziela funkcje od nazwiska; pauza
+     * i polkreslnik znacza to samo co myslnik, a bez ich ujednolicenia "Henryka
+     * Moscicka-Dendys" z pauza rozpadala sie na dwa tokeny. Sklejone wyrazy
+     * ("stanuTomasz") tniemy na granicy mala-wielka litera: polskie nazwisko nie
+     * ma wielkiej litery w srodku wyrazu poza mysnikiem, ktorego nie ruszamy.
      *
      * @return list<string>
      */
     private function tokenize(string $author): array
     {
-        $split = preg_replace('/(\p{Ll})(\p{Lu})/u', '$1 $2', $author) ?? $author;
+        $normalized = strtr($author, ['–' => '-', '—' => '-', '‑' => '-', '−' => '-']);
+        $normalized = preg_replace('/(\p{Ll})(\p{Lu})/u', '$1 $2', $normalized) ?? $normalized;
 
-        return array_values(array_filter(preg_split('/\s+/u', $split) ?: []));
+        // PREG_SPLIT_NO_EMPTY daje juz liste bez dziur, wiec nie ma czego indeksowac
+        // od nowa ani odsiewac - kazde dodatkowe opakowanie bylo tu ozdoba.
+        $tokens = preg_split('/\s+/u', $normalized, -1, PREG_SPLIT_NO_EMPTY);
+
+        if ($tokens === false) {
+            return [];
+        }
+
+        // Interpunkcja odpada juz tutaj, a nie dopiero przy sprawdzaniu tokena:
+        // inaczej "Jan Kowalski." wchodzil do wyniku z kropka i dawal inny klucz
+        // niz "Jan Kowalski", czyli dwa profile jednej osoby.
+        $clean = [];
+        foreach ($tokens as $token) {
+            $token = trim($token, '.,;:()');
+
+            if ($token !== '') {
+                $clean[] = $token;
+            }
+        }
+
+        return $clean;
     }
 
     /**
@@ -99,48 +124,55 @@ final class ReplySignatory
      * SEKRETARZ STANU" funkcja stoi po obu stronach nazwiska.
      *
      * @param list<string> $tokens
+     *
+     * @return array{int, list<string>}|null pozycja poczatku nazwiska i jego czlony
      */
-    private function trailingName(array $tokens): string|null
+    private function trailingName(array $tokens): array|null
     {
         $runs = [];
         $current = [];
+        $start = 0;
 
-        foreach ($tokens as $token) {
+        foreach ($tokens as $i => $token) {
             if ($this->isNameToken($token)) {
+                if ($current === []) {
+                    $start = $i;
+                }
+
                 $current[] = $token;
                 continue;
             }
 
             if (count($current) >= 2) {
-                $runs[] = $current;
+                $runs[] = [$start, $current];
             }
 
             $current = [];
         }
 
         if (count($current) >= 2) {
-            $runs[] = $current;
+            $runs[] = [$start, $current];
         }
 
         if ($runs === []) {
             return null;
         }
 
-        $last = $runs[count($runs) - 1];
+        [$at, $last] = $runs[count($runs) - 1];
 
         // Dwa ostatnie czlony, nie trzy. Nierozpoznane slowo urzedowe w dopelniaczu
         // ("prezes Urzedu Ochrony Konkurencji i Konsumentow Tomasz Chrostny") jest
         // pisane wielka litera i wchodzi do ciagu; przy trzech czlonach powstawal
         // z tego nieistniejacy "Konsumentow Tomasz Chrostny". Zgubienie drugiego
         // imienia jest kosmetyczne, wymyslenie osoby - nie.
-        return implode(' ', array_slice($last, -2));
+        $name = array_slice($last, -2);
+
+        return [$at + count($last) - count($name), $name];
     }
 
-    private function isNameToken(string $token): bool
+    private function isNameToken(string $bare): bool
     {
-        $bare = trim($token, '.,;:()');
-
-        if ($bare === '' || mb_strlen($bare) < 2) {
+        if (mb_strlen($bare) < 2) {
             return false;
         }
 
@@ -154,10 +186,11 @@ final class ReplySignatory
             && mb_strtoupper($bare) !== $bare;
     }
 
-    private function looksLikeName(string $candidate): bool
+    /**
+     * @param list<string> $tokens
+     */
+    private function looksLikeName(array $tokens): bool
     {
-        $tokens = $this->tokenize($candidate);
-
         if (count($tokens) < 2 || count($tokens) > 3) {
             return false;
         }
@@ -172,14 +205,19 @@ final class ReplySignatory
     }
 
     /**
+     * @param list<string> $role
+     * @param list<string> $name
+     *
      * @return array{funkcja: string|null, nazwisko: string, klucz: string}
      */
-    private function result(string $role, string $name): array
+    private function result(array $role, array $name): array
     {
+        $nazwisko = implode(' ', $name);
+
         return [
-            'funkcja' => $role === '' ? null : mb_strtolower($role),
-            'nazwisko' => $name,
-            'klucz' => $this->key($name),
+            'funkcja' => $role === [] ? null : mb_strtolower(implode(' ', $role)),
+            'nazwisko' => $nazwisko,
+            'klucz' => $this->key($nazwisko),
         ];
     }
 
