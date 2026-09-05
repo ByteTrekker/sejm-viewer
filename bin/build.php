@@ -23,10 +23,12 @@ require __DIR__ . '/bootstrap.php';
 use Milczenie\Console\Options;
 use Milczenie\Domain\LegalSource;
 use Milczenie\Domain\RecipientNormalizer;
+use Milczenie\Domain\ReplySignatory;
 use Milczenie\Report\AbsenceBuilder;
 use Milczenie\Report\CoalitionBuilder;
 use Milczenie\Report\DigestBuilder;
 use Milczenie\Report\DisciplineBuilder;
+use Milczenie\Report\GovernmentBuilder;
 use Milczenie\Report\MandateBuilder;
 use Milczenie\Report\MemberBuilder;
 use Milczenie\Report\ProcessBuilder;
@@ -47,6 +49,7 @@ const PAGE_SLICES = [
     'raporty' => ['meta', 'raporty', 'archiwum'],
     'sklad' => ['meta', 'sklad'],
     'mandaty' => ['meta', 'mandaty'],
+    'rzad' => ['meta', 'rzad'],
 ];
 
 // Skrypt budujacy, nie usluga: profile poslow trzymaja w pamieci glosowania calej
@@ -112,6 +115,10 @@ foreach ($terms as $term) {
     // te same wskazniki po raz drugi wlasnymi zapytaniami.
     $report['sklad'] = (new RosterBuilder($db))->build($term, $report, $closed);
     $report['mandaty'] = (new MandateBuilder($db))->build($term, $report);
+    // Normalizator resortow ma byc TEN SAM co w rankingu - inaczej strona rzadu
+    // i ranking milczenia mowilyby o innych adresatach pod ta sama nazwa.
+    $report['rzad'] = (new GovernmentBuilder($db, new ReplySignatory(), new RecipientNormalizer()))
+        ->build($term, (string) ($info['date_from'] ?? '1990-01-01'), $endsAt === null ? null : (string) $endsAt);
     $digests = new DigestBuilder($db);
     $report['raporty'] = $digests->build($term);
     $report['archiwum'] = $digests->archive($term);
@@ -264,7 +271,8 @@ $index = [
         ['zbior' => 'Odpowiedzi', 'ile' => $counts('SELECT COUNT(*) AS n FROM reply'), 'zakres' => 'jw.', 'odswiezanie' => 'tygodniowo (tylko kadencja X)'],
         ['zbior' => 'Głosowania imienne', 'ile' => $counts('SELECT COUNT(*) AS n FROM voting'), 'zakres' => 'kadencje VII–X', 'odswiezanie' => 'tygodniowo (nowe posiedzenia)'],
         ['zbior' => 'Głosy indywidualne', 'ile' => $counts('SELECT COUNT(*) AS n FROM vote'), 'zakres' => 'jw.', 'odswiezanie' => 'razem z głosowaniami'],
-        ['zbior' => 'Akty Dziennika Ustaw', 'ile' => $counts('SELECT COUNT(*) AS n FROM act'), 'zakres' => '2015–2026', 'odswiezanie' => 'tygodniowo (bieżący rocznik)'],
+        ['zbior' => 'Akty Dziennika Ustaw', 'ile' => $counts("SELECT COUNT(*) AS n FROM act WHERE publisher = 'DU'"), 'zakres' => '2015–2026', 'odswiezanie' => 'tygodniowo (bieżący rocznik)'],
+        ['zbior' => 'Akty Monitora Polskiego', 'ile' => $counts("SELECT COUNT(*) AS n FROM act WHERE publisher = 'MP'"), 'zakres' => '2015–2026', 'odswiezanie' => 'tygodniowo (bieżący rocznik)'],
         ['zbior' => 'Posłowie', 'ile' => $counts('SELECT COUNT(*) AS n FROM mp'), 'zakres' => '4 kadencje', 'odswiezanie' => 'miesięcznie'],
     ],
 ];
@@ -309,6 +317,43 @@ foreach ($reports as $term => $report) {
         $profiles++;
     }
 }
+
+// --- profile podpisujacych: jedna strona na osobe, tak samo jak przy poslach ---
+$signatories = 0;
+
+foreach ($reports as $term => $report) {
+    foreach ($report['rzad']['osoby'] as $person) {
+        $payload = [
+            'podstawy' => LegalSource::all(),
+            'wygenerowano' => $today->format('Y-m-d'),
+            'pobrano' => $fetchedAt,
+            'osoba' => $person + ['kadencja' => $term],
+        ];
+
+        foreach ($languages as $lang) {
+            $dir = $langDir($lang) . '/rzad';
+            if (!is_dir($dir) && !mkdir($dir, 0o775, true) && !is_dir($dir)) {
+                throw new RuntimeException('Nie mozna utworzyc katalogu ' . $dir);
+            }
+
+            file_put_contents(
+                sprintf('%s/%d-%s.html', $dir, $term, $person['klucz']),
+                $composer->render(
+                    'rzadowiec.html',
+                    'rzad',
+                    $payload,
+                    '../',
+                    $lang,
+                    sprintf('rzad/%d-%s.html', $term, $person['klucz']),
+                ),
+            );
+        }
+
+        ++$signatories;
+    }
+}
+
+fwrite(STDERR, sprintf('  profili podpisujacych: %d%s', $signatories, PHP_EOL));
 
 fwrite(STDERR, sprintf(
     '  profili poslow: %d (lista glosowan: %s)%s',

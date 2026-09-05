@@ -40,7 +40,17 @@ foreach (range($from, $to) as $year) {
     $total += $importer->import($publisher, $year, $types, $options->has('refresh'));
 }
 
-$db->setMeta('acts_fetched_at', (new DateTimeImmutable())->format(DateTimeInterface::ATOM));
-$db->setMeta('acts_range', sprintf('%s %d-%d', $publisher, $from, $to));
+// Znacznik pobrania jest PER WYDAWCA. Wspolny klucz sprawial, ze pobranie
+// Monitora Polskiego podmienialo date przy Dzienniku Ustaw i strona vacatio
+// twierdzila, ze jej dane sa swiezsze, niz sa.
+$fetchedAt = (new DateTimeImmutable())->format(DateTimeInterface::ATOM);
+$db->setMeta('acts_fetched_at:' . $publisher, $fetchedAt);
+$db->setMeta('acts_range:' . $publisher, sprintf('%d-%d', $from, $to));
+
+if ($publisher === 'DU') {
+    // Klucze bez wydawcy zostaja dla zgodnosci: czyta je raport vacatio legis.
+    $db->setMeta('acts_fetched_at', $fetchedAt);
+    $db->setMeta('acts_range', sprintf('%s %d-%d', $publisher, $from, $to));
+}
 
 $log(sprintf('Gotowe: %d aktow w %.1fs', $total, microtime(true) - $startedAt));
