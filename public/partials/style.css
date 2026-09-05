@@ -96,7 +96,11 @@
   #term-seg button .yr { display: block; font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.02em; }
   #term-seg button[aria-pressed="true"] .yr { color: var(--ink-2); }
   .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
-  .seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 2px; gap: 2px; }
+  /* Zawijanie, nie przewijanie: filtr klubowy ma trzynascie przyciskow i przy
+     szerokosci telefonu wypychal cala strone w bok o 712 px. Ukrycie ich za
+     przewijaniem poziomym byloby gorsze - czytelnik nie wie, ze cos tam jest. */
+  .seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; background: var(--surface-2);
+         border: 1px solid var(--line); border-radius: 8px; padding: 2px; gap: 2px; }
   .seg button {
     font: inherit; font-size: 13px; border: 0; background: transparent; color: var(--ink-2);
     padding: 5px 11px; border-radius: 6px; cursor: pointer;

@@ -20,7 +20,7 @@ use Milczenie\Report\VacatioBuilder;
 use Milczenie\Storage\Database;
 use Milczenie\Web\PageComposer;
 
-$options = Options::fromGetopt(['from::', 'to::', 'db::', 'out::', 'exclude-technical', 'name::', 'lang::']);
+$options = Options::fromGetopt(['from::', 'to::', 'db::', 'out::', 'exclude-technical', 'name::', 'lang::', 'templates::', 'style-overlay::']);
 
 // Wariant "merytoryczny" odsiewa akty, ktore nie nakladaja obowiazkow na obywateli
 // (obszary Natura 2000, pelnomocnicy rzadu, wybory przedterminowe). Powstaje jako
@@ -54,7 +54,10 @@ $report['podstawy'] = LegalSource::all();
 
 // Wersja polska idzie do public/, kazda inna do podkatalogu jezyka. Dane zostaja
 // te same - roznica jest wylacznie w warstwie tekstu, wiec raport liczy sie raz.
-$composer = new PageComposer($outDir);
+$composer = new PageComposer(
+    rtrim($options->string('templates', __DIR__ . '/../public'), '/'),
+    $options->nullableString('style-overlay'),
+);
 foreach ($options->commaList('lang', ['pl', 'en']) as $lang) {
     $dir = $lang === 'pl' ? $outDir : $outDir . '/' . $lang;
     if (!is_dir($dir)) {

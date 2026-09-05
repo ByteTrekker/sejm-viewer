@@ -1,0 +1,86 @@
+/*
+ * WARIANT: obywatelski
+ *
+ * Zalozenie: czytelnik wchodzi z telefonu, z linku podanego dalej przez kogos
+ * innego, i ma piętnaście sekund. Duza typografia, duzo powietrza, jedna rzecz
+ * na ekranie naraz, status kolorem zamiast liczba w tabeli. Tabela zostaje, ale
+ * przestaje byc bohaterem strony - bohaterem jest liczba i zdanie przy niej.
+ *
+ * Koszt jest jawny: mniej danych na ekran, wiecej przewijania. Kto porownuje
+ * 460 poslow, bedzie tu przewijal dluzej niz w wariancie gestym.
+ */
+:root {
+  --surface-0: #ffffff;
+  --surface-1: #f7f8fa;
+  --surface-2: #eceef2;
+  --line:      #d7dbe2;
+  --line-soft: #e6e9ee;
+  --ink-1:     #0e1621;
+  --ink-2:     #445061;
+  --ink-3:     #6b7789;
+  --series-1:  #1d5fd0;
+  --series-1-soft: #d5e3fb;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface-0: #0c1219;
+    --surface-1: #141c26;
+    --surface-2: #1d2733;
+    --line:      #2b3644;
+    --line-soft: #212b37;
+    --ink-2:     #b3bfcf;
+    --ink-3:     #8492a5;
+    --series-1:  #5f9bff;
+    --series-1-soft: #1b3a63;
+  }
+}
+:root[data-theme="dark"] {
+  --surface-0: #0c1219;
+  --surface-1: #141c26;
+  --surface-2: #1d2733;
+  --line:      #2b3644;
+  --line-soft: #212b37;
+  --ink-2:     #b3bfcf;
+  --ink-3:     #8492a5;
+  --series-1:  #5f9bff;
+  --series-1-soft: #1b3a63;
+}
+
+body { font-size: 17px; line-height: 1.65; }
+.wrap { max-width: 860px; padding: 28px 20px 120px; }
+h1 { font-size: clamp(30px, 7vw, 44px); line-height: 1.08; }
+h2 { font-size: 23px; margin-bottom: 8px; }
+.dek { font-size: 18.5px; line-height: 1.55; max-width: 32em; color: var(--ink-1); }
+.sub { font-size: 16px; max-width: 34em; margin-bottom: 24px; }
+section { margin-top: 64px; }
+
+/* Jedna liczba na wiersz na telefonie - dwie kolumny KPI zmuszaja do mrużenia oczu. */
+.kpis { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.kpi { border-radius: 16px; padding: 22px 24px; border-color: var(--line); }
+.kpi .label { font-size: 13px; text-transform: none; letter-spacing: 0; color: var(--ink-2); font-weight: 600; }
+.kpi .value { font-size: 46px; letter-spacing: -0.035em; margin-top: 8px; }
+.kpi .note { font-size: 14px; margin-top: 6px; }
+
+.card, .scroller, .notice { border-radius: 16px; }
+.caveat { border-radius: 12px; border-left-width: 5px; font-size: 15.5px; padding: 16px 20px; }
+
+/* Duze cele dotykowe: przelaczniki kadencji sa na tej stronie glownym sterowaniem. */
+.seg { border-radius: 12px; padding: 4px; }
+.seg button { padding: 10px 16px; font-size: 15px; border-radius: 9px; min-height: 44px; }
+input[type="search"] { padding: 11px 14px; font-size: 15px; border-radius: 12px; min-height: 44px; min-width: 240px; }
+.crosslink { padding: 9px 16px; font-size: 15px; border-radius: 10px; }
+
+table { font-size: 15px; }
+th, td { padding: 13px 14px; }
+th { font-size: 12.5px; }
+.rank { display: none; }
+th:first-child { display: none; }
+tbody tr:hover { background: var(--series-1-soft); }
+figcaption { font-size: 14px; }
+.stamp { font-size: 12.5px; gap: 6px 14px; }
+
+@media (max-width: 640px) {
+  .wrap { padding-left: 16px; padding-right: 16px; }
+  .kpi .value { font-size: 40px; }
+  th, td { padding: 11px 10px; }
+}
