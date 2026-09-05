@@ -113,18 +113,27 @@ przypis: liczba bez tego kontekstu krzywdzi konkretne osoby.
 * **Style, rdzeń JS i nawigacja żyją w `public/partials/`**, nigdy w szablonie
   strony. Zanim to powstało, dwa szablony niosły 173 z 183 linii identycznego
   stylu i każda poprawka wymagała dwóch edycji.
-* **Warianty interfejsu to nakładki na bazowy arkusz**, nie jego kopie.
-  `public/partials/warianty/<nazwa>.css` doklejany jest po `style.css`, więc w pliku
-  wariantu widać wyłącznie to, co dany kierunek naprawdę zmienia. `make warianty`
-  buduje każdy jako pełny, przeklikiwalny serwis w `public/warianty/<nazwa>/`
-  wraz ze stroną porównawczą — kierunek wizualny wybiera się na prawdziwych
-  danych, bo dopiero na nich widać, czy układ znosi tabelę 499 wierszy.
-  **Każdy wariant ma opisane założenie i koszt**; kierunek bez podanego kosztu
-  jest zwykle kierunkiem nieprzemyślanym do końca.
+* **Kierunek wizualny: obywatelski.** Odbiorcą jest czytelnik na telefonie,
+  z linku podanego dalej przez kogoś innego. Stąd 17 px bazy, kolumna tekstu
+  32 em, cele dotykowe 44 px i duże liczby. Koszt jest jawny i zaakceptowany:
+  kto porównuje 460 posłów, przewija tu dłużej niż w układzie gęstym.
+  Wybrany spośród trzech kierunków zbudowanych na pełnych danych — makieta
+  nie pokazałaby, czy układ znosi tabelę 499 wierszy.
+* **Poniżej 860 px tabela przestaje być tabelą.** Każdy wiersz staje się kartą,
+  a etykieta kolumny wraca przy każdej wartości (`data-etykieta`, ustawiane
+  przez `sortableTable`; strona vacatio renderuje wiersze sama i robi to samo).
+  Przewijanie poziome działało, ale wymaga od czytelnika, żeby domyślił się,
+  że coś jest po prawej. **Nowa strona z własnym renderowaniem wierszy musi
+  ustawić `data-etykieta`**, inaczej na telefonie pokaże kolumnę liczb bez opisu.
+* **Proza wąska, dane szerokie.** Od 980 px tabele i wykresy wychodzą poza
+  kolumnę tekstu na środek okna: akapit i tabela mają inną optymalną szerokość.
+* **Nawigacja zwija się poniżej 860 px** pod jawny przycisk. Stanem rządzi
+  `data-menu` na `<nav>`, a nie `<details>` — natywnego chowania treści
+  `<details>` nie da się nadpisać stylem, więc przy złym odczycie szerokości
+  nawigacja znikała także na biurku. Bez JavaScriptu zostaje pełna lista.
 * **Katalog źródeł jest inny niż katalog wyjściowy.** `PageComposer` czyta
   `pages/` i `partials/` z katalogu podanego jako `--templates`, a zapisuje tam,
-  gdzie wskazuje `--out`. Wcześniej był to jeden katalog, więc budowanie gdzie
-  indziej wymagało kopiowania szablonów.
+  gdzie wskazuje `--out`.
 * **Dane wstrzykiwane inline** do wygenerowanego HTML-a. Strona ma działać
   z `file://`, bez serwera i bez CDN-a.
 * Wygenerowane pliki (`public/*.html` poza szablonami, `public/*.json`,

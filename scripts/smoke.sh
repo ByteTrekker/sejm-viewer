@@ -326,6 +326,23 @@ grep -q 'href="../interpelacje.html" hreflang="pl"' "$out/en/interpelacje.html" 
     || { echo "BŁĄD: przełącznik na stronie angielskiej nie prowadzi do tej samej strony"; exit 1; }
 echo "OK   przełącznik języka prowadzi do tego samego dokumentu"
 
+# Uklad kartowy na telefonie stoi na etykietach kolumn niesionych przez komorki.
+# Strona z wlasnym renderowaniem wierszy latwo o nich zapomni, a wtedy czytelnik
+# na telefonie dostaje kolumne liczb bez informacji, co znacza.
+for f in sklad.html interpelacje.html vacatio.html; do
+    grep -q 'data-etykieta' "$out/$f" \
+        || { echo "BŁĄD: $f nie niesie etykiet kolumn (data-etykieta)"; exit 1; }
+done
+echo "OK   komórki tabel niosą etykiety kolumn dla układu kartowego"
+
+# Nawigacja bez JavaScriptu ma zostac pelna: przycisk zwijania pokazuje sie
+# dopiero, gdy skrypt oznaczy nawigacje atrybutem data-menu.
+grep -q 'class="menu-toggle"' "$out/index.html" \
+    || { echo "BŁĄD: brak przycisku zwijania nawigacji"; exit 1; }
+grep -q 'nav.pages\[data-menu\]' "$out/index.html" \
+    || { echo "BŁĄD: przycisk nawigacji nie jest ukryty do czasu włączenia skryptem"; exit 1; }
+echo "OK   nawigacja zwijana tylko przy działającym skrypcie"
+
 # Profile leza w podkatalogu, wiec ich nawigacja musi byc przedrostkowana.
 profil=$(ls "$out"/posel/*.html 2>/dev/null | head -1)
 if [ -n "$profil" ]; then

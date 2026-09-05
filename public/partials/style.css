@@ -1,15 +1,24 @@
+  /*
+   * Kierunek obywatelski: czytelnik wchodzi z telefonu, z linku podanego dalej
+   * przez kogos innego, i ma pietnascie sekund. Duza typografia, duzo powietrza,
+   * duze cele dotykowe. Koszt jest jawny - kto porownuje 460 poslow, przewija
+   * tu dluzej niz przewijalby w ukladzie gestym.
+   *
+   * ink-3 jest o 3% ciemniejszy niz w pierwotnym wariancie: na karcie dawal
+   * 4,27:1, a przypisy i podpisy pod wykresami sa malym tekstem i musza miec 4,5.
+   */
   :root {
     color-scheme: light;
-    --surface-0: #f6f5f2;
-    --surface-1: #fcfcfb;
-    --surface-2: #efeeea;
-    --line:      #dedcd5;
-    --line-soft: #e9e7e1;
-    --ink-1:     #14140f;
-    --ink-2:     #52514e;
-    --ink-3:     #7d7b73;
-    --series-1:  #2a78d6;
-    --series-1-soft: #cde2fb;
+    --surface-0: #ffffff;
+    --surface-1: #f7f8fa;
+    --surface-2: #eceef2;
+    --line:      #d7dbe2;
+    --line-soft: #e6e9ee;
+    --ink-1:     #0e1621;
+    --ink-2:     #445061;
+    --ink-3:     #687385;
+    --series-1:  #1d5fd0;
+    --series-1-soft: #d5e3fb;
     --good:      #0ca30c;
     --warning:   #fab219;
     --serious:   #ec835a;
@@ -20,30 +29,30 @@
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --surface-0: #131312;
-      --surface-1: #1a1a19;
-      --surface-2: #232322;
-      --line:      #343431;
-      --line-soft: #2a2a28;
+      --surface-0: #0c1219;
+      --surface-1: #141c26;
+      --surface-2: #1d2733;
+      --line:      #2b3644;
+      --line-soft: #212b37;
       --ink-1:     #ffffff;
-      --ink-2:     #c3c2b7;
-      --ink-3:     #8d8c83;
-      --series-1:  #3987e5;
-      --series-1-soft: #184f95;
+      --ink-2:     #b3bfcf;
+      --ink-3:     #8492a5;
+      --series-1:  #5f9bff;
+      --series-1-soft: #1b3a63;
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --surface-0: #131312;
-    --surface-1: #1a1a19;
-    --surface-2: #232322;
-    --line:      #343431;
-    --line-soft: #2a2a28;
+    --surface-0: #0c1219;
+    --surface-1: #141c26;
+    --surface-2: #1d2733;
+    --line:      #2b3644;
+    --line-soft: #212b37;
     --ink-1:     #ffffff;
-    --ink-2:     #c3c2b7;
-    --ink-3:     #8d8c83;
-    --series-1:  #3987e5;
-    --series-1-soft: #184f95;
+    --ink-2:     #b3bfcf;
+    --ink-3:     #8492a5;
+    --series-1:  #5f9bff;
+    --series-1-soft: #1b3a63;
   }
 
   * { box-sizing: border-box; }
@@ -52,32 +61,33 @@
     background: var(--surface-0);
     color: var(--ink-1);
     font-family: var(--sans);
-    font-size: 15px;
-    line-height: 1.55;
+    font-size: 17px;
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 40px 20px 96px; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 28px 20px 120px; }
 
   header.masthead { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 32px; }
-  h1 { font-size: clamp(28px, 4.5vw, 42px); line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 10px; }
-  .dek { color: var(--ink-2); max-width: 62ch; margin: 0 0 16px; font-size: 16px; }
-  .stamp { font-family: var(--mono); font-size: 12px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+  h1 { font-size: clamp(30px, 7vw, 44px); line-height: 1.08; letter-spacing: -0.02em; margin: 0 0 10px; }
+  .dek { color: var(--ink-1); max-width: 32em; margin: 0 0 16px; font-size: 18.5px; line-height: 1.55; }
+  .stamp { font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 18px; }
   .stamp a { color: var(--ink-3); }
 
-  section { margin: 48px 0 0; }
-  h2 { font-size: 20px; letter-spacing: -0.01em; margin: 0 0 4px; }
-  .sub { color: var(--ink-2); font-size: 14px; margin: 0 0 20px; max-width: 70ch; }
+  section { margin: 64px 0 0; }
+  h2 { font-size: 23px; letter-spacing: -0.01em; margin: 0 0 8px; }
+  .sub { color: var(--ink-2); font-size: 16px; margin: 0 0 24px; max-width: 34em; }
 
   /* --- KPI --- */
-  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
-  .kpi { background: var(--surface-1); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
-  .kpi .label { font-size: 12px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.06em; }
-  .kpi .value { font-size: 34px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.15; margin-top: 6px; font-variant-numeric: tabular-nums; }
-  .kpi .note { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .kpi { background: var(--surface-1); border: 1px solid var(--line); border-radius: 16px; padding: 22px 24px; }
+  .kpi .label { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+  .kpi .value { font-size: clamp(30px, 5.4vw, 46px); font-weight: 600; letter-spacing: -0.035em; line-height: 1.1;
+                margin-top: 8px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .kpi .note { font-size: 14px; color: var(--ink-3); margin-top: 6px; }
 
   /* --- controls --- */
-  .crosslink { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2);
-               text-decoration: none; border: 1px solid var(--line); border-radius: 8px; padding: 5px 11px;
+  .crosslink { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; color: var(--ink-2);
+               text-decoration: none; border: 1px solid var(--line); border-radius: 10px; padding: 9px 16px;
                background: var(--surface-1); margin-top: 14px; }
   .crosslink:hover { border-color: var(--series-1); color: var(--ink-1); }
   nav.toc { position: sticky; top: 0; z-index: 30; background: color-mix(in srgb, var(--surface-0) 92%, transparent);
@@ -85,8 +95,8 @@
   nav.toc ul { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; padding: 0; }
   nav.toc a { font-size: 12.5px; color: var(--ink-2); text-decoration: none; padding: 3px 0; white-space: nowrap; }
   nav.toc a:hover { color: var(--ink-1); border-bottom: 1px solid var(--series-1); }
-  .caveat { border-left: 3px solid var(--warning); background: var(--surface-1); border-radius: 0 8px 8px 0;
-            padding: 12px 16px; margin: 0 0 18px; font-size: 13.5px; color: var(--ink-2); }
+  .caveat { border-left: 5px solid var(--warning); background: var(--surface-1); border-radius: 0 12px 12px 0;
+            padding: 16px 20px; margin: 0 0 18px; font-size: 15.5px; color: var(--ink-2); }
   .caveat b { color: var(--ink-1); }
   .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   @media (max-width: 760px) { .duo { grid-template-columns: 1fr; } }
@@ -100,28 +110,30 @@
      szerokosci telefonu wypychal cala strone w bok o 712 px. Ukrycie ich za
      przewijaniem poziomym byloby gorsze - czytelnik nie wie, ze cos tam jest. */
   .seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; background: var(--surface-2);
-         border: 1px solid var(--line); border-radius: 8px; padding: 2px; gap: 2px; }
+         border: 1px solid var(--line); border-radius: 12px; padding: 4px; gap: 2px; }
+  /* 44 px to najmniejszy cel, ktory palec trafia bez celowania. Przelaczniki
+     kadencji sa na tych stronach glownym sterowaniem, wiec musza go miec. */
   .seg button {
-    font: inherit; font-size: 13px; border: 0; background: transparent; color: var(--ink-2);
-    padding: 5px 11px; border-radius: 6px; cursor: pointer;
+    font: inherit; font-size: 15px; border: 0; background: transparent; color: var(--ink-2);
+    padding: 10px 16px; border-radius: 9px; cursor: pointer; min-height: 44px;
   }
   .seg button[aria-pressed="true"] { background: var(--surface-1); color: var(--ink-1); box-shadow: 0 1px 2px rgba(0,0,0,.10); }
   input[type="search"] {
-    font: inherit; font-size: 13px; padding: 6px 10px; border-radius: 8px;
-    border: 1px solid var(--line); background: var(--surface-1); color: var(--ink-1); min-width: 200px;
+    font: inherit; font-size: 15px; padding: 11px 14px; border-radius: 12px; min-height: 44px;
+    border: 1px solid var(--line); background: var(--surface-1); color: var(--ink-1); min-width: 240px;
   }
 
   /* --- table --- */
-  .scroller { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-1); }
-  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
-  th, td { text-align: right; padding: 9px 12px; white-space: nowrap; border-bottom: 1px solid var(--line-soft); }
-  th { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-2); font-weight: 600; position: sticky; top: 0; background: var(--surface-1); }
+  .scroller { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; background: var(--surface-1); }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td { text-align: right; padding: 13px 14px; white-space: nowrap; border-bottom: 1px solid var(--line-soft); }
+  th { font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-2); font-weight: 600; position: sticky; top: 0; background: var(--surface-1); }
   th.sortable { cursor: pointer; user-select: none; }
   th.sortable:hover { color: var(--ink-1); }
   th[aria-sort]::after { content: " ▾"; color: var(--series-1); }
   td:nth-child(2), th:nth-child(2) { text-align: left; white-space: normal; min-width: 230px; }
   tbody tr:last-child td { border-bottom: 0; }
-  tbody tr:hover { background: var(--surface-2); }
+  tbody tr:hover { background: var(--series-1-soft); }
   .num { font-variant-numeric: tabular-nums; }
   .rank { color: var(--ink-3); font-variant-numeric: tabular-nums; width: 34px; text-align: right; }
 
@@ -138,16 +150,16 @@
   :root[data-theme="dark"] .pill.serious { color: var(--serious); }
 
   .thin { color: var(--ink-3); }
-  .card { background: var(--surface-1); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+  .card { background: var(--surface-1); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
   figure { margin: 0; }
-  figcaption { font-size: 12.5px; color: var(--ink-3); margin-top: 10px; }
+  figcaption { font-size: 14px; color: var(--ink-3); margin-top: 10px; }
   svg { display: block; width: 100%; height: auto; overflow: visible; }
   .grid line { stroke: var(--line-soft); stroke-width: 1; }
   .axis text { fill: var(--ink-3); font-size: 11px; font-family: var(--mono); }
   .serieslabel { fill: var(--ink-2); font-size: 12px; }
 
-  .notice { margin: 40px 0 0; border: 1px solid var(--line); border-left: 3px solid var(--critical);
-            border-radius: 10px; background: var(--surface-1); padding: 18px 20px; }
+  .notice { margin: 40px 0 0; border: 1px solid var(--line); border-left: 5px solid var(--critical);
+            border-radius: 16px; background: var(--surface-1); padding: 18px 20px; }
   .notice h3 { margin: 0 0 8px; font-size: 16px; }
   .notice p { margin: 0 0 10px; color: var(--ink-2); font-size: 14px; max-width: 74ch; }
   .notice p:last-child { margin-bottom: 0; }
@@ -159,7 +171,12 @@
   details.method li { margin-bottom: 8px; }
 
   ul.worst { list-style: none; padding: 0; margin: 0; }
-  ul.worst li { border-bottom: 1px solid var(--line-soft); padding: 11px 0; display: grid; grid-template-columns: 76px 1fr; gap: 14px; align-items: baseline; }
+  /* minmax(0, 1fr), nie 1fr: domyslnie sciezka siatki nie zwezy sie ponizej
+     zawartosci, wiec dlugi tytul interpelacji rozpychal cala strone na
+     telefonie o 360 px zamiast sie zawinac. */
+  ul.worst li { border-bottom: 1px solid var(--line-soft); padding: 11px 0; display: grid;
+                grid-template-columns: 76px minmax(0, 1fr); gap: 14px; align-items: baseline; }
+  ul.worst li > span, ul.worst li > span * { overflow-wrap: anywhere; }
   ul.worst li:last-child { border-bottom: 0; }
   ul.worst .days { font-family: var(--mono); font-size: 13px; color: var(--critical); text-align: right; font-variant-numeric: tabular-nums; }
   ul.worst a { color: var(--ink-1); text-decoration: none; border-bottom: 1px solid var(--line); }
@@ -197,6 +214,12 @@
   /* --- nawigacja miedzy stronami --- */
   nav.pages { border-bottom: 1px solid var(--line); margin-bottom: 28px; }
   nav.pages ul { list-style: none; display: flex; flex-wrap: wrap; gap: 2px 4px; margin: 0; padding: 0 0 10px; }
+  /* Przycisk zwijania pokazuje sie dopiero, gdy skrypt oznaczy nawigacje jako
+     obsluzona (data-menu). Bez JavaScriptu nie ma ani przycisku, ani chowania -
+     zostaje pelna lista, czyli to, co bylo. Probowalem tego na <details>: stanu
+     tresci nie da sie nadpisac deklaracja display, wiec na szerokim ekranie
+     nawigacja znikala, gdy skrypt zle odczytal szerokosc w chwili startu. */
+  nav.pages .menu-toggle { display: none; }
   nav.pages a {
     display: block; font-size: 13.5px; text-decoration: none; color: var(--ink-2);
     padding: 6px 12px; border-radius: 7px;
@@ -223,12 +246,18 @@
   .tile.muted .t-figure { color: var(--ink-3); font-size: 20px; }
 
   /* --- macierz zgodnosci klubow --- */
-  .matrix-wrap { overflow-x: auto; }
+  /* Macierz jest szersza niz telefon i przewija sie w swoim pojemniku. Etykiety
+     klubow sa obrocone o 45 stopni i wychodza poza ramke rysunku, a przy
+     svg { overflow: visible } ten wystep dokladal 4 px przewijania calej stronie.
+     Przycinamy w pionie, zeby obrocone napisy nie znikaly. */
+  .matrix-wrap { overflow-x: auto; overflow-y: hidden; }
+  .matrix-wrap svg { overflow: hidden; }
   .matrix text.lbl { font-size: 11px; fill: var(--ink-2); font-family: var(--sans); }
   .matrix text.val { font-size: 11px; font-family: var(--mono); font-variant-numeric: tabular-nums; }
   .matrix rect.cell { stroke: var(--surface-1); stroke-width: 2; }
   .matrix rect.diag { fill: var(--surface-2); }
-  .legend { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+  .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px;
+            font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
   .legend .swatches { display: flex; }
   .legend .swatches i { width: 20px; height: 12px; display: block; }
 
@@ -256,3 +285,93 @@
   nav.pages .langs a:hover { background: var(--surface-2); color: var(--ink-1); }
   nav.pages .langs span[aria-current] { background: var(--surface-1); color: var(--ink-1); }
   nav.pages ul { flex: 1; }
+
+  /* --- telefon: tabela przestaje byc tabela --- */
+  /*
+   * Ponizej 860 px kazdy wiersz staje sie karta, a etykieta kolumny wraca przy
+   * kazdej wartosci. Przewijanie poziome w .scroller dzialalo, ale wymaga od
+   * czytelnika, zeby domyslil sie, ze cos jest po prawej - a to jest wlasnie
+   * ten czytelnik, ktory ma pietnascie sekund i wszedl z linku.
+   *
+   * Nazwisko (druga komorka) zostaje naglowkiem karty: bez etykiety, wieksze,
+   * na pelnej szerokosci. Numer pozycji zostaje widoczny, bo w rankingu niesie
+   * tresc - to on jest odpowiedzia na pytanie "ktore to miejsce".
+   */
+  @media (max-width: 860px) {
+    /* Nawigacja to jedenascie pozycji. W ukladzie obywatelskim zajmowala 200 px
+       z 812 - jedna czwarta ekranu telefonu, zanim czytelnik zobaczyl cokolwiek.
+       Ciasniej i mniejszym stopniem, ale nadal zawijana: pozycja schowana za
+       przewijaniem poziomym to pozycja, o ktorej czytelnik nie wie. */
+    nav.pages ul { gap: 0 2px; padding-bottom: 6px; }
+    nav.pages a { font-size: 15px; padding: 8px 10px; }
+    nav.pages .brand { padding: 8px 9px 4px; font-size: 10.5px; }
+    nav.pages { margin-bottom: 20px; }
+    nav.pages[data-menu] .menu-toggle {
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+      min-height: 44px; padding: 0 10px; font: inherit; font-size: 15px;
+      color: var(--ink-2); background: transparent; border: 0;
+    }
+    nav.pages .menu-toggle::after { content: "▾"; color: var(--ink-3); }
+    nav.pages[data-menu="rozwiniete"] .menu-toggle::after { content: "▴"; }
+    nav.pages[data-menu="zwiniete"] #menu-list { display: none; }
+
+
+    /* Dwie karty w rzedzie zamiast jednej: cztery wskazniki jedna kolumna to
+       cztery ekrany przewijania, a liczba i tak jest czytelna przy 30 px. */
+    .kpis { grid-template-columns: repeat(auto-fit, minmax(min(100%, 158px), 1fr)); gap: 12px; }
+    .kpi { padding: 16px 18px; border-radius: 14px; }
+    .kpi .note { font-size: 13px; }
+
+    .scroller { overflow-x: visible; border: 0; background: transparent; border-radius: 0; }
+    table, tbody, tr, td { display: block; width: auto; }
+    /* display: block jest tu konieczne, nie kosmetyczne: na grupie tabelarycznej
+       overflow nie obowiazuje, wiec naglowki nadal wystawaly i dokladaly stronie
+       4 px przewijania w bok mimo clip-path. */
+    thead { display: block; position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    tbody tr {
+      background: var(--surface-1); border: 1px solid var(--line); border-radius: 14px;
+      padding: 14px 16px; margin-bottom: 12px; position: relative;
+    }
+    tbody tr:hover { background: var(--surface-1); }
+    td { border: 0; padding: 3px 0; text-align: right; white-space: normal;
+         display: flex; gap: 16px; align-items: baseline; justify-content: space-between; }
+    td::before {
+      content: attr(data-etykieta); text-align: left; color: var(--ink-3);
+      font-size: 13.5px; font-weight: 500; flex: 0 1 auto;
+    }
+    td.rank { position: absolute; top: 14px; right: 16px; padding: 0; color: var(--ink-3); font-size: 13.5px; }
+    td.rank::before { content: none; }
+    td:nth-child(2) { min-width: 0; display: block; font-size: 18px; font-weight: 600;
+                      text-align: left; padding: 0 44px 8px 0; }
+    td:nth-child(2)::before { content: none; }
+    td:nth-child(2) .who { display: block; font-size: 14px; font-weight: 400; }
+    /* Znacznik przy nazwisku ("mandat wygasl") schodzi do wlasnej linii, zamiast
+       lamac sie w polowie obok imienia. Nie robimy tego przez nowrap: znaczniki
+       bywaja dlugie ("brak odnosnika do odpowiedzi w API") i wtedy nowrap
+       rozpychal cala strone o 56 px na ekranie 320 px. */
+    td:nth-child(2) .tag { display: inline-block; margin-top: 4px; }
+  }
+
+  /* --- klawiatura --- */
+  /* Cel dotykowy ma 44 px, ale kto chodzi po stronie tabulatorem, musi widziec,
+     gdzie jest. Domyslny pierscien przegladarki znika na kolorowym tle. */
+  :focus-visible {
+    outline: 3px solid var(--series-1);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* --- proza waska, dane szerokie --- */
+  /*
+   * Kolumna tekstu ma 860 px, bo dluzszy wiersz czyta sie gorzej. Tabela z
+   * dziewiecioma kolumnami sie w niej nie miesci i jechala w bok nawet na
+   * biurku. Od 980 px dane wychodza poza kolumne tekstu na srodek okna -
+   * czytelnik dostaje szeroka tabele i waski akapit naraz, bo jedno i drugie
+   * ma inna optymalna szerokosc.
+   */
+  @media (min-width: 980px) {
+    .scroller, .card {
+      width: min(1180px, calc(100vw - 48px));
+      margin-inline: calc((860px - min(1180px, 100vw - 48px)) / 2);
+    }
+  }

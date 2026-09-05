@@ -183,7 +183,15 @@ function sortableTable(cfg) {
   body.replaceChildren(...rows.map((r, i) => {
     const tr = el('tr', {}, el('td', { class: 'rank', text: String(i + 1) }));
     cfg.columns.forEach(c => {
-      if (c.render) { tr.append(c.render(r)); return; }
+      // Etykieta kolumny jedzie z komorka. Ponizej 640 px tabela rozklada sie na
+      // karty i nagłówek znika z pola widzenia - bez tego czytelnik widzi kolumne
+      // liczb bez informacji, co one znacza. CSS bierze ja przez attr().
+      if (c.render) {
+        const td = c.render(r);
+        td.setAttribute('data-etykieta', c.label);
+        tr.append(td);
+        return;
+      }
       const v = r[c.key];
       let text = '—';
       if (v !== null && v !== undefined) {
@@ -192,7 +200,7 @@ function sortableTable(cfg) {
         else if (c.type === 'int') text = fmtInt(v);
         else text = String(v);
       }
-      tr.append(el('td', { class: c.type === 'text' ? '' : 'num', text }));
+      tr.append(el('td', { class: c.type === 'text' ? '' : 'num', text, 'data-etykieta': c.label }));
     });
     if (cfg.tip) bindTip(tr, () => cfg.tip(r));
     return tr;
@@ -235,6 +243,41 @@ function legalFooter() {
 
   return row;
 }
+
+/* ---------- nawigacja na waskim ekranie ---------- */
+/**
+ * Jedenascie pozycji nawigacji zajmowalo na telefonie 240 z 812 px, zanim
+ * czytelnik zobaczyl cokolwiek. Ponizej 860 px chowamy je pod jawny przycisk.
+ *
+ * Widocznoscia rzadzi nasz wlasny selektor, a nie natywne <details>: tamtego
+ * nie da sie nadpisac stylem, wiec przy zlym odczycie szerokosci nawigacja
+ * znikala takze na biurku.
+ *
+ * Przycisk pojawia sie dopiero, gdy ten kod ustawi data-menu, wiec bez
+ * JavaScriptu zostaje pelna lista - stan sprzed zmiany, a nie strona bez menu.
+ */
+(() => {
+  const nav = document.querySelector('nav.pages');
+  const toggle = nav?.querySelector('.menu-toggle');
+  if (!nav || !toggle) return;
+
+  const ustaw = (rozwiniete) => {
+    nav.dataset.menu = rozwiniete ? 'rozwiniete' : 'zwiniete';
+    toggle.setAttribute('aria-expanded', String(rozwiniete));
+  };
+
+  // Startujemy zwinieci i NIE pytamy o szerokosc. Powyzej 860 px regula chowajaca
+  // liste nie obowiazuje, wiec atrybut jest tam bez znaczenia, a przycisku nie
+  // widac. Odczyt szerokosci w chwili startu bywal falszywy - ramka albo panel
+  // podgladu potrafily zwrocic szerokosc sprzed ulozenia strony - i nawigacja
+  // ladowala zwinieta na biurku.
+  ustaw(false);
+
+  toggle.addEventListener('click', () => ustaw(nav.dataset.menu !== 'rozwiniete'));
+
+  // Po przekroczeniu progu wracamy do stanu domyslnego dla nowej szerokosci.
+  window.matchMedia('(max-width: 860px)').addEventListener('change', e => ustaw(!e.matches));
+})();
 
 /* ---------- etykiety wartosci nadawanych przez nas, nie przez API ---------- */
 /**

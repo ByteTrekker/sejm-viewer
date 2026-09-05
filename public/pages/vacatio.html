@@ -267,19 +267,28 @@ function renderTable() {
   rows.forEach((r, i) => {
     const tr = el('tr', {}, el('td', { class: 'rank', text: String(i + 1) }));
     COLUMNS.forEach(c => {
-      if (c.key === 'nazwa') { tr.append(el('td', { text: r.nazwa })); return; }
+      // Etykieta kolumny jedzie z komorka: ponizej 860 px tabela rozklada sie
+      // na karty i naglowek znika. Ta strona ma wlasne renderowanie wierszy,
+      // wiec ten sam zabieg trzeba tu powtorzyc.
+      const komorka = (...dzieci) => {
+        const td = el('td', ...dzieci);
+        td.setAttribute('data-etykieta', c.label);
+        return td;
+      };
+
+      if (c.key === 'nazwa') { tr.append(komorka({ text: r.nazwa })); return; }
       if (c.key === metricCol.key) {
         const v = r[c.key] ?? 0;
         const fill = el('div', { class: 'barfill' });
         fill.style.width = Math.max(2, (100 * v) / scale) + '%';
         const text = c.type === 'pct' ? fmtPct(v, 0) : (c.type === 'days' ? v + ' d' : v.toLocaleString(LOCALE));
-        tr.append(el('td', {}, el('div', { class: 'barcell' },
+        tr.append(komorka({}, el('div', { class: 'barcell' },
           el('div', { class: 'bartrack' }, fill), el('span', { class: 'barval', text }))));
         return;
       }
       const v = r[c.key];
       if (c.key === 'wskaznik_pospiechu') {
-        tr.append(el('td', {}, el('span', { class: 'pill ' + scoreClass(v), text: v.toLocaleString(LOCALE) })));
+        tr.append(komorka({}, el('span', { class: 'pill ' + scoreClass(v), text: v.toLocaleString(LOCALE) })));
         return;
       }
       let text = '—';
@@ -289,7 +298,7 @@ function renderTable() {
         else if (c.type === 'int') text = fmtInt(v);
         else text = String(v);
       }
-      tr.append(el('td', { class: 'num', text }));
+      tr.append(komorka({ class: 'num', text }));
     });
 
     bindTip(tr, () => `<b>${r.nazwa}</b>
